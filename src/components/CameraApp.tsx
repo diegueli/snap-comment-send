@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback } from 'react';
 import { Camera, RotateCcw, Send, Trash2, MessageCircle, Plus, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -388,6 +389,20 @@ const CameraApp = () => {
                   </div>
                 ))}
               </div>
+
+              {/* Add Photo Button */}
+              {currentPhotos.length < 3 && (
+                <div className="mb-4">
+                  <Button
+                    onClick={startCamera}
+                    variant="outline"
+                    className="w-full border-2 border-dashed border-purple-300 text-purple-600 hover:border-purple-500 hover:text-purple-700 hover:bg-purple-50"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Photo ({currentPhotos.length}/3)
+                  </Button>
+                </div>
+              )}
               
               {/* Current Comment */}
               <Textarea
