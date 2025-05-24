@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback } from 'react';
 import { Camera, RotateCcw, Send, Trash2, MessageCircle, Plus, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -112,6 +111,28 @@ const CameraApp = () => {
       title: "Photo deleted",
       description: "Photo removed from current set.",
     });
+  }, []);
+
+  const deletePhotoFromSet = useCallback((setId: string, photoId: string) => {
+    setPhotoSets(prev => prev.map(set => {
+      if (set.id === setId) {
+        const updatedPhotos = set.photos.filter(photo => photo.id !== photoId);
+        if (updatedPhotos.length === 0) {
+          // If no photos left, remove the entire set
+          toast({
+            title: "Photo set deleted",
+            description: "Set removed as it had no remaining photos.",
+          });
+          return null;
+        }
+        toast({
+          title: "Photo deleted",
+          description: "Photo removed from set.",
+        });
+        return { ...set, photos: updatedPhotos };
+      }
+      return set;
+    }).filter(Boolean) as PhotoSet[]);
   }, []);
 
   const saveCurrentSet = useCallback(() => {
@@ -413,12 +434,21 @@ const CameraApp = () => {
                   </div>
                   <div className="grid grid-cols-3 gap-1 mb-2">
                     {set.photos.map((photo) => (
-                      <img
-                        key={photo.id}
-                        src={photo.dataUrl}
-                        alt="Set photo"
-                        className="w-full aspect-square object-cover rounded"
-                      />
+                      <div key={photo.id} className="relative group">
+                        <img
+                          src={photo.dataUrl}
+                          alt="Set photo"
+                          className="w-full aspect-square object-cover rounded"
+                        />
+                        <Button
+                          onClick={() => deletePhotoFromSet(set.id, photo.id)}
+                          size="sm"
+                          variant="destructive"
+                          className="absolute top-1 right-1 w-5 h-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="w-2 h-2" />
+                        </Button>
+                      </div>
                     ))}
                   </div>
                   {set.comment && (
