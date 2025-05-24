@@ -1,10 +1,11 @@
 
 import React, { useState, useRef, useCallback } from 'react';
-import { Camera, RotateCcw, Send, Trash2, MessageCircle } from 'lucide-react';
+import { Camera, RotateCcw, Send, Trash2, MessageCircle, Plus, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
 
 interface CapturedPhoto {
   id: string;
@@ -12,9 +13,17 @@ interface CapturedPhoto {
   timestamp: Date;
 }
 
+interface PhotoSet {
+  id: string;
+  photos: CapturedPhoto[];
+  comment: string;
+  timestamp: Date;
+}
+
 const CameraApp = () => {
-  const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
-  const [comment, setComment] = useState('');
+  const [currentPhotos, setCurrentPhotos] = useState<CapturedPhoto[]>([]);
+  const [currentComment, setCurrentComment] = useState('');
+  const [photoSets, setPhotoSets] = useState<PhotoSet[]>([]);
   const [isCapturing, setIsCapturing] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -54,11 +63,11 @@ const CameraApp = () => {
   }, [stream]);
 
   const capturePhoto = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current || photos.length >= 3) {
-      if (photos.length >= 3) {
+    if (!videoRef.current || !canvasRef.current || currentPhotos.length >= 3) {
+      if (currentPhotos.length >= 3) {
         toast({
           title: "Maximum photos reached",
-          description: "You can only take up to 3 photos.",
+          description: "You can only take up to 3 photos per set.",
           variant: "destructive",
         });
       }
@@ -81,63 +90,181 @@ const CameraApp = () => {
         timestamp: new Date()
       };
 
-      setPhotos(prev => [...prev, newPhoto]);
+      setCurrentPhotos(prev => [...prev, newPhoto]);
       toast({
         title: "Photo captured!",
-        description: `Photo ${photos.length + 1}/3 saved`,
+        description: `Photo ${currentPhotos.length + 1}/3 saved`,
       });
 
-      if (photos.length + 1 >= 3) {
+      if (currentPhotos.length + 1 >= 3) {
         stopCamera();
         toast({
           title: "All photos captured",
-          description: "You can now add a comment and send via email.",
+          description: "You can now add a comment and save this set.",
         });
       }
     }
-  }, [photos.length, stopCamera]);
+  }, [currentPhotos.length, stopCamera]);
 
   const deletePhoto = useCallback((photoId: string) => {
-    setPhotos(prev => prev.filter(photo => photo.id !== photoId));
+    setCurrentPhotos(prev => prev.filter(photo => photo.id !== photoId));
     toast({
       title: "Photo deleted",
-      description: "Photo removed from your collection.",
+      description: "Photo removed from current set.",
     });
   }, []);
 
-  const sendEmail = useCallback(() => {
-    if (photos.length === 0) {
+  const saveCurrentSet = useCallback(() => {
+    if (currentPhotos.length === 0) {
       toast({
-        title: "No photos to send",
+        title: "No photos to save",
         description: "Please capture at least one photo first.",
         variant: "destructive",
       });
       return;
     }
 
-    // Create email content
-    const subject = `Photo Collection - ${new Date().toLocaleDateString()}`;
-    const body = `Hi there!\n\nI'm sharing ${photos.length} photo(s) with you.\n\nComment: ${comment || 'No comment provided'}\n\nPhotos captured on: ${new Date().toLocaleString()}\n\nBest regards!`;
-    
-    // Create mailto link
-    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    
-    // Open default email client
-    window.location.href = mailtoLink;
+    const newSet: PhotoSet = {
+      id: Date.now().toString(),
+      photos: [...currentPhotos],
+      comment: currentComment,
+      timestamp: new Date()
+    };
+
+    setPhotoSets(prev => [...prev, newSet]);
+    setCurrentPhotos([]);
+    setCurrentComment('');
     
     toast({
-      title: "Email client opened",
-      description: "Your default email app should open with the photo details.",
+      title: "Photo set saved!",
+      description: `Set with ${newSet.photos.length} photo(s) added to document.`,
     });
-  }, [photos, comment]);
+  }, [currentPhotos, currentComment]);
+
+  const deletePhotoSet = useCallback((setId: string) => {
+    setPhotoSets(prev => prev.filter(set => set.id !== setId));
+    toast({
+      title: "Photo set deleted",
+      description: "Set removed from document.",
+    });
+  }, []);
+
+  const generatePDF = useCallback(async () => {
+    if (photoSets.length === 0) {
+      toast({
+        title: "No photo sets to export",
+        description: "Please create at least one photo set first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const pdf = new jsPDF();
+    const pageHeight = pdf.internal.pageSize.height;
+    const pageWidth = pdf.internal.pageSize.width;
+    let yPosition = 20;
+
+    // Title
+    pdf.setFontSize(20);
+    pdf.text('Photo Collection', pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 20;
+
+    pdf.setFontSize(12);
+    pdf.text(`Generated on: ${new Date().toLocaleString()}`, pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 30;
+
+    for (let i = 0; i < photoSets.length; i++) {
+      const set = photoSets[i];
+      
+      // Check if we need a new page
+      if (yPosition > pageHeight - 100) {
+        pdf.addPage();
+        yPosition = 20;
+      }
+
+      // Set header
+      pdf.setFontSize(16);
+      pdf.text(`Photo Set ${i + 1}`, 20, yPosition);
+      yPosition += 15;
+
+      // Add photos
+      for (let j = 0; j < set.photos.length; j++) {
+        const photo = set.photos[j];
+        
+        // Check if we need a new page for photos
+        if (yPosition > pageHeight - 80) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+
+        try {
+          const imgWidth = 60;
+          const imgHeight = 60;
+          pdf.addImage(photo.dataUrl, 'JPEG', 20 + (j * 65), yPosition, imgWidth, imgHeight);
+        } catch (error) {
+          console.error('Error adding image to PDF:', error);
+        }
+      }
+      
+      yPosition += 70;
+
+      // Add comment
+      if (set.comment) {
+        pdf.setFontSize(12);
+        pdf.text('Comment:', 20, yPosition);
+        yPosition += 10;
+        
+        const splitComment = pdf.splitTextToSize(set.comment, pageWidth - 40);
+        pdf.text(splitComment, 20, yPosition);
+        yPosition += splitComment.length * 5 + 10;
+      }
+
+      yPosition += 10;
+    }
+
+    return pdf;
+  }, [photoSets]);
+
+  const sendPDFEmail = useCallback(async () => {
+    try {
+      const pdf = await generatePDF();
+      if (!pdf) return;
+
+      const pdfBlob = pdf.output('blob');
+      const pdfDataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(pdfBlob);
+      });
+
+      const subject = `Photo Collection - ${new Date().toLocaleDateString()}`;
+      const body = `Hi there!\n\nI'm sharing a photo collection with you containing ${photoSets.length} photo set(s).\n\nTotal photos: ${photoSets.reduce((total, set) => total + set.photos.length, 0)}\n\nGenerated on: ${new Date().toLocaleString()}\n\nBest regards!`;
+      
+      const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailtoLink;
+      
+      toast({
+        title: "Email client opened",
+        description: "PDF document details prepared for email.",
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Error generating PDF",
+        description: "There was an issue creating the PDF document.",
+        variant: "destructive",
+      });
+    }
+  }, [photoSets, generatePDF]);
 
   const resetApp = useCallback(() => {
-    setPhotos([]);
-    setComment('');
+    setCurrentPhotos([]);
+    setCurrentComment('');
+    setPhotoSets([]);
     stopCamera();
     toast({
       title: "App reset",
-      description: "All photos and comments cleared.",
+      description: "All photo sets and comments cleared.",
     });
   }, [stopCamera]);
 
@@ -148,10 +275,10 @@ const CameraApp = () => {
         <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
           <CardHeader className="text-center pb-3">
             <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              📸 Photo Capture
+              📸 Photo Collection
             </CardTitle>
             <p className="text-sm text-gray-600">
-              Capture up to 3 photos, add a comment, and share via email
+              Create multiple photo sets and export as PDF
             </p>
           </CardHeader>
         </Card>
@@ -172,7 +299,7 @@ const CameraApp = () => {
                     onClick={capturePhoto}
                     size="lg"
                     className="rounded-full bg-white text-purple-600 hover:bg-gray-100 shadow-lg"
-                    disabled={photos.length >= 3}
+                    disabled={currentPhotos.length >= 3}
                   >
                     <Camera className="w-6 h-6" />
                   </Button>
@@ -186,7 +313,7 @@ const CameraApp = () => {
                   </Button>
                 </div>
                 <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                  {photos.length}/3
+                  {currentPhotos.length}/3
                 </div>
               </div>
             </CardContent>
@@ -198,32 +325,31 @@ const CameraApp = () => {
                 <Camera className="w-16 h-16 mx-auto text-purple-600 mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Ready to capture photos?</h3>
                 <p className="text-gray-600 text-sm mb-4">
-                  Take up to 3 photos and share them with a comment via email
+                  Take up to 3 photos per set and create multiple sets
                 </p>
               </div>
               <Button
                 onClick={startCamera}
                 className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                disabled={photos.length >= 3}
               >
                 <Camera className="w-4 h-4 mr-2" />
-                {photos.length >= 3 ? 'Maximum Photos Reached' : 'Start Camera'}
+                Start Camera
               </Button>
             </CardContent>
           </Card>
         )}
 
-        {/* Photo Gallery */}
-        {photos.length > 0 && (
+        {/* Current Photo Gallery */}
+        {currentPhotos.length > 0 && (
           <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                📷 Captured Photos ({photos.length}/3)
+                📷 Current Set ({currentPhotos.length}/3)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-2">
-                {photos.map((photo) => (
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {currentPhotos.map((photo) => (
                   <div key={photo.id} className="relative group">
                     <img
                       src={photo.dataUrl}
@@ -241,38 +367,78 @@ const CameraApp = () => {
                   </div>
                 ))}
               </div>
+              
+              {/* Current Comment */}
+              <Textarea
+                placeholder="Add a comment for this photo set..."
+                value={currentComment}
+                onChange={(e) => setCurrentComment(e.target.value)}
+                className="resize-none border-gray-200 focus:border-purple-500 mb-4"
+                rows={2}
+              />
+              
+              <Button
+                onClick={saveCurrentSet}
+                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Save Photo Set
+              </Button>
             </CardContent>
           </Card>
         )}
 
-        {/* Comment Section */}
-        <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <MessageCircle className="w-5 h-5" />
-              Add a Comment
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              placeholder="Write a comment about your photos..."
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              className="resize-none border-gray-200 focus:border-purple-500"
-              rows={3}
-            />
-          </CardContent>
-        </Card>
+        {/* Saved Photo Sets */}
+        {photoSets.length > 0 && (
+          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Saved Sets ({photoSets.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {photoSets.map((set, index) => (
+                <div key={set.id} className="border rounded-lg p-3 bg-gray-50">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-medium">Set {index + 1}</h4>
+                    <Button
+                      onClick={() => deletePhotoSet(set.id)}
+                      size="sm"
+                      variant="destructive"
+                      className="w-6 h-6 p-0"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1 mb-2">
+                    {set.photos.map((photo) => (
+                      <img
+                        key={photo.id}
+                        src={photo.dataUrl}
+                        alt="Set photo"
+                        className="w-full aspect-square object-cover rounded"
+                      />
+                    ))}
+                  </div>
+                  {set.comment && (
+                    <p className="text-sm text-gray-600 mt-2">{set.comment}</p>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Action Buttons */}
         <div className="flex gap-3">
           <Button
-            onClick={sendEmail}
+            onClick={sendPDFEmail}
             className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
-            disabled={photos.length === 0}
+            disabled={photoSets.length === 0}
           >
             <Send className="w-4 h-4 mr-2" />
-            Send via Email
+            Send PDF via Email
           </Button>
           <Button
             onClick={resetApp}
