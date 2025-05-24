@@ -1,8 +1,8 @@
-
 import React, { useState, useRef, useCallback } from 'react';
 import { Camera, RotateCcw, Send, Trash2, MessageCircle, Plus, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
@@ -24,6 +24,7 @@ const CameraApp = () => {
   const [currentPhotos, setCurrentPhotos] = useState<CapturedPhoto[]>([]);
   const [currentComment, setCurrentComment] = useState('');
   const [photoSets, setPhotoSets] = useState<PhotoSet[]>([]);
+  const [documentTitle, setDocumentTitle] = useState('');
   const [isCapturing, setIsCapturing] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -188,9 +189,11 @@ const CameraApp = () => {
 
     // Title
     pdf.setFontSize(20);
-    pdf.text('Photo Collection', pageWidth / 2, yPosition, { align: 'center' });
-    yPosition += 20;
+    const title = documentTitle || 'Photo Collection';
+    pdf.text(title, pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 15;
 
+    // Date and time
     pdf.setFontSize(12);
     pdf.text(`Generated on: ${new Date().toLocaleString()}`, pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 30;
@@ -245,7 +248,7 @@ const CameraApp = () => {
     }
 
     return pdf;
-  }, [photoSets]);
+  }, [photoSets, documentTitle]);
 
   const sendPDFEmail = useCallback(async () => {
     try {
@@ -303,6 +306,22 @@ const CameraApp = () => {
               Create multiple photo sets and export as PDF
             </p>
           </CardHeader>
+        </Card>
+
+        {/* Document Title Input */}
+        <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+          <CardContent className="p-4">
+            <label htmlFor="document-title" className="block text-sm font-medium text-gray-700 mb-2">
+              Document Title
+            </label>
+            <Input
+              id="document-title"
+              placeholder="Enter document title (optional)"
+              value={documentTitle}
+              onChange={(e) => setDocumentTitle(e.target.value)}
+              className="border-gray-200 focus:border-purple-500"
+            />
+          </CardContent>
         </Card>
 
         {/* Camera Section */}
