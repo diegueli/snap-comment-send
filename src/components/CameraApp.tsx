@@ -32,15 +32,32 @@ const CameraApp = () => {
 
   const startCamera = useCallback(async () => {
     try {
+      // Stop any existing stream first
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        setStream(null);
+      }
+
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' },
         audio: false
       });
+      
       setStream(mediaStream);
+      setIsCapturing(true);
+      
+      // Wait for video element to be ready before setting srcObject
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
+        
+        // Ensure video starts playing
+        videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.play().catch(console.error);
+          }
+        };
       }
-      setIsCapturing(true);
+      
       toast({
         title: "Camera started",
         description: "Ready to take photos!",
@@ -53,12 +70,15 @@ const CameraApp = () => {
         variant: "destructive",
       });
     }
-  }, []);
+  }, [stream]);
 
   const stopCamera = useCallback(() => {
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
     }
     setIsCapturing(false);
   }, [stream]);
@@ -258,12 +278,20 @@ const CameraApp = () => {
       const pdfBlob = pdf.output('blob');
       const pdfUrl = URL.createObjectURL(pdfBlob);
       
-      // Open PDF in new tab
-      window.open(pdfUrl, '_blank');
+      // Create a download link to force download and open in Acrobat Reader
+      const link = document.createElement('a');
+      link.href = pdfUrl;
+      link.download = `${documentTitle || 'Photo_Collection'}_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the URL object
+      setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
       
       toast({
-        title: "PDF opened",
-        description: "Document opened in new tab.",
+        title: "PDF downloaded",
+        description: "Document downloaded and will open in Acrobat Reader.",
       });
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -273,7 +301,7 @@ const CameraApp = () => {
         variant: "destructive",
       });
     }
-  }, [generatePDF]);
+  }, [generatePDF, documentTitle]);
 
   const resetApp = useCallback(() => {
     setCurrentPhotos([]);
@@ -326,6 +354,7 @@ const CameraApp = () => {
                   ref={videoRef}
                   autoPlay
                   playsInline
+                  muted
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4">
@@ -495,7 +524,7 @@ const CameraApp = () => {
             disabled={photoSets.length === 0}
           >
             <FileText className="w-4 h-4 mr-2" />
-            Open PDF
+            Download PDF
           </Button>
           <Button
             onClick={resetApp}
