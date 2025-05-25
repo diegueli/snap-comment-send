@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Camera, RotateCcw, Send, Trash2, MessageCircle, Plus, FileText } from 'lucide-react';
+import { Camera, RotateCcw, FileText, Trash2, MessageCircle, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -250,27 +250,20 @@ const CameraApp = () => {
     return pdf;
   }, [photoSets, documentTitle]);
 
-  const sendPDFEmail = useCallback(async () => {
+  const openPDF = useCallback(async () => {
     try {
       const pdf = await generatePDF();
       if (!pdf) return;
 
       const pdfBlob = pdf.output('blob');
-      const pdfDataUrl = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(pdfBlob);
-      });
-
-      const subject = `Photo Collection - ${new Date().toLocaleDateString()}`;
-      const body = `Hi there!\n\nI'm sharing a photo collection with you containing ${photoSets.length} photo set(s).\n\nTotal photos: ${photoSets.reduce((total, set) => total + set.photos.length, 0)}\n\nGenerated on: ${new Date().toLocaleString()}\n\nBest regards!`;
+      const pdfUrl = URL.createObjectURL(pdfBlob);
       
-      const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.location.href = mailtoLink;
+      // Open PDF in new tab
+      window.open(pdfUrl, '_blank');
       
       toast({
-        title: "Email client opened",
-        description: "PDF document details prepared for email.",
+        title: "PDF opened",
+        description: "Document opened in new tab.",
       });
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -280,7 +273,7 @@ const CameraApp = () => {
         variant: "destructive",
       });
     }
-  }, [photoSets, generatePDF]);
+  }, [generatePDF]);
 
   const resetApp = useCallback(() => {
     setCurrentPhotos([]);
@@ -497,12 +490,12 @@ const CameraApp = () => {
         {/* Action Buttons */}
         <div className="flex gap-3">
           <Button
-            onClick={sendPDFEmail}
+            onClick={openPDF}
             className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
             disabled={photoSets.length === 0}
           >
-            <Send className="w-4 h-4 mr-2" />
-            Send PDF via Email
+            <FileText className="w-4 h-4 mr-2" />
+            Open PDF
           </Button>
           <Button
             onClick={resetApp}
