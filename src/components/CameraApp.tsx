@@ -1,5 +1,5 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { Camera, RotateCcw, FileText, Trash2, MessageCircle, Plus } from 'lucide-react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { Camera, RotateCcw, FileText, Trash2, MessageCircle, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -20,15 +20,47 @@ interface PhotoSet {
   timestamp: Date;
 }
 
-const CameraApp = () => {
+interface CameraAppProps {
+  onClose?: () => void;
+}
+
+const CameraApp = ({ onClose }: CameraAppProps) => {
   const [currentPhotos, setCurrentPhotos] = useState<CapturedPhoto[]>([]);
   const [currentComment, setCurrentComment] = useState('');
   const [photoSets, setPhotoSets] = useState<PhotoSet[]>([]);
   const [documentTitle, setDocumentTitle] = useState('');
   const [isCapturing, setIsCapturing] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Check camera permission on component mount
+  useEffect(() => {
+    const checkCameraPermission = async () => {
+      try {
+        const permission = await navigator.permissions.query({ name: 'camera' as PermissionName });
+        setCameraPermission(permission.state);
+        
+        permission.addEventListener('change', () => {
+          setCameraPermission(permission.state);
+        });
+      } catch (error) {
+        console.log('Permission API not supported');
+      }
+    };
+    
+    checkCameraPermission();
+  }, []);
+
+  // Cleanup camera stream when component unmounts
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [stream]);
 
   const startCamera = useCallback(async () => {
     try {
@@ -45,6 +77,7 @@ const CameraApp = () => {
       
       setStream(mediaStream);
       setIsCapturing(true);
+      setCameraPermission('granted');
       
       // Wait for video element to be ready before setting srcObject
       if (videoRef.current) {
@@ -64,6 +97,7 @@ const CameraApp = () => {
       });
     } catch (error) {
       console.error('Error accessing camera:', error);
+      setCameraPermission('denied');
       toast({
         title: "Camera error",
         description: "Unable to access camera. Please check permissions.",
@@ -140,7 +174,6 @@ const CameraApp = () => {
       if (set.id === setId) {
         const updatedPhotos = set.photos.filter(photo => photo.id !== photoId);
         if (updatedPhotos.length === 0) {
-          // If no photos left, remove the entire set
           toast({
             title: "Photo set deleted",
             description: "Set removed as it had no remaining photos.",
@@ -315,8 +348,22 @@ const CameraApp = () => {
   }, [stopCamera]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 p-4">
+    <div className="bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 min-h-[80vh] p-4">
       <div className="max-w-md mx-auto space-y-6">
+        {/* Close Button */}
+        {onClose && (
+          <div className="flex justify-end mb-4">
+            <Button
+              onClick={onClose}
+              variant="outline"
+              size="sm"
+              className="bg-white/80 backdrop-blur-sm border-white"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+
         {/* Header */}
         <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
           <CardHeader className="text-center pb-3">
@@ -390,10 +437,16 @@ const CameraApp = () => {
                 <p className="text-gray-600 text-sm mb-4">
                   Take up to 3 photos per set and create multiple sets
                 </p>
+                {cameraPermission === 'denied' && (
+                  <p className="text-red-600 text-sm mb-4">
+                    Camera access denied. Please enable camera permissions in your browser.
+                  </p>
+                )}
               </div>
               <Button
                 onClick={startCamera}
                 className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                disabled={cameraPermission === 'denied'}
               >
                 <Camera className="w-4 h-4 mr-2" />
                 Start Camera

@@ -1,8 +1,8 @@
 
-import CameraApp from "@/components/CameraApp";
+import MainApp from "@/components/MainApp";
 
 const Index = () => {
-  return <CameraApp />;
+  return <MainApp />;
 };
 
 export default Index;
