@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Camera, RotateCcw, FileText, Trash2, MessageCircle, Plus, X } from 'lucide-react';
+import { Camera, RotateCcw, FileText, Trash2, MessageCircle, Plus, X, Edit, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,8 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
   const [isCapturing, setIsCapturing] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
+  const [editingSetId, setEditingSetId] = useState<string | null>(null);
+  const [editingComment, setEditingComment] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -64,8 +66,11 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
 
   const startCamera = useCallback(async () => {
     try {
+      console.log('Starting camera...');
+      
       // Stop any existing stream first
       if (stream) {
+        console.log('Stopping existing stream');
         stream.getTracks().forEach(track => track.stop());
         setStream(null);
       }
@@ -75,6 +80,7 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
         audio: false
       });
       
+      console.log('Camera stream obtained');
       setStream(mediaStream);
       setIsCapturing(true);
       setCameraPermission('granted');
@@ -107,6 +113,7 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
   }, [stream]);
 
   const stopCamera = useCallback(() => {
+    console.log('Stopping camera');
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
@@ -225,6 +232,34 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
     });
   }, []);
 
+  const startEditingComment = useCallback((setId: string, currentComment: string) => {
+    setEditingSetId(setId);
+    setEditingComment(currentComment);
+  }, []);
+
+  const saveEditedComment = useCallback(() => {
+    if (!editingSetId) return;
+    
+    setPhotoSets(prev => prev.map(set => 
+      set.id === editingSetId 
+        ? { ...set, comment: editingComment }
+        : set
+    ));
+    
+    setEditingSetId(null);
+    setEditingComment('');
+    
+    toast({
+      title: "Comment updated",
+      description: "Photo set comment has been saved.",
+    });
+  }, [editingSetId, editingComment]);
+
+  const cancelEditingComment = useCallback(() => {
+    setEditingSetId(null);
+    setEditingComment('');
+  }, []);
+
   const generatePDF = useCallback(async () => {
     if (photoSets.length === 0) {
       toast({
@@ -340,6 +375,8 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
     setCurrentPhotos([]);
     setCurrentComment('');
     setPhotoSets([]);
+    setEditingSetId(null);
+    setEditingComment('');
     stopCamera();
     toast({
       title: "App reset",
@@ -560,9 +597,52 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
                       </div>
                     ))}
                   </div>
-                  {set.comment && (
-                    <p className="text-sm text-gray-600 mt-2">{set.comment}</p>
-                  )}
+                  
+                  {/* Comment section with edit functionality */}
+                  <div className="mt-2">
+                    {editingSetId === set.id ? (
+                      <div className="space-y-2">
+                        <Textarea
+                          value={editingComment}
+                          onChange={(e) => setEditingComment(e.target.value)}
+                          className="resize-none border-gray-200 focus:border-purple-500"
+                          rows={2}
+                          placeholder="Edit comment..."
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={saveEditedComment}
+                            size="sm"
+                            className="bg-green-500 hover:bg-green-600 text-white"
+                          >
+                            <Check className="w-3 h-3 mr-1" />
+                            Save
+                          </Button>
+                          <Button
+                            onClick={cancelEditingComment}
+                            size="sm"
+                            variant="outline"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-start justify-between">
+                        <p className="text-sm text-gray-600 flex-1">
+                          {set.comment || "No comment"}
+                        </p>
+                        <Button
+                          onClick={() => startEditingComment(set.id, set.comment)}
+                          size="sm"
+                          variant="ghost"
+                          className="ml-2 w-6 h-6 p-0"
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </CardContent>
