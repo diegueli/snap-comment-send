@@ -1,9 +1,11 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Camera, RotateCcw, FileText, Trash2, MessageCircle, Plus, X, Edit, Check } from 'lucide-react';
+import { Camera, RotateCcw, FileText, Trash2, MessageCircle, Plus, X, Edit, Check, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 
@@ -34,6 +36,9 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
   const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
   const [editingComment, setEditingComment] = useState('');
+  const [showUserDialog, setShowUserDialog] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [userPosition, setUserPosition] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -260,7 +265,7 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
     setEditingComment('');
   }, []);
 
-  const generatePDF = useCallback(async () => {
+  const generatePDF = useCallback(async (auditorName: string, auditorPosition: string) => {
     if (photoSets.length === 0) {
       toast({
         title: "No photo sets to export",
@@ -308,7 +313,15 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
     // Date and time
     pdf.setFontSize(12);
     pdf.text(`Generado el: ${new Date().toLocaleDateString('es-ES')} a las ${new Date().toLocaleTimeString('es-ES')}`, pageWidth / 2, yPosition, { align: 'center' });
-    yPosition += 30;
+    yPosition += 20;
+
+    // Auditor information
+    pdf.setFontSize(12);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text(`Auditor: ${auditorName}`, 20, yPosition);
+    yPosition += 8;
+    pdf.text(`Cargo: ${auditorPosition}`, 20, yPosition);
+    yPosition += 20;
 
     for (let i = 0; i < photoSets.length; i++) {
       const set = photoSets[i];
@@ -361,12 +374,50 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
       yPosition += 10;
     }
 
+    // Add signature section at the end
+    if (yPosition > pageHeight - 60) {
+      pdf.addPage();
+      yPosition = 20;
+    }
+
+    yPosition += 20;
+    pdf.setFontSize(12);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text('Firma del Auditor:', 20, yPosition);
+    yPosition += 20;
+    pdf.text(`${auditorName}`, 20, yPosition);
+    yPosition += 8;
+    pdf.text(`${auditorPosition}`, 20, yPosition);
+    yPosition += 8;
+    pdf.text(`Fecha: ${new Date().toLocaleDateString('es-ES')}`, 20, yPosition);
+
     return pdf;
   }, [photoSets, documentTitle]);
 
-  const openPDF = useCallback(async () => {
+  const handleOpenPDF = useCallback(() => {
+    if (photoSets.length === 0) {
+      toast({
+        title: "No hay conjuntos de fotos para exportar",
+        description: "Por favor crea al menos un conjunto de fotos primero.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowUserDialog(true);
+  }, [photoSets.length]);
+
+  const handleConfirmUserInfo = useCallback(async () => {
+    if (!userName.trim() || !userPosition.trim()) {
+      toast({
+        title: "Información incompleta",
+        description: "Por favor ingresa tu nombre y cargo.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      const pdf = await generatePDF();
+      const pdf = await generatePDF(userName, userPosition);
       if (!pdf) return;
 
       const pdfBlob = pdf.output('blob');
@@ -384,18 +435,23 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
       setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
       
       toast({
-        title: "PDF downloaded",
-        description: "Document downloaded and will open in Acrobat Reader.",
+        title: "PDF descargado",
+        description: "Documento descargado exitosamente.",
       });
+
+      // Close dialog and reset fields
+      setShowUserDialog(false);
+      setUserName('');
+      setUserPosition('');
     } catch (error) {
       console.error('Error generating PDF:', error);
       toast({
-        title: "Error generating PDF",
-        description: "There was an issue creating the PDF document.",
+        title: "Error al generar PDF",
+        description: "Hubo un problema al crear el documento PDF.",
         variant: "destructive",
       });
     }
-  }, [generatePDF, documentTitle]);
+  }, [generatePDF, documentTitle, userName, userPosition]);
 
   const resetApp = useCallback(() => {
     setCurrentPhotos([]);
@@ -678,7 +734,7 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
         {/* Action Buttons */}
         <div className="flex gap-3">
           <Button
-            onClick={openPDF}
+            onClick={handleOpenPDF}
             className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
             disabled={photoSets.length === 0}
           >
@@ -694,6 +750,55 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
             Reiniciar
           </Button>
         </div>
+
+        {/* User Identification Dialog */}
+        <Dialog open={showUserDialog} onOpenChange={setShowUserDialog}>
+          <DialogContent className="max-w-sm mx-auto">
+            <DialogHeader>
+              <DialogTitle className="text-center flex items-center justify-center gap-2">
+                <User className="w-5 h-5" />
+                Identificación del Auditor
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="auditor-name">Nombre completo</Label>
+                <Input
+                  id="auditor-name"
+                  placeholder="Ingresa tu nombre completo"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="auditor-position">Cargo en la empresa</Label>
+                <Input
+                  id="auditor-position"
+                  placeholder="Ej: Supervisor de Calidad"
+                  value={userPosition}
+                  onChange={(e) => setUserPosition(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={handleConfirmUserInfo}
+                  className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
+                >
+                  Generar PDF
+                </Button>
+                <Button
+                  onClick={() => setShowUserDialog(false)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <canvas ref={canvasRef} className="hidden" />
       </div>
