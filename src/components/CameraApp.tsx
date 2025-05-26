@@ -275,15 +275,39 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
     const pageWidth = pdf.internal.pageSize.width;
     let yPosition = 20;
 
-    // Title
+    // Add Quinta alimentos logo and branding
+    try {
+      // Fetch the logo image
+      const logoResponse = await fetch('/lovable-uploads/9ad6adb6-f76a-4982-92e9-09618c309f7c.png');
+      const logoBlob = await logoResponse.blob();
+      const logoBase64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(logoBlob);
+      });
+
+      // Add logo to PDF
+      pdf.addImage(logoBase64, 'PNG', 20, yPosition, 40, 20);
+      yPosition += 25;
+    } catch (error) {
+      console.log('Could not load logo, continuing without it');
+    }
+
+    // Company header
     pdf.setFontSize(20);
-    const title = documentTitle || 'Photo Collection';
+    pdf.setTextColor(196, 47, 47); // Red color from logo
+    pdf.text('QUINTA ALIMENTOS', pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 10;
+
+    pdf.setFontSize(16);
+    pdf.setTextColor(0, 0, 0);
+    const title = documentTitle || 'Reporte de Auditoría';
     pdf.text(title, pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 15;
 
     // Date and time
     pdf.setFontSize(12);
-    pdf.text(`Generated on: ${new Date().toLocaleString()}`, pageWidth / 2, yPosition, { align: 'center' });
+    pdf.text(`Generado el: ${new Date().toLocaleDateString('es-ES')} a las ${new Date().toLocaleTimeString('es-ES')}`, pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 30;
 
     for (let i = 0; i < photoSets.length; i++) {
@@ -295,9 +319,10 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
         yPosition = 20;
       }
 
-      // Set header
+      // Set header with Quinta branding
       pdf.setFontSize(16);
-      pdf.text(`Photo Set ${i + 1}`, 20, yPosition);
+      pdf.setTextColor(196, 47, 47); // Red color
+      pdf.text(`Conjunto de Fotos ${i + 1}`, 20, yPosition);
       yPosition += 15;
 
       // Add photos
@@ -324,7 +349,8 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
       // Add comment
       if (set.comment) {
         pdf.setFontSize(12);
-        pdf.text('Comment:', 20, yPosition);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text('Observaciones:', 20, yPosition);
         yPosition += 10;
         
         const splitComment = pdf.splitTextToSize(set.comment, pageWidth - 40);
@@ -349,7 +375,7 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
       // Create a download link to force download and open in Acrobat Reader
       const link = document.createElement('a');
       link.href = pdfUrl;
-      link.download = `${documentTitle || 'Photo_Collection'}_${new Date().toISOString().split('T')[0]}.pdf`;
+      link.download = `${documentTitle || 'Reporte de Auditoría'}_${new Date().toISOString().split('T')[0]}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -385,7 +411,7 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
   }, [stopCamera]);
 
   return (
-    <div className="bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 min-h-[80vh] p-4">
+    <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-[80vh] p-4">
       <div className="max-w-md mx-auto space-y-6">
         {/* Close Button */}
         {onClose && (
@@ -404,11 +430,11 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
         {/* Header */}
         <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
           <CardHeader className="text-center pb-3">
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              📸 Photo Collection
+            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-yellow-500 to-red-600 bg-clip-text text-transparent">
+              📸 Auditoría Fotográfica
             </CardTitle>
             <p className="text-sm text-gray-600">
-              Create multiple photo sets and export as PDF
+              Crea múltiples conjuntos de fotos y exporta como PDF
             </p>
           </CardHeader>
         </Card>
@@ -417,14 +443,14 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
         <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
           <CardContent className="p-4">
             <label htmlFor="document-title" className="block text-sm font-medium text-gray-700 mb-2">
-              Document Title
+              Título del Documento
             </label>
             <Input
               id="document-title"
-              placeholder="Enter document title (optional)"
+              placeholder="Ingrese el título del documento (opcional)"
               value={documentTitle}
               onChange={(e) => setDocumentTitle(e.target.value)}
-              className="border-gray-200 focus:border-purple-500"
+              className="border-gray-200 focus:border-red-500"
             />
           </CardContent>
         </Card>
@@ -445,7 +471,7 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
                   <Button
                     onClick={capturePhoto}
                     size="lg"
-                    className="rounded-full bg-white text-purple-600 hover:bg-gray-100 shadow-lg"
+                    className="rounded-full bg-white text-red-600 hover:bg-gray-100 shadow-lg"
                     disabled={currentPhotos.length >= 3}
                   >
                     <Camera className="w-6 h-6" />
@@ -456,7 +482,7 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
                     size="lg"
                     className="rounded-full bg-white/80 backdrop-blur-sm border-white"
                   >
-                    Stop
+                    Detener
                   </Button>
                 </div>
                 <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
@@ -469,24 +495,24 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
           <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
             <CardContent className="p-6 text-center">
               <div className="mb-4">
-                <Camera className="w-16 h-16 mx-auto text-purple-600 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Ready to capture photos?</h3>
+                <Camera className="w-16 h-16 mx-auto text-red-600 mb-4" />
+                <h3 className="text-lg font-semibold mb-2">¿Listo para capturar fotos?</h3>
                 <p className="text-gray-600 text-sm mb-4">
-                  Take up to 3 photos per set and create multiple sets
+                  Toma hasta 3 fotos por conjunto y crea múltiples conjuntos
                 </p>
                 {cameraPermission === 'denied' && (
                   <p className="text-red-600 text-sm mb-4">
-                    Camera access denied. Please enable camera permissions in your browser.
+                    Acceso a cámara denegado. Por favor habilita los permisos de cámara en tu navegador.
                   </p>
                 )}
               </div>
               <Button
                 onClick={startCamera}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white"
                 disabled={cameraPermission === 'denied'}
               >
                 <Camera className="w-4 h-4 mr-2" />
-                Start Camera
+                Iniciar Cámara
               </Button>
             </CardContent>
           </Card>
@@ -497,7 +523,7 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
           <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                📷 Current Set ({currentPhotos.length}/3)
+                📷 Conjunto Actual ({currentPhotos.length}/3)
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -527,29 +553,29 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
                   <Button
                     onClick={startCamera}
                     variant="outline"
-                    className="w-full border-2 border-dashed border-purple-300 text-purple-600 hover:border-purple-500 hover:text-purple-700 hover:bg-purple-50"
+                    className="w-full border-2 border-dashed border-red-300 text-red-600 hover:border-red-500 hover:text-red-700 hover:bg-red-50"
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Photo ({currentPhotos.length}/3)
+                    Agregar Foto ({currentPhotos.length}/3)
                   </Button>
                 </div>
               )}
               
               {/* Current Comment */}
               <Textarea
-                placeholder="Add a comment for this photo set..."
+                placeholder="Agregar observaciones para este conjunto de fotos..."
                 value={currentComment}
                 onChange={(e) => setCurrentComment(e.target.value)}
-                className="resize-none border-gray-200 focus:border-purple-500 mb-4"
+                className="resize-none border-gray-200 focus:border-red-500 mb-4"
                 rows={2}
               />
               
               <Button
                 onClick={saveCurrentSet}
-                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Save Photo Set
+                Guardar Conjunto de Fotos
               </Button>
             </CardContent>
           </Card>
@@ -561,14 +587,14 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <FileText className="w-5 h-5" />
-                Saved Sets ({photoSets.length})
+                Conjuntos Guardados ({photoSets.length})
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {photoSets.map((set, index) => (
                 <div key={set.id} className="border rounded-lg p-3 bg-gray-50">
                   <div className="flex justify-between items-center mb-2">
-                    <h4 className="font-medium">Set {index + 1}</h4>
+                    <h4 className="font-medium">Conjunto {index + 1}</h4>
                     <Button
                       onClick={() => deletePhotoSet(set.id)}
                       size="sm"
@@ -605,9 +631,9 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
                         <Textarea
                           value={editingComment}
                           onChange={(e) => setEditingComment(e.target.value)}
-                          className="resize-none border-gray-200 focus:border-purple-500"
+                          className="resize-none border-gray-200 focus:border-red-500"
                           rows={2}
-                          placeholder="Edit comment..."
+                          placeholder="Editar observaciones..."
                         />
                         <div className="flex gap-2">
                           <Button
@@ -616,21 +642,21 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
                             className="bg-green-500 hover:bg-green-600 text-white"
                           >
                             <Check className="w-3 h-3 mr-1" />
-                            Save
+                            Guardar
                           </Button>
                           <Button
                             onClick={cancelEditingComment}
                             size="sm"
                             variant="outline"
                           >
-                            Cancel
+                            Cancelar
                           </Button>
                         </div>
                       </div>
                     ) : (
                       <div className="flex items-start justify-between">
                         <p className="text-sm text-gray-600 flex-1">
-                          {set.comment || "No comment"}
+                          {set.comment || "Sin observaciones"}
                         </p>
                         <Button
                           onClick={() => startEditingComment(set.id, set.comment)}
@@ -657,7 +683,7 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
             disabled={photoSets.length === 0}
           >
             <FileText className="w-4 h-4 mr-2" />
-            Download PDF
+            Descargar PDF
           </Button>
           <Button
             onClick={resetApp}
@@ -665,7 +691,7 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
             className="bg-white/80 backdrop-blur-sm border-white hover:bg-white"
           >
             <RotateCcw className="w-4 h-4 mr-2" />
-            Reset
+            Reiniciar
           </Button>
         </div>
 
