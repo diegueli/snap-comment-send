@@ -20,11 +20,18 @@ interface PhotoSet {
   timestamp: Date;
 }
 
-interface CameraAppProps {
-  onClose?: () => void;
+interface UserData {
+  name: string;
+  email: string;
+  position: string;
 }
 
-const CameraApp = ({ onClose }: CameraAppProps) => {
+interface CameraAppProps {
+  onClose?: () => void;
+  userData: UserData | null;
+}
+
+const CameraApp = ({ onClose, userData }: CameraAppProps) => {
   const [currentPhotos, setCurrentPhotos] = useState<CapturedPhoto[]>([]);
   const [currentComment, setCurrentComment] = useState('');
   const [photoSets, setPhotoSets] = useState<PhotoSet[]>([]);
@@ -310,6 +317,20 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
     pdf.text(`Generado el: ${new Date().toLocaleDateString('es-ES')} a las ${new Date().toLocaleTimeString('es-ES')}`, pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 20;
 
+    // Auditor information (user data)
+    if (userData) {
+      pdf.setFontSize(12);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text('AUDITOR:', 20, yPosition);
+      yPosition += 8;
+      pdf.text(`Nombre: ${userData.name}`, 20, yPosition);
+      yPosition += 6;
+      pdf.text(`Cargo: ${userData.position}`, 20, yPosition);
+      yPosition += 6;
+      pdf.text(`Email: ${userData.email}`, 20, yPosition);
+      yPosition += 15;
+    }
+
     for (let i = 0; i < photoSets.length; i++) {
       const set = photoSets[i];
       
@@ -361,6 +382,31 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
       yPosition += 10;
     }
 
+    // Add signature section at the end
+    if (userData) {
+      if (yPosition > pageHeight - 60) {
+        pdf.addPage();
+        yPosition = 20;
+      }
+
+      yPosition += 20;
+      pdf.setFontSize(12);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text('FIRMA DEL AUDITOR:', 20, yPosition);
+      yPosition += 20;
+
+      // Signature line
+      pdf.line(20, yPosition, 120, yPosition);
+      yPosition += 10;
+
+      pdf.setFontSize(10);
+      pdf.text(`${userData.name}`, 20, yPosition);
+      yPosition += 5;
+      pdf.text(`${userData.position}`, 20, yPosition);
+      yPosition += 5;
+      pdf.text(`Fecha: ${new Date().toLocaleDateString('es-ES')}`, 20, yPosition);
+    }
+
     const pdfBlob = pdf.output('blob');
     const pdfUrl = URL.createObjectURL(pdfBlob);
     
@@ -379,7 +425,7 @@ const CameraApp = ({ onClose }: CameraAppProps) => {
       title: "PDF descargado",
       description: "Documento descargado exitosamente.",
     });
-  }, [photoSets, documentTitle]);
+  }, [photoSets, documentTitle, userData]);
 
   const resetApp = useCallback(() => {
     setCurrentPhotos([]);

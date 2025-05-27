@@ -5,9 +5,33 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import CameraApp from './CameraApp';
+import AuthForm from './AuthForm';
+
+interface UserData {
+  name: string;
+  email: string;
+  position: string;
+}
 
 const MainApp = () => {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
+
+  const handleAuthenticate = (authData: UserData) => {
+    setUserData(authData);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setUserData(null);
+    setIsCameraOpen(false);
+  };
+
+  if (!isAuthenticated) {
+    return <AuthForm onAuthenticate={handleAuthenticate} />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-red-50 p-4">
@@ -28,6 +52,24 @@ const MainApp = () => {
             <p className="text-gray-600">
               Sistema de Auditoría
             </p>
+            {userData && (
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-700">
+                  <strong>Usuario:</strong> {userData.name}
+                </p>
+                <p className="text-sm text-gray-700">
+                  <strong>Cargo:</strong> {userData.position}
+                </p>
+                <Button
+                  onClick={handleLogout}
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                >
+                  Cerrar Sesión
+                </Button>
+              </div>
+            )}
           </CardHeader>
         </Card>
 
@@ -48,7 +90,7 @@ const MainApp = () => {
                 <DialogTitle className="text-center">Auditoría</DialogTitle>
               </DialogHeader>
               <div className="p-0">
-                <CameraApp onClose={() => setIsCameraOpen(false)} />
+                <CameraApp onClose={() => setIsCameraOpen(false)} userData={userData} />
               </div>
             </DialogContent>
           </Dialog>
