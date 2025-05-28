@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Camera, Trash2 } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -45,16 +45,16 @@ const BloqueosPhotoSection: React.FC<BloqueosPhotoSectionProps> = ({
           </div>
 
           {photos.length > 0 && (
-            <div className="grid grid-cols-3 gap-3 mt-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
               {photos.map((photo) => (
                 <div key={photo.id} className="relative group">
                   <img
                     src={photo.dataUrl}
                     alt={`Evidencia ${photo.id}`}
-                    className="w-full aspect-square object-cover rounded-lg shadow-md border-2 border-red-200"
+                    className="w-full aspect-square object-cover rounded-lg shadow-md border-2 border-red-200 hover:border-red-400 transition-colors"
                   />
                   <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                    <span className="text-white text-xs bg-black/50 px-2 py-1 rounded">
+                    <span className="text-white text-xs bg-black/70 px-2 py-1 rounded">
                       {new Date(photo.timestamp).toLocaleTimeString()}
                     </span>
                   </div>
@@ -64,7 +64,7 @@ const BloqueosPhotoSection: React.FC<BloqueosPhotoSectionProps> = ({
           )}
 
           <div className="text-xs text-gray-500 mt-2">
-            💡 Las fotos se adjuntarán automáticamente al correo electrónico
+            Las fotos se incluirán directamente en el correo electrónico
           </div>
         </div>
       </CardContent>

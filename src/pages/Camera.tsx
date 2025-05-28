@@ -25,7 +25,7 @@ const Camera = () => {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-yellow-50 to-red-50 p-2 sm:p-4 overflow-y-auto">
-      <div className="max-w-full mx-auto w-full px-2 sm:px-4 min-h-full">
+      <div className="max-w-5xl mx-auto w-full px-2 sm:px-4 min-h-full">
         <div className="mb-4 w-full flex-shrink-0">
           <Button
             onClick={handleClose}

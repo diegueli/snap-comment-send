@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Camera, X, Trash2, Plus, Mail } from 'lucide-react';
+import { Camera, X, Trash2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
@@ -160,14 +161,14 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
   }, [photos, onPhotosChange]);
 
   return (
-    <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 p-2 sm:p-6 rounded-lg w-full min-h-full overflow-y-auto">
-      <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl w-full min-h-full overflow-y-auto">
+    <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 p-2 sm:p-6 rounded-lg w-full overflow-y-auto">
+      <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl w-full max-w-4xl mx-auto overflow-y-auto">
         <CardHeader className="bg-gradient-to-r from-yellow-500 to-red-600 text-white rounded-t-lg p-3 sm:p-6 flex-shrink-0">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2 sm:gap-3 flex-1">
               <Camera className="h-5 w-5 sm:h-6 sm:w-6" />
               <CardTitle className="text-sm sm:text-lg font-bold bg-gradient-to-r from-white to-yellow-100 bg-clip-text text-transparent">
-                📸 Evidencia Fotográfica del Bloqueo
+                Evidencia Fotográfica del Bloqueo
               </CardTitle>
             </div>
             <Button
@@ -183,7 +184,7 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
         <CardContent className="p-3 sm:p-6 w-full flex-1 overflow-y-auto">
           {isCapturing ? (
             <div className="space-y-4 w-full">
-              <div className="relative aspect-square overflow-hidden rounded-lg bg-black w-full max-w-md mx-auto">
+              <div className="relative aspect-square overflow-hidden rounded-lg bg-black w-full max-w-lg mx-auto">
                 <video
                   ref={videoRef}
                   autoPlay
@@ -239,10 +240,10 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
 
           {photos.length > 0 && (
             <div className="mt-6 w-full">
-              <h4 className="font-medium mb-4 text-gray-700">
+              <h4 className="font-medium mb-4 text-gray-700 text-center">
                 Fotos Capturadas ({photos.length}/3)
               </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full max-w-3xl mx-auto">
                 {photos.map((photo) => (
                   <div key={photo.id} className="relative group w-full">
                     <img
@@ -254,10 +255,13 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
                       onClick={() => deletePhoto(photo.id)}
                       size="sm"
                       variant="destructive"
-                      className="absolute top-1 right-1 w-6 h-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-4 h-4" />
                     </Button>
+                    <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                      {new Date(photo.timestamp).toLocaleTimeString()}
+                    </div>
                   </div>
                 ))}
                 
@@ -266,7 +270,10 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
                     onClick={startCamera}
                     className="aspect-square border-2 border-dashed border-red-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-red-500 hover:bg-red-50 transition-colors w-full"
                   >
-                    <Plus className="w-8 h-8 text-red-400" />
+                    <div className="text-center">
+                      <Plus className="w-8 h-8 text-red-400 mx-auto mb-2" />
+                      <span className="text-sm text-red-600">Agregar Foto</span>
+                    </div>
                   </div>
                 )}
               </div>

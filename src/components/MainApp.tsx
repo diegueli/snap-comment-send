@@ -53,7 +53,7 @@ const MainApp = () => {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-yellow-50 to-red-50 p-2 sm:p-4">
-      <div className="w-full max-w-full mx-auto px-2 sm:px-4">
+      <div className="w-full max-w-7xl mx-auto px-2 sm:px-4">
         {/* Header with Logo */}
         <Card className="mb-4 sm:mb-6 bg-white shadow-lg w-full">
           <CardHeader className="text-center p-4 sm:p-6">
@@ -109,7 +109,7 @@ const MainApp = () => {
               <Camera className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
               Auditoría
             </Button>
-            <ContentComponent className={isMobile ? "h-[90vh] w-full overflow-y-auto" : "max-w-md mx-auto max-h-[90vh] overflow-y-auto p-0 w-full"}>
+            <ContentComponent className={isMobile ? "h-[95vh] w-full overflow-y-auto" : "max-w-4xl mx-auto max-h-[95vh] overflow-y-auto p-0 w-[90vw]"}>
               <div className="p-0 h-full w-full overflow-y-auto">
                 <CameraApp onClose={() => setIsCameraOpen(false)} userData={userData} />
               </div>
@@ -126,7 +126,7 @@ const MainApp = () => {
               <Shield className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
               Bloqueos
             </Button>
-            <ContentComponent className={isMobile ? "h-[95vh] p-0 w-full overflow-y-auto" : "max-w-full mx-auto max-h-[95vh] overflow-y-auto p-0 w-[90vw]"}>
+            <ContentComponent className={isMobile ? "h-[95vh] p-0 w-full overflow-y-auto" : "max-w-6xl mx-auto max-h-[95vh] overflow-y-auto p-0 w-[95vw]"}>
               <div className="h-full w-full overflow-y-auto">
                 <BloqueosForm onClose={() => setIsBloqueosOpen(false)} />
               </div>
