@@ -29,6 +29,7 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const connectingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const activatedRef = useRef(false);
 
   useEffect(() => {
     const checkCameraPermission = async () => {
@@ -59,7 +60,14 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
   }, []);
 
   const activateCamera = useCallback(() => {
-    console.log('Activating camera');
+    console.log('🎥 Activating camera');
+    
+    if (activatedRef.current) {
+      console.log('⚠️ Camera already activated, skipping');
+      return;
+    }
+    
+    activatedRef.current = true;
     
     // Clear any existing timeout
     if (connectingTimeoutRef.current) {
@@ -70,6 +78,8 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
     setIsCapturing(true);
     setIsConnecting(false);
     
+    console.log('✅ Camera activated successfully');
+    
     toast({
       title: "Cámara lista",
       description: "¡Listo para tomar fotos!",
@@ -78,50 +88,86 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
 
   const startCamera = useCallback(async () => {
     try {
-      console.log('Starting camera...');
+      console.log('🚀 Starting camera...');
       setIsConnecting(true);
+      activatedRef.current = false;
       
       // Clear any existing timeout
       if (connectingTimeoutRef.current) {
         clearTimeout(connectingTimeoutRef.current);
       }
 
-      // Safety timeout - activate camera after 3 seconds regardless
+      // Extended timeout - activate camera after 8 seconds regardless
       connectingTimeoutRef.current = setTimeout(() => {
-        console.log('Camera activation timeout - forcing activation');
+        console.log('⏰ Camera activation timeout - forcing activation');
         activateCamera();
-      }, 3000);
+      }, 8000);
       
       // Stop any existing stream first
       if (streamRef.current) {
-        console.log('Stopping existing stream');
+        console.log('🛑 Stopping existing stream');
         streamRef.current.getTracks().forEach(track => track.stop());
         streamRef.current = null;
       }
 
+      console.log('📱 Requesting camera access...');
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
         audio: false
       });
       
-      console.log('Camera stream obtained');
+      console.log('✅ Camera stream obtained');
       streamRef.current = mediaStream;
       setCameraPermission('granted');
       
       if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        
         const video = videoRef.current;
+        video.srcObject = mediaStream;
         
-        // Use onloadedmetadata as the primary activation trigger
-        video.onloadedmetadata = () => {
-          console.log('Video metadata loaded - activating camera');
-          activateCamera();
+        console.log('📺 Setting up video element');
+        
+        // Multiple activation events as backup
+        const handleVideoEvent = (eventName: string) => {
+          console.log(`📹 Video event: ${eventName}`);
+          console.log(`📊 Video state: readyState=${video.readyState}, currentTime=${video.currentTime}`);
+          
+          // Check if video is ready and not already activated
+          if (!activatedRef.current && video.readyState >= 2 && video.currentTime >= 0) {
+            console.log(`🎯 Activating camera from ${eventName} event`);
+            activateCamera();
+          }
+        };
+        
+        // Set up multiple event listeners
+        video.onloadedmetadata = () => handleVideoEvent('loadedmetadata');
+        video.oncanplay = () => handleVideoEvent('canplay');
+        video.onplaying = () => handleVideoEvent('playing');
+        
+        // Add error handling
+        video.onerror = (error) => {
+          console.error('❌ Video element error:', error);
+          setIsConnecting(false);
+          
+          if (connectingTimeoutRef.current) {
+            clearTimeout(connectingTimeoutRef.current);
+            connectingTimeoutRef.current = null;
+          }
+          
+          toast({
+            title: "Error de video",
+            description: "Error en el elemento de video",
+            variant: "destructive",
+          });
         };
         
         // Start playing the video
+        console.log('▶️ Starting video playback');
         video.play().catch(error => {
-          console.error('Error starting video playback:', error);
+          console.error('❌ Error starting video playback:', error);
           setIsConnecting(false);
           
           if (connectingTimeoutRef.current) {
@@ -138,9 +184,10 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
       }
       
     } catch (error) {
-      console.error('Error accessing camera:', error);
+      console.error('❌ Error accessing camera:', error);
       setCameraPermission('denied');
       setIsConnecting(false);
+      activatedRef.current = false;
       
       // Clear timeout on error
       if (connectingTimeoutRef.current) {
@@ -157,7 +204,9 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
   }, [activateCamera]);
 
   const stopCamera = useCallback(() => {
-    console.log('Stopping camera');
+    console.log('🛑 Stopping camera');
+    
+    activatedRef.current = false;
     
     // Clear any connecting timeout
     if (connectingTimeoutRef.current) {
@@ -298,6 +347,11 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
               {cameraPermission === 'denied' && (
                 <p className="text-red-600 text-xs sm:text-sm mb-4">
                   Acceso a cámara denegado. Por favor habilita los permisos de cámara.
+                </p>
+              )}
+              {cameraPermission === 'prompt' && isConnecting && (
+                <p className="text-blue-600 text-xs sm:text-sm mb-4">
+                  Por favor autoriza el acceso a la cámara cuando te lo solicite el navegador.
                 </p>
               )}
               <Button
