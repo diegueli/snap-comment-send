@@ -101,6 +101,24 @@ export type Database = {
           },
         ]
       }
+      employees: {
+        Row: {
+          id: number
+          name: string
+          position: string
+        }
+        Insert: {
+          id?: never
+          name: string
+          position: string
+        }
+        Update: {
+          id?: never
+          name?: string
+          position?: string
+        }
+        Relationships: []
+      }
       plantas: {
         Row: {
           id: number
