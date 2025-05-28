@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form } from '@/components/ui/form';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { X, Shield } from 'lucide-react';
-import BloqueosCameraModule from './BloqueosCameraModule';
+import { Shield } from 'lucide-react';
 import BloqueosFormFields from './BloqueosFormFields';
 import BloqueosPhotoSection from './BloqueosPhotoSection';
 import BloqueosFormActions from './BloqueosFormActions';
@@ -41,12 +41,12 @@ interface CapturedPhoto {
 
 const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const [plantas, setPlantas] = useState<Array<{ id: number; nombre: string }>>([]);
   const [areas, setAreas] = useState<Array<{ id: number; nombre: string }>>([]);
   const [productos, setProductos] = useState<Array<{ id: number; nombre: string }>>([]);
   const [turnos, setTurnos] = useState<Array<{ id: number; nombre: string }>>([]);
   const [loading, setLoading] = useState(false);
-  const [showCamera, setShowCamera] = useState(false);
   const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
   const { generateBloqueoEmail, isGeneratingEmail } = useBloqueoEmail();
 
@@ -70,6 +70,11 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
 
   useEffect(() => {
     loadDropdownData();
+    // Load photos from localStorage when component mounts
+    const savedPhotos = localStorage.getItem('bloqueosPhotos');
+    if (savedPhotos) {
+      setPhotos(JSON.parse(savedPhotos));
+    }
   }, []);
 
   useEffect(() => {
@@ -154,6 +159,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         quien_bloqueo: profile?.name || '',
       });
       setPhotos([]);
+      localStorage.removeItem('bloqueosPhotos');
       onClose();
     } catch (error: any) {
       console.error('Error creating bloqueo:', error);
@@ -172,6 +178,13 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
     if (currentValue === '' || currentValue === '0') {
       form.setValue(fieldName, '');
     }
+  };
+
+  const handleShowCamera = () => {
+    // Save current form data to localStorage before navigating
+    const formData = form.getValues();
+    localStorage.setItem('bloqueosFormData', JSON.stringify(formData));
+    navigate('/camera');
   };
 
   const handleGenerateEmail = () => {
@@ -208,61 +221,43 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 p-6 rounded-lg">
-      {showCamera ? (
-        <BloqueosCameraModule
-          photos={photos}
-          onPhotosChange={setPhotos}
-          onClose={() => setShowCamera(false)}
-        />
-      ) : (
-        <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
-          <CardHeader className="bg-gradient-to-r from-yellow-500 to-red-600 text-white rounded-t-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Shield className="h-8 w-8" />
-                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-white to-yellow-100 bg-clip-text text-transparent">
-                  🛡️ Registrar Bloqueo
-                </CardTitle>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-                className="h-8 w-8 p-0 text-white hover:bg-white/20"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <BloqueosFormFields
-                  control={form.control}
-                  plantas={plantas}
-                  areas={areas}
-                  productos={productos}
-                  turnos={turnos}
-                  onInputFocus={handleInputFocus}
-                />
+    <div className="w-full h-full bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 p-4 rounded-lg">
+      <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl h-full">
+        <CardHeader className="bg-gradient-to-r from-yellow-500 to-red-600 text-white rounded-t-lg">
+          <div className="flex items-center gap-3">
+            <Shield className="h-8 w-8" />
+            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-white to-yellow-100 bg-clip-text text-transparent">
+              🛡️ Registrar Bloqueo
+            </CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="p-6 flex-1 overflow-y-auto">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <BloqueosFormFields
+                control={form.control}
+                plantas={plantas}
+                areas={areas}
+                productos={productos}
+                turnos={turnos}
+                onInputFocus={handleInputFocus}
+              />
 
-                <BloqueosPhotoSection
-                  photos={photos}
-                  onShowCamera={() => setShowCamera(true)}
-                />
+              <BloqueosPhotoSection
+                photos={photos}
+                onShowCamera={handleShowCamera}
+              />
 
-                <BloqueosFormActions
-                  loading={loading}
-                  isGeneratingEmail={isGeneratingEmail}
-                  onGenerateEmail={handleGenerateEmail}
-                  onClose={onClose}
-                />
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      )}
+              <BloqueosFormActions
+                loading={loading}
+                isGeneratingEmail={isGeneratingEmail}
+                onGenerateEmail={handleGenerateEmail}
+                onClose={onClose}
+              />
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   );
 };
