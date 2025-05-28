@@ -3,7 +3,6 @@ import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form } from '@/components/ui/form';
@@ -38,9 +37,8 @@ interface BloqueosFormProps {
 
 const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   const { user, profile } = useAuth();
-  const navigate = useNavigate();
   const { plantas, areas, productos, turnos } = useBloqueosFormData();
-  const { photos, clearPhotos } = useBloqueosPhotos();
+  const { photos, updatePhotos, clearPhotos } = useBloqueosPhotos();
   const { generateBloqueoEmail, isGeneratingEmail } = useBloqueoEmail();
 
   const formatDate = (date: Date) => {
@@ -130,12 +128,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
     }
   };
 
-  const handleShowCamera = () => {
-    const formData = form.getValues();
-    localStorage.setItem('bloqueosFormData', JSON.stringify(formData));
-    navigate('/camera');
-  };
-
   const handleGenerateEmail = () => {
     const formData = form.getValues();
     
@@ -191,7 +183,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
 
               <BloqueosPhotoSection
                 photos={photos}
-                onShowCamera={handleShowCamera}
+                onPhotosChange={updatePhotos}
               />
 
               <BloqueosFormActions
