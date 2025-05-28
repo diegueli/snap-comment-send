@@ -41,6 +41,15 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   const [loading, setLoading] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
 
+  // Format current date as dd/mm/yyyy
+  const getCurrentDateFormatted = () => {
+    const today = new Date();
+    const day = today.getDate().toString().padStart(2, '0');
+    const month = (today.getMonth() + 1).toString().padStart(2, '0');
+    const year = today.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
   const form = useForm<BloqueosFormData>({
     resolver: zodResolver(bloqueosSchema),
     defaultValues: {
@@ -51,7 +60,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
       lote: 0,
       turno_id: '',
       motivo: '',
-      fecha: new Date().toISOString().split('T')[0],
+      fecha: getCurrentDateFormatted(),
       usuario: profile?.name || '',
     },
   });
@@ -106,6 +115,10 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
 
     setLoading(true);
     try {
+      // Convert dd/mm/yyyy to yyyy-mm-dd for database
+      const dateParts = data.fecha.split('/');
+      const dbDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+
       const { error } = await supabase.from('bloqueos').insert({
         planta_id: parseInt(data.planta_id),
         area_planta_id: parseInt(data.area_planta_id),
@@ -114,7 +127,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         lote: data.lote,
         turno_id: parseInt(data.turno_id),
         motivo: data.motivo,
-        fecha: data.fecha,
+        fecha: dbDate,
         quien_bloqueo: data.usuario,
         user_id: user.id,
       });
@@ -134,7 +147,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         lote: 0,
         turno_id: '',
         motivo: '',
-        fecha: new Date().toISOString().split('T')[0],
+        fecha: getCurrentDateFormatted(),
         usuario: profile?.name || '',
       });
     } catch (error: any) {
@@ -389,8 +402,8 @@ Usuario: ${formData.usuario}
                       <FormLabel className="text-red-800">Fecha</FormLabel>
                       <FormControl>
                         <Input 
-                          type="date" 
-                          className="border-red-200 bg-gray-50"
+                          type="text" 
+                          className="border-red-200 bg-gray-50 text-center font-medium"
                           readOnly
                           {...field} 
                         />
@@ -442,7 +455,7 @@ Usuario: ${formData.usuario}
                 )}
               />
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex flex-col sm:flex-row gap-3 pt-6">
                 <Button 
                   type="submit" 
                   disabled={loading} 
@@ -455,7 +468,7 @@ Usuario: ${formData.usuario}
                   variant="outline" 
                   onClick={sendEmail}
                   disabled={sendingEmail}
-                  className="border-red-200 text-red-600 hover:bg-red-50"
+                  className="flex-1 sm:flex-none border-red-200 text-red-600 hover:bg-red-50"
                 >
                   <Mail className="w-4 h-4 mr-2" />
                   {sendingEmail ? 'Enviando...' : 'Enviar por Correo'}
@@ -464,7 +477,7 @@ Usuario: ${formData.usuario}
                   type="button" 
                   variant="outline" 
                   onClick={onClose}
-                  className="border-red-200 text-red-600 hover:bg-red-50"
+                  className="flex-1 sm:flex-none border-red-200 text-red-600 hover:bg-red-50"
                 >
                   Cancelar
                 </Button>
