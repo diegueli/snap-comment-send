@@ -56,8 +56,8 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
       planta_id: '',
       area_planta_id: '',
       producto_id: '',
-      cantidad: 0,
-      lote: 0,
+      cantidad: undefined,
+      lote: undefined,
       turno_id: '',
       motivo: '',
       fecha: getCurrentDateFormatted(),
@@ -143,8 +143,8 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         planta_id: '',
         area_planta_id: '',
         producto_id: '',
-        cantidad: 0,
-        lote: 0,
+        cantidad: undefined,
+        lote: undefined,
         turno_id: '',
         motivo: '',
         fecha: getCurrentDateFormatted(),
@@ -187,8 +187,8 @@ Usuario: ${formData.usuario}
 
     setSendingEmail(true);
     try {
-      // Create mailto link
-      const subject = encodeURIComponent('Registro de Bloqueo - Quinta Alimentos');
+      // Create mailto link with enhanced subject
+      const subject = encodeURIComponent(`Registro de Bloqueo - ${plantaName} - ${productoName} - ${formData.fecha}`);
       const body = encodeURIComponent(emailBody.trim());
       const mailtoLink = `mailto:?subject=${subject}&body=${body}`;
       
@@ -366,7 +366,7 @@ Usuario: ${formData.usuario}
                           placeholder="Ingresa la cantidad"
                           className="border-red-200 focus:border-red-400"
                           {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
                         />
                       </FormControl>
                       <FormMessage />
@@ -386,7 +386,7 @@ Usuario: ${formData.usuario}
                           placeholder="Ingresa el número de lote"
                           className="border-red-200 focus:border-red-400"
                           {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
                         />
                       </FormControl>
                       <FormMessage />
