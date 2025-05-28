@@ -5,22 +5,11 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/comp
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { BloqueosFormData } from './BloqueosForm';
 
 interface DropdownOption {
   id: number;
   nombre: string;
-}
-
-interface BloqueosFormData {
-  planta_id: string;
-  area_planta_id: string;
-  producto_id: string;
-  cantidad: string;
-  lote: string;
-  turno_id: string;
-  motivo: string;
-  fecha: string;
-  quien_bloqueo: string;
 }
 
 interface BloqueosFormFieldsProps {
@@ -39,8 +28,8 @@ const BloqueosFormFields: React.FC<BloqueosFormFieldsProps> = ({
   turnos,
 }) => {
   return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
         <FormField
           control={form.control}
           name="planta_id"
@@ -220,12 +209,12 @@ const BloqueosFormFields: React.FC<BloqueosFormFieldsProps> = ({
         control={form.control}
         name="motivo"
         render={({ field }) => (
-          <FormItem>
+          <FormItem className="w-full">
             <FormLabel className="text-sm font-medium text-gray-700">Motivo del Bloqueo</FormLabel>
             <FormControl>
               <Textarea
                 placeholder="Describe el motivo del bloqueo (máximo 150 caracteres)"
-                className="resize-none border-gray-300 focus:border-red-500 focus:ring-red-500 min-h-[80px]"
+                className="resize-none border-gray-300 focus:border-red-500 focus:ring-red-500 min-h-[80px] w-full"
                 maxLength={150}
                 {...field}
               />
@@ -239,7 +228,7 @@ const BloqueosFormFields: React.FC<BloqueosFormFieldsProps> = ({
           </FormItem>
         )}
       />
-    </>
+    </div>
   );
 };
 

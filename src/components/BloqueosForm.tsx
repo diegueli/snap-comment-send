@@ -26,7 +26,7 @@ const bloqueosSchema = z.object({
   quien_bloqueo: z.string().min(1, 'El usuario es requerido'),
 });
 
-type BloqueosFormData = z.infer<typeof bloqueosSchema>;
+export type BloqueosFormData = z.infer<typeof bloqueosSchema>;
 
 interface BloqueosFormProps {
   onClose: () => void;
@@ -43,6 +43,13 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
     defaultValues: {
       fecha: new Date().toLocaleDateString('es-ES'),
       quien_bloqueo: profile?.name || user?.email || '',
+      planta_id: '',
+      area_planta_id: '',
+      producto_id: '',
+      cantidad: '',
+      lote: '',
+      turno_id: '',
+      motivo: '',
     },
   });
 
@@ -127,7 +134,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full w-full bg-white">
       {/* Fixed Header */}
       <div className="bg-gradient-to-r from-red-500 to-orange-600 text-white p-4 flex-shrink-0">
         <div className="flex items-center justify-between">
@@ -147,11 +154,11 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
       </div>
       
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden w-full">
         <div className="h-full overflow-y-auto">
-          <div className="p-6">
+          <div className="p-6 w-full">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 w-full">
                 <BloqueosFormFields
                   form={form}
                   plantas={plantas}
