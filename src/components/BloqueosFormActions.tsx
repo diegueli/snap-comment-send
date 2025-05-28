@@ -21,7 +21,7 @@ const BloqueosFormActions: React.FC<BloqueosFormActionsProps> = ({
       <Button 
         type="submit" 
         disabled={loading} 
-        className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-semibold py-3 shadow-lg"
+        className="flex-1 bg-gradient-to-r from-yellow-600 to-red-700 hover:from-yellow-700 hover:to-red-800 text-white font-semibold py-3 shadow-lg"
       >
         {loading ? (
           <div className="flex items-center gap-2">
@@ -37,7 +37,7 @@ const BloqueosFormActions: React.FC<BloqueosFormActionsProps> = ({
         type="button"
         onClick={onGenerateEmail}
         disabled={isGeneratingEmail}
-        className="bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white font-semibold py-3 px-6 shadow-lg"
+        className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white font-semibold py-3 px-6 shadow-lg"
       >
         {isGeneratingEmail ? (
           <div className="flex items-center gap-2">
@@ -56,7 +56,7 @@ const BloqueosFormActions: React.FC<BloqueosFormActionsProps> = ({
         type="button" 
         variant="outline" 
         onClick={onClose}
-        className="border-blue-300 text-blue-600 hover:bg-blue-50 px-8"
+        className="border-red-300 text-red-600 hover:bg-red-50 px-8"
       >
         Cancelar
       </Button>

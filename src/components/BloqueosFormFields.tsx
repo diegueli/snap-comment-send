@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Control } from 'react-hook-form';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -45,11 +46,11 @@ const BloqueosFormFields: React.FC<BloqueosFormFieldsProps> = ({
               <FormLabel className="text-gray-700 font-semibold">Planta</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger className="border-blue-200 focus:border-blue-500 focus:ring-blue-500">
+                  <SelectTrigger className="border-red-200 focus:border-red-500 focus:ring-red-500">
                     <SelectValue placeholder="Selecciona una planta" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent className="bg-white border-blue-200">
+                <SelectContent className="bg-white border-red-200">
                   {plantas.map((planta) => (
                     <SelectItem key={planta.id} value={planta.id.toString()}>
                       {planta.nombre}
@@ -70,11 +71,11 @@ const BloqueosFormFields: React.FC<BloqueosFormFieldsProps> = ({
               <FormLabel className="text-gray-700 font-semibold">Área de Planta</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger className="border-blue-200 focus:border-blue-500 focus:ring-blue-500">
+                  <SelectTrigger className="border-red-200 focus:border-red-500 focus:ring-red-500">
                     <SelectValue placeholder="Selecciona un área" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent className="bg-white border-blue-200">
+                <SelectContent className="bg-white border-red-200">
                   {areas.map((area) => (
                     <SelectItem key={area.id} value={area.id.toString()}>
                       {area.nombre}
@@ -95,11 +96,11 @@ const BloqueosFormFields: React.FC<BloqueosFormFieldsProps> = ({
               <FormLabel className="text-gray-700 font-semibold">Producto</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger className="border-blue-200 focus:border-blue-500 focus:ring-blue-500">
+                  <SelectTrigger className="border-red-200 focus:border-red-500 focus:ring-red-500">
                     <SelectValue placeholder="Selecciona un producto" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent className="bg-white border-blue-200">
+                <SelectContent className="bg-white border-red-200">
                   {productos.map((producto) => (
                     <SelectItem key={producto.id} value={producto.id.toString()}>
                       {producto.nombre}
@@ -120,11 +121,11 @@ const BloqueosFormFields: React.FC<BloqueosFormFieldsProps> = ({
               <FormLabel className="text-gray-700 font-semibold">Turno</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger className="border-blue-200 focus:border-blue-500 focus:ring-blue-500">
+                  <SelectTrigger className="border-red-200 focus:border-red-500 focus:ring-red-500">
                     <SelectValue placeholder="Selecciona un turno" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent className="bg-white border-blue-200">
+                <SelectContent className="bg-white border-red-200">
                   {turnos.map((turno) => (
                     <SelectItem key={turno.id} value={turno.id.toString()}>
                       {turno.nombre}
@@ -147,7 +148,7 @@ const BloqueosFormFields: React.FC<BloqueosFormFieldsProps> = ({
                 <Input
                   type="text"
                   placeholder="Ingresa la cantidad"
-                  className="border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                  className="border-red-200 focus:border-red-500 focus:ring-red-500"
                   {...field}
                   onFocus={() => onInputFocus('cantidad')}
                 />
@@ -167,7 +168,7 @@ const BloqueosFormFields: React.FC<BloqueosFormFieldsProps> = ({
                 <Input
                   type="text"
                   placeholder="Ingresa el número de lote"
-                  className="border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                  className="border-red-200 focus:border-red-500 focus:ring-red-500"
                   {...field}
                   onFocus={() => onInputFocus('lote')}
                 />
@@ -223,7 +224,7 @@ const BloqueosFormFields: React.FC<BloqueosFormFieldsProps> = ({
             <FormControl>
               <Textarea
                 placeholder="Describe el motivo del bloqueo (máximo 150 caracteres)"
-                className="resize-none border-blue-200 focus:border-blue-500 focus:ring-blue-500 min-h-[100px]"
+                className="resize-none border-red-200 focus:border-red-500 focus:ring-red-500 min-h-[100px]"
                 maxLength={150}
                 {...field}
               />

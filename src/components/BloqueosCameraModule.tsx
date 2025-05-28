@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Camera, X, Trash2, Plus, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -161,13 +160,13 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
   }, [photos, onPhotosChange]);
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg">
-      <Card className="border-2 border-blue-200 shadow-xl bg-white">
-        <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-t-lg">
+    <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 p-6 rounded-lg">
+      <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+        <CardHeader className="bg-gradient-to-r from-yellow-500 to-red-600 text-white rounded-t-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Camera className="h-6 w-6" />
-              <CardTitle className="text-lg font-bold">
+              <CardTitle className="text-lg font-bold bg-gradient-to-r from-white to-yellow-100 bg-clip-text text-transparent">
                 📸 Evidencia Fotográfica del Bloqueo
               </CardTitle>
             </div>
@@ -196,7 +195,7 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
                   <Button
                     onClick={capturePhoto}
                     size="lg"
-                    className="rounded-full bg-white text-blue-600 hover:bg-gray-100 shadow-lg"
+                    className="rounded-full bg-white text-red-600 hover:bg-gray-100 shadow-lg"
                     disabled={photos.length >= 3}
                   >
                     <Camera className="w-6 h-6" />
@@ -217,7 +216,7 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
             </div>
           ) : (
             <div className="text-center py-8">
-              <Camera className="w-16 h-16 mx-auto text-blue-600 mb-4" />
+              <Camera className="w-16 h-16 mx-auto text-red-600 mb-4" />
               <h3 className="text-lg font-semibold mb-2">Capturar Evidencia Fotográfica</h3>
               <p className="text-gray-600 text-sm mb-4">
                 Toma hasta 3 fotos como evidencia del bloqueo
@@ -229,7 +228,7 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
               )}
               <Button
                 onClick={startCamera}
-                className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white"
+                className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white shadow-lg"
                 disabled={cameraPermission === 'denied'}
               >
                 <Camera className="w-4 h-4 mr-2" />
@@ -249,7 +248,7 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
                     <img
                       src={photo.dataUrl}
                       alt={`Evidencia ${photo.id}`}
-                      className="w-full aspect-square object-cover rounded-lg shadow-md border-2 border-blue-200"
+                      className="w-full aspect-square object-cover rounded-lg shadow-md border-2 border-red-200"
                     />
                     <Button
                       onClick={() => deletePhoto(photo.id)}
@@ -265,9 +264,9 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
                 {photos.length < 3 && (
                   <div
                     onClick={startCamera}
-                    className="aspect-square border-2 border-dashed border-blue-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                    className="aspect-square border-2 border-dashed border-red-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-red-500 hover:bg-red-50 transition-colors"
                   >
-                    <Plus className="w-8 h-8 text-blue-400" />
+                    <Plus className="w-8 h-8 text-red-400" />
                   </div>
                 )}
               </div>

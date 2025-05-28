@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -216,7 +215,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg">
+    <div className="w-full max-w-4xl mx-auto bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 p-6 rounded-lg">
       {showCamera ? (
         <BloqueosCameraModule
           photos={photos}
@@ -224,13 +223,13 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
           onClose={() => setShowCamera(false)}
         />
       ) : (
-        <Card className="border-2 border-blue-200 shadow-xl bg-white">
-          <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-t-lg">
+        <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+          <CardHeader className="bg-gradient-to-r from-yellow-500 to-red-600 text-white rounded-t-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Shield className="h-8 w-8" />
-                <CardTitle className="text-2xl font-bold">
-                  Registrar Bloqueo
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-white to-yellow-100 bg-clip-text text-transparent">
+                  🛡️ Registrar Bloqueo
                 </CardTitle>
               </div>
               <Button
