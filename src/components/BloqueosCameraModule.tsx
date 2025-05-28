@@ -23,13 +23,10 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
   onClose,
 }) => {
   const [isCapturing, setIsCapturing] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const connectingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const activatedRef = useRef(false);
 
   useEffect(() => {
     const checkCameraPermission = async () => {
@@ -50,180 +47,63 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
 
   useEffect(() => {
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-      if (connectingTimeoutRef.current) {
-        clearTimeout(connectingTimeoutRef.current);
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
       }
     };
-  }, []);
-
-  const activateCamera = useCallback(() => {
-    console.log('🎥 Activating camera');
-    
-    if (activatedRef.current) {
-      console.log('⚠️ Camera already activated, skipping');
-      return;
-    }
-    
-    activatedRef.current = true;
-    
-    // Clear any existing timeout
-    if (connectingTimeoutRef.current) {
-      clearTimeout(connectingTimeoutRef.current);
-      connectingTimeoutRef.current = null;
-    }
-    
-    setIsCapturing(true);
-    setIsConnecting(false);
-    
-    console.log('✅ Camera activated successfully');
-    
-    toast({
-      title: "Cámara lista",
-      description: "¡Listo para tomar fotos!",
-    });
-  }, []);
+  }, [stream]);
 
   const startCamera = useCallback(async () => {
     try {
-      console.log('🚀 Starting camera...');
-      setIsConnecting(true);
-      activatedRef.current = false;
-      
-      // Clear any existing timeout
-      if (connectingTimeoutRef.current) {
-        clearTimeout(connectingTimeoutRef.current);
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        setStream(null);
       }
 
-      // Extended timeout - activate camera after 8 seconds regardless
-      connectingTimeoutRef.current = setTimeout(() => {
-        console.log('⏰ Camera activation timeout - forcing activation');
-        activateCamera();
-      }, 8000);
-      
-      // Stop any existing stream first
-      if (streamRef.current) {
-        console.log('🛑 Stopping existing stream');
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
-      }
-
-      console.log('📱 Requesting camera access...');
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          facingMode: 'environment',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        },
+        video: { facingMode: 'environment' },
         audio: false
       });
       
-      console.log('✅ Camera stream obtained');
-      streamRef.current = mediaStream;
+      setStream(mediaStream);
+      setIsCapturing(true);
       setCameraPermission('granted');
       
       if (videoRef.current) {
-        const video = videoRef.current;
-        video.srcObject = mediaStream;
+        videoRef.current.srcObject = mediaStream;
         
-        console.log('📺 Setting up video element');
-        
-        // Multiple activation events as backup
-        const handleVideoEvent = (eventName: string) => {
-          console.log(`📹 Video event: ${eventName}`);
-          console.log(`📊 Video state: readyState=${video.readyState}, currentTime=${video.currentTime}`);
-          
-          // Check if video is ready and not already activated
-          if (!activatedRef.current && video.readyState >= 2 && video.currentTime >= 0) {
-            console.log(`🎯 Activating camera from ${eventName} event`);
-            activateCamera();
+        videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.play().catch(console.error);
           }
         };
-        
-        // Set up multiple event listeners
-        video.onloadedmetadata = () => handleVideoEvent('loadedmetadata');
-        video.oncanplay = () => handleVideoEvent('canplay');
-        video.onplaying = () => handleVideoEvent('playing');
-        
-        // Add error handling
-        video.onerror = (error) => {
-          console.error('❌ Video element error:', error);
-          setIsConnecting(false);
-          
-          if (connectingTimeoutRef.current) {
-            clearTimeout(connectingTimeoutRef.current);
-            connectingTimeoutRef.current = null;
-          }
-          
-          toast({
-            title: "Error de video",
-            description: "Error en el elemento de video",
-            variant: "destructive",
-          });
-        };
-        
-        // Start playing the video
-        console.log('▶️ Starting video playback');
-        video.play().catch(error => {
-          console.error('❌ Error starting video playback:', error);
-          setIsConnecting(false);
-          
-          if (connectingTimeoutRef.current) {
-            clearTimeout(connectingTimeoutRef.current);
-            connectingTimeoutRef.current = null;
-          }
-          
-          toast({
-            title: "Error de cámara",
-            description: "No se pudo iniciar la reproducción del video",
-            variant: "destructive",
-          });
-        });
       }
       
+      toast({
+        title: "Cámara iniciada",
+        description: "¡Listo para tomar fotos!",
+      });
     } catch (error) {
-      console.error('❌ Error accessing camera:', error);
+      console.error('Error accessing camera:', error);
       setCameraPermission('denied');
-      setIsConnecting(false);
-      activatedRef.current = false;
-      
-      // Clear timeout on error
-      if (connectingTimeoutRef.current) {
-        clearTimeout(connectingTimeoutRef.current);
-        connectingTimeoutRef.current = null;
-      }
-      
       toast({
         title: "Error de cámara",
         description: "No se puede acceder a la cámara. Verifica los permisos.",
         variant: "destructive",
       });
     }
-  }, [activateCamera]);
+  }, [stream]);
 
   const stopCamera = useCallback(() => {
-    console.log('🛑 Stopping camera');
-    
-    activatedRef.current = false;
-    
-    // Clear any connecting timeout
-    if (connectingTimeoutRef.current) {
-      clearTimeout(connectingTimeoutRef.current);
-      connectingTimeoutRef.current = null;
-    }
-    
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
     }
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
     setIsCapturing(false);
-    setIsConnecting(false);
-  }, []);
+  }, [stream]);
 
   const capturePhoto = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || photos.length >= 3) {
@@ -281,13 +161,13 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
   }, [photos, onPhotosChange]);
 
   return (
-    <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 p-2 sm:p-4 rounded-lg w-full overflow-y-auto">
-      <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl w-full max-w-lg mx-auto overflow-y-auto">
-        <CardHeader className="bg-gradient-to-r from-yellow-500 to-red-600 text-white rounded-t-lg p-3 sm:p-4 flex-shrink-0">
+    <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 p-2 sm:p-6 rounded-lg w-full overflow-y-auto">
+      <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl w-full max-w-4xl mx-auto overflow-y-auto">
+        <CardHeader className="bg-gradient-to-r from-yellow-500 to-red-600 text-white rounded-t-lg p-3 sm:p-6 flex-shrink-0">
           <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2 flex-1">
-              <Camera className="h-4 w-4 sm:h-5 sm:w-5" />
-              <CardTitle className="text-sm sm:text-base font-bold bg-gradient-to-r from-white to-yellow-100 bg-clip-text text-transparent">
+            <div className="flex items-center gap-2 sm:gap-3 flex-1">
+              <Camera className="h-5 w-5 sm:h-6 sm:w-6" />
+              <CardTitle className="text-sm sm:text-lg font-bold bg-gradient-to-r from-white to-yellow-100 bg-clip-text text-transparent">
                 Evidencia Fotográfica del Bloqueo
               </CardTitle>
             </div>
@@ -295,16 +175,16 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="h-6 w-6 p-0 text-white hover:bg-white/20 flex-shrink-0"
+              className="h-8 w-8 p-0 text-white hover:bg-white/20 flex-shrink-0"
             >
-              <X className="h-3 w-3" />
+              <X className="h-4 w-4" />
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-3 sm:p-4 w-full flex-1 overflow-y-auto">
+        <CardContent className="p-3 sm:p-6 w-full flex-1 overflow-y-auto">
           {isCapturing ? (
             <div className="space-y-4 w-full">
-              <div className="relative aspect-square overflow-hidden rounded-lg bg-black w-full">
+              <div className="relative aspect-square overflow-hidden rounded-lg bg-black w-full max-w-lg mx-auto">
                 <video
                   ref={videoRef}
                   autoPlay
@@ -336,50 +216,34 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
               </div>
             </div>
           ) : (
-            <div className="text-center py-6 w-full">
-              <Camera className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-red-600 mb-4" />
-              <h3 className="text-base sm:text-lg font-semibold mb-2">
-                {isConnecting ? "Conectando cámara..." : "Capturar Evidencia Fotográfica"}
-              </h3>
-              <p className="text-gray-600 text-xs sm:text-sm mb-4">
-                {isConnecting ? "Estableciendo conexión con la cámara" : "Toma hasta 3 fotos como evidencia del bloqueo"}
+            <div className="text-center py-8 w-full">
+              <Camera className="w-16 h-16 mx-auto text-red-600 mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Capturar Evidencia Fotográfica</h3>
+              <p className="text-gray-600 text-sm mb-4">
+                Toma hasta 3 fotos como evidencia del bloqueo
               </p>
               {cameraPermission === 'denied' && (
-                <p className="text-red-600 text-xs sm:text-sm mb-4">
+                <p className="text-red-600 text-sm mb-4">
                   Acceso a cámara denegado. Por favor habilita los permisos de cámara.
-                </p>
-              )}
-              {cameraPermission === 'prompt' && isConnecting && (
-                <p className="text-blue-600 text-xs sm:text-sm mb-4">
-                  Por favor autoriza el acceso a la cámara cuando te lo solicite el navegador.
                 </p>
               )}
               <Button
                 onClick={startCamera}
                 className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white shadow-lg w-full sm:w-auto"
-                disabled={cameraPermission === 'denied' || isConnecting}
+                disabled={cameraPermission === 'denied'}
               >
-                {isConnecting ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Conectando...
-                  </div>
-                ) : (
-                  <>
-                    <Camera className="w-4 h-4 mr-2" />
-                    Iniciar Cámara
-                  </>
-                )}
+                <Camera className="w-4 h-4 mr-2" />
+                Iniciar Cámara
               </Button>
             </div>
           )}
 
           {photos.length > 0 && (
             <div className="mt-6 w-full">
-              <h4 className="font-medium mb-4 text-gray-700 text-center text-sm sm:text-base">
+              <h4 className="font-medium mb-4 text-gray-700 text-center">
                 Fotos Capturadas ({photos.length}/3)
               </h4>
-              <div className="grid grid-cols-3 gap-2 w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full max-w-3xl mx-auto">
                 {photos.map((photo) => (
                   <div key={photo.id} className="relative group w-full">
                     <img
@@ -391,30 +255,24 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
                       onClick={() => deletePhoto(photo.id)}
                       size="sm"
                       variant="destructive"
-                      className="absolute top-1 right-1 w-6 h-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-2 right-2 w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-4 h-4" />
                     </Button>
-                    <div className="absolute bottom-1 left-1 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                    <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
                       {new Date(photo.timestamp).toLocaleTimeString()}
                     </div>
                   </div>
                 ))}
                 
-                {photos.length < 3 && !isCapturing && (
+                {photos.length < 3 && (
                   <div
                     onClick={startCamera}
                     className="aspect-square border-2 border-dashed border-red-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-red-500 hover:bg-red-50 transition-colors w-full"
                   >
                     <div className="text-center">
-                      {isConnecting ? (
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600 mx-auto mb-2"></div>
-                      ) : (
-                        <Plus className="w-6 h-6 sm:w-8 sm:h-8 text-red-400 mx-auto mb-2" />
-                      )}
-                      <span className="text-xs text-red-600">
-                        {isConnecting ? "Conectando..." : "Agregar Foto"}
-                      </span>
+                      <Plus className="w-8 h-8 text-red-400 mx-auto mb-2" />
+                      <span className="text-sm text-red-600">Agregar Foto</span>
                     </div>
                   </div>
                 )}
