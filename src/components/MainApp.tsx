@@ -6,32 +6,40 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import CameraApp from './CameraApp';
 import AuthForm from './AuthForm';
-
-interface UserData {
-  name: string;
-  email: string;
-  position: string;
-}
+import { useAuth } from '@/contexts/AuthContext';
 
 const MainApp = () => {
+  const { user, profile, signOut, loading } = useAuth();
   const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userData, setUserData] = useState<UserData | null>(null);
 
-  const handleAuthenticate = (authData: UserData) => {
-    setUserData(authData);
-    setIsAuthenticated(true);
-  };
+  // Show loading state while auth is initializing
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-red-50 p-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUserData(null);
+  // Show auth form if user is not authenticated
+  if (!user || !profile) {
+    return <AuthForm />;
+  }
+
+  const handleLogout = async () => {
+    await signOut();
     setIsCameraOpen(false);
   };
 
-  if (!isAuthenticated) {
-    return <AuthForm onAuthenticate={handleAuthenticate} />;
-  }
+  // Convert profile to userData format for compatibility with CameraApp
+  const userData = {
+    name: profile.name,
+    email: user.email || '',
+    position: profile.position,
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-red-50 p-4">
@@ -52,24 +60,25 @@ const MainApp = () => {
             <p className="text-gray-600">
               Sistema de Auditoría
             </p>
-            {userData && (
-              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-700">
-                  <strong>Usuario:</strong> {userData.name}
-                </p>
-                <p className="text-sm text-gray-700">
-                  <strong>Cargo:</strong> {userData.position}
-                </p>
-                <Button
-                  onClick={handleLogout}
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                >
-                  Cerrar Sesión
-                </Button>
-              </div>
-            )}
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-700">
+                <strong>Usuario:</strong> {profile.name}
+              </p>
+              <p className="text-sm text-gray-700">
+                <strong>Email:</strong> {user.email}
+              </p>
+              <p className="text-sm text-gray-700">
+                <strong>Cargo:</strong> {profile.position}
+              </p>
+              <Button
+                onClick={handleLogout}
+                variant="outline"
+                size="sm"
+                className="mt-2"
+              >
+                Cerrar Sesión
+              </Button>
+            </div>
           </CardHeader>
         </Card>
 
