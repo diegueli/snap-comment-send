@@ -107,7 +107,7 @@ const MainApp = () => {
             </DialogContent>
           </Dialog>
 
-          {/* Bloqueos Button */}
+          {/* Bloqueos Button - Updated Dialog configuration */}
           <Dialog open={isBloqueosOpen} onOpenChange={setIsBloqueosOpen}>
             <DialogTrigger asChild>
               <Button 
@@ -118,7 +118,7 @@ const MainApp = () => {
                 Bloqueos
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-[95vw] w-full h-[90vh] mx-auto p-0">
+            <DialogContent className="max-w-[95vw] w-full h-[90vh] mx-auto p-0 overflow-hidden">
               <BloqueosForm onClose={() => setIsBloqueosOpen(false)} />
             </DialogContent>
           </Dialog>

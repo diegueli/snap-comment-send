@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -153,30 +152,26 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         </div>
       </div>
       
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-hidden w-full">
-        <div className="h-full overflow-y-auto">
-          <div className="p-6 w-full">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 w-full">
-                <BloqueosFormFields
-                  form={form}
-                  plantas={plantas}
-                  areas={areas}
-                  productos={productos}
-                  turnos={turnos}
-                />
+      {/* Scrollable Content - Simplified structure */}
+      <div className="flex-1 p-6 overflow-y-auto">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 w-full">
+            <BloqueosFormFields
+              form={form}
+              plantas={plantas}
+              areas={areas}
+              productos={productos}
+              turnos={turnos}
+            />
 
-                <BloqueosFormActions
-                  loading={loading}
-                  emailLoading={emailLoading}
-                  onGenerateEmail={handleGenerateEmail}
-                  onClose={onClose}
-                />
-              </form>
-            </Form>
-          </div>
-        </div>
+            <BloqueosFormActions
+              loading={loading}
+              emailLoading={emailLoading}
+              onGenerateEmail={handleGenerateEmail}
+              onClose={onClose}
+            />
+          </form>
+        </Form>
       </div>
     </div>
   );
