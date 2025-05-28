@@ -346,7 +346,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       // Set header with Quinta branding
       pdf.setFontSize(16);
       pdf.setTextColor(196, 47, 47); // Red color
-      pdf.text(`Conjunto de Fotos ${i + 1}`, 20, yPosition);
+      pdf.text(set.title ?? `Conjunto de Fotos ${i + 1}`, 20, yPosition);
       yPosition += 15;
 
       // Add photos
