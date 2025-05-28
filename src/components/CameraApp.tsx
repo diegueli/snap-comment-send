@@ -41,8 +41,11 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
   const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
   const [editingComment, setEditingComment] = useState('');
+  const [isAutoSequence, setIsAutoSequence] = useState(false);
+  const [autoSequenceStep, setAutoSequenceStep] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const autoSequenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check camera permission on component mount
   useEffect(() => {
@@ -92,11 +95,9 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       setIsCapturing(true);
       setCameraPermission('granted');
       
-      // Wait for video element to be ready before setting srcObject
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
         
-        // Ensure video starts playing
         videoRef.current.onloadedmetadata = () => {
           if (videoRef.current) {
             videoRef.current.play().catch(console.error);
@@ -119,6 +120,132 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     }
   }, [stream]);
 
+  const startCameraSequence = useCallback(async () => {
+    if (currentPhotos.length >= 3) {
+      toast({
+        title: "Máximo de fotos alcanzado",
+        description: "Ya tienes 3 fotos en el conjunto actual.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAutoSequence(true);
+    setAutoSequenceStep(1);
+    
+    toast({
+      title: "Iniciando secuencia automática",
+      description: "Paso 1: Iniciando cámara...",
+    });
+
+    try {
+      console.log('Starting automatic camera sequence...');
+      
+      // Stop any existing stream first
+      if (stream) {
+        console.log('Stopping existing stream');
+        stream.getTracks().forEach(track => track.stop());
+        setStream(null);
+      }
+
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false
+      });
+      
+      console.log('Camera stream obtained for auto sequence');
+      setStream(mediaStream);
+      setIsCapturing(true);
+      setCameraPermission('granted');
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+        
+        videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.play().then(() => {
+              setAutoSequenceStep(2);
+              toast({
+                title: "Cámara lista",
+                description: "Paso 2: Preparando captura automática...",
+              });
+              
+              // Auto capture after 2 seconds
+              autoSequenceTimeoutRef.current = setTimeout(() => {
+                setAutoSequenceStep(3);
+                capturePhotoAuto();
+              }, 2000);
+            }).catch(console.error);
+          }
+        };
+      }
+      
+    } catch (error) {
+      console.error('Error in auto sequence:', error);
+      setCameraPermission('denied');
+      setIsAutoSequence(false);
+      setAutoSequenceStep(0);
+      toast({
+        title: "Error en secuencia automática",
+        description: "No se puede acceder a la cámara. Verifica los permisos.",
+        variant: "destructive",
+      });
+    }
+  }, [stream, currentPhotos.length]);
+
+  const capturePhotoAuto = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current || currentPhotos.length >= 3) {
+      setIsAutoSequence(false);
+      setAutoSequenceStep(0);
+      return;
+    }
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+
+    if (context) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0);
+      
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      const newPhoto: CapturedPhoto = {
+        id: Date.now().toString(),
+        dataUrl,
+        timestamp: new Date()
+      };
+
+      setCurrentPhotos(prev => [...prev, newPhoto]);
+      
+      toast({
+        title: "¡Foto capturada automáticamente!",
+        description: `Foto ${currentPhotos.length + 1}/3 guardada`,
+      });
+
+      setAutoSequenceStep(4);
+      
+      // Stop camera and prepare for next photo if needed
+      setTimeout(() => {
+        stopCamera();
+        setIsAutoSequence(false);
+        setAutoSequenceStep(0);
+        
+        if (currentPhotos.length + 1 < 3) {
+          toast({
+            title: "Foto agregada",
+            description: "Presiona 'Iniciar Cámara' nuevamente para la siguiente foto.",
+          });
+        } else {
+          toast({
+            title: "Conjunto completo",
+            description: "Ya tienes las 3 fotos. Agrega un comentario y guarda el conjunto.",
+          });
+        }
+      }, 1000);
+    }
+  }, [currentPhotos.length]);
+
   const stopCamera = useCallback(() => {
     console.log('Stopping camera');
     if (stream) {
@@ -129,6 +256,14 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       videoRef.current.srcObject = null;
     }
     setIsCapturing(false);
+    
+    // Clear auto sequence
+    if (autoSequenceTimeoutRef.current) {
+      clearTimeout(autoSequenceTimeoutRef.current);
+      autoSequenceTimeoutRef.current = null;
+    }
+    setIsAutoSequence(false);
+    setAutoSequenceStep(0);
   }, [stream]);
 
   const capturePhoto = useCallback(() => {
@@ -433,6 +568,12 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     setPhotoSets([]);
     setEditingSetId(null);
     setEditingComment('');
+    setIsAutoSequence(false);
+    setAutoSequenceStep(0);
+    if (autoSequenceTimeoutRef.current) {
+      clearTimeout(autoSequenceTimeoutRef.current);
+      autoSequenceTimeoutRef.current = null;
+    }
     stopCamera();
     toast({
       title: "App reset",
@@ -498,14 +639,16 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4">
-                  <Button
-                    onClick={capturePhoto}
-                    size="lg"
-                    className="rounded-full bg-white text-red-600 hover:bg-gray-100 shadow-lg"
-                    disabled={currentPhotos.length >= 3}
-                  >
-                    <Camera className="w-6 h-6" />
-                  </Button>
+                  {!isAutoSequence && (
+                    <Button
+                      onClick={capturePhoto}
+                      size="lg"
+                      className="rounded-full bg-white text-red-600 hover:bg-gray-100 shadow-lg"
+                      disabled={currentPhotos.length >= 3}
+                    >
+                      <Camera className="w-6 h-6" />
+                    </Button>
+                  )}
                   <Button
                     onClick={stopCamera}
                     variant="outline"
@@ -518,6 +661,11 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
                 <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
                   {currentPhotos.length}/3
                 </div>
+                {isAutoSequence && (
+                  <div className="absolute top-4 left-4 bg-yellow-500/90 text-white px-3 py-1 rounded-full text-sm">
+                    Auto: Paso {autoSequenceStep}/4
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -528,7 +676,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
                 <Camera className="w-16 h-16 mx-auto text-red-600 mb-4" />
                 <h3 className="text-lg font-semibold mb-2">¿Listo para capturar fotos?</h3>
                 <p className="text-gray-600 text-sm mb-4">
-                  Toma hasta 3 fotos por conjunto y crea múltiples conjuntos
+                  Captura automática: Un clic toma la foto y prepara la siguiente
                 </p>
                 {cameraPermission === 'denied' && (
                   <p className="text-red-600 text-sm mb-4">
@@ -536,14 +684,25 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
                   </p>
                 )}
               </div>
-              <Button
-                onClick={startCamera}
-                className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white"
-                disabled={cameraPermission === 'denied'}
-              >
-                <Camera className="w-4 h-4 mr-2" />
-                Iniciar Cámara
-              </Button>
+              <div className="space-y-3">
+                <Button
+                  onClick={startCameraSequence}
+                  className="w-full bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white"
+                  disabled={cameraPermission === 'denied' || currentPhotos.length >= 3}
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  Iniciar Cámara (Automático)
+                </Button>
+                <Button
+                  onClick={startCamera}
+                  variant="outline"
+                  className="w-full border-red-300 text-red-600 hover:bg-red-50"
+                  disabled={cameraPermission === 'denied'}
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  Modo Manual
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -581,12 +740,12 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
               {currentPhotos.length < 3 && (
                 <div className="mb-4">
                   <Button
-                    onClick={startCamera}
+                    onClick={startCameraSequence}
                     variant="outline"
                     className="w-full border-2 border-dashed border-red-300 text-red-600 hover:border-red-500 hover:text-red-700 hover:bg-red-50"
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Agregar Foto ({currentPhotos.length}/3)
+                    Agregar Foto Automática ({currentPhotos.length}/3)
                   </Button>
                 </div>
               )}
