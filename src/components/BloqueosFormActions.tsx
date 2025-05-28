@@ -57,7 +57,7 @@ const BloqueosFormActions: React.FC<BloqueosFormActionsProps> = ({
         type="button" 
         variant="outline" 
         onClick={onClose}
-        className="border-red-300 text-red-600 hover:bg-red-50 px-4 sm:px-8 order-3"
+        className="border-red-300 text-red-600 hover:bg-red-50 px-4 sm:px-6 order-3 whitespace-nowrap"
       >
         Cancelar
       </Button>
