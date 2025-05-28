@@ -40,7 +40,7 @@ Este reporte fue generado automaticamente por el Sistema de Auditoria de Quinta 
   const sendEmail = async (data: BloqueosEmailData) => {
     setLoading(true);
     try {
-      const subject = `Reporte de Bloqueo - ${data.producto} - ${data.fecha}`;
+      const subject = `Reporte de Bloqueo - ${data.planta} - ${data.producto} - ${data.fecha}`;
       const body = generateEmailBody(data);
       
       const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
