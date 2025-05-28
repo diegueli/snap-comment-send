@@ -53,9 +53,9 @@ const MainApp = () => {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-yellow-50 to-red-50 p-2 sm:p-4">
-      <div className="w-full max-w-7xl mx-auto">
+      <div className="w-full max-w-full mx-auto px-2 sm:px-4">
         {/* Header with Logo */}
-        <Card className="mb-4 sm:mb-6 bg-white shadow-lg">
+        <Card className="mb-4 sm:mb-6 bg-white shadow-lg w-full">
           <CardHeader className="text-center p-4 sm:p-6">
             <div className="flex justify-center items-center mb-4">
               <img 
@@ -70,7 +70,7 @@ const MainApp = () => {
             <p className="text-gray-600 text-sm sm:text-base">
               Sistema de Auditoría
             </p>
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg text-left">
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg text-left w-full">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs sm:text-sm">
                 <div>
                   <strong className="text-gray-700">Usuario:</strong>
@@ -98,7 +98,7 @@ const MainApp = () => {
         </Card>
 
         {/* Module Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center w-full">
           {/* Auditoria Button */}
           <DialogOrDrawer open={isCameraOpen} onOpenChange={setIsCameraOpen}>
             <Button 
@@ -109,8 +109,8 @@ const MainApp = () => {
               <Camera className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
               Auditoría
             </Button>
-            <ContentComponent className={isMobile ? "h-[90vh]" : "max-w-md mx-auto max-h-[90vh] overflow-y-auto p-0"}>
-              <div className="p-0 h-full">
+            <ContentComponent className={isMobile ? "h-[90vh] w-full" : "max-w-md mx-auto max-h-[90vh] overflow-y-auto p-0 w-full"}>
+              <div className="p-0 h-full w-full">
                 <CameraApp onClose={() => setIsCameraOpen(false)} userData={userData} />
               </div>
             </ContentComponent>
@@ -126,8 +126,8 @@ const MainApp = () => {
               <Shield className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
               Bloqueos
             </Button>
-            <ContentComponent className={isMobile ? "h-[95vh] p-0" : "max-w-6xl mx-auto max-h-[95vh] overflow-hidden p-0"}>
-              <div className="h-full">
+            <ContentComponent className={isMobile ? "h-[95vh] p-0 w-full" : "max-w-full mx-auto max-h-[95vh] overflow-hidden p-0 w-[90vw]"}>
+              <div className="h-full w-full">
                 <BloqueosForm onClose={() => setIsBloqueosOpen(false)} />
               </div>
             </ContentComponent>

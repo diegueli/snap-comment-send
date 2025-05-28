@@ -221,19 +221,17 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="w-full h-full bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 p-4 rounded-lg">
-      <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl h-full">
-        <CardHeader className="bg-gradient-to-r from-yellow-500 to-red-600 text-white rounded-t-lg">
-          <div className="flex items-center gap-3">
-            <Shield className="h-8 w-8" />
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-white to-yellow-100 bg-clip-text text-transparent">
-              🛡️ Registrar Bloqueo
-            </CardTitle>
-          </div>
+    <div className="w-full h-full bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 p-2 sm:p-4 rounded-lg">
+      <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl h-full w-full">
+        <CardHeader className="bg-gradient-to-r from-yellow-500 to-red-600 text-white rounded-t-lg p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-white to-yellow-100 bg-clip-text text-transparent flex items-center gap-2 sm:gap-3">
+            <Shield className="h-6 w-6 sm:h-8 sm:w-8" />
+            🛡️ Registrar Bloqueo
+          </CardTitle>
         </CardHeader>
-        <CardContent className="p-6 flex-1 overflow-y-auto">
+        <CardContent className="p-3 sm:p-6 flex-1 overflow-y-auto w-full">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6 w-full">
               <BloqueosFormFields
                 control={form.control}
                 plantas={plantas}

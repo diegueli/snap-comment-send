@@ -24,24 +24,26 @@ const Camera = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-yellow-50 to-red-50 p-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-4">
+    <div className="min-h-screen w-full bg-gradient-to-br from-yellow-50 to-red-50 p-2 sm:p-4">
+      <div className="max-w-full mx-auto w-full px-2 sm:px-4">
+        <div className="mb-4 w-full">
           <Button
             onClick={handleClose}
             variant="outline"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 w-full sm:w-auto"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver al Formulario
           </Button>
         </div>
         
-        <BloqueosCameraModule
-          photos={JSON.parse(localStorage.getItem('bloqueosPhotos') || '[]')}
-          onPhotosChange={handlePhotosChange}
-          onClose={handleClose}
-        />
+        <div className="w-full">
+          <BloqueosCameraModule
+            photos={JSON.parse(localStorage.getItem('bloqueosPhotos') || '[]')}
+            onPhotosChange={handlePhotosChange}
+            onClose={handleClose}
+          />
+        </div>
       </div>
     </div>
   );
