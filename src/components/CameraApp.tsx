@@ -38,12 +38,12 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
   const [documentTitle, setDocumentTitle] = useState('');
   const [isCapturing, setIsCapturing] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
   const [editingComment, setEditingComment] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const connectingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check camera permission on component mount
@@ -67,14 +67,32 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
   // Cleanup camera stream when component unmounts
   useEffect(() => {
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
       if (connectingTimeoutRef.current) {
         clearTimeout(connectingTimeoutRef.current);
       }
     };
-  }, [stream]);
+  }, []);
+
+  const activateCamera = useCallback(() => {
+    console.log('Activating camera');
+    
+    // Clear any existing timeout
+    if (connectingTimeoutRef.current) {
+      clearTimeout(connectingTimeoutRef.current);
+      connectingTimeoutRef.current = null;
+    }
+    
+    setIsCapturing(true);
+    setIsConnecting(false);
+    
+    toast({
+      title: "Cámara lista",
+      description: "¡Lista para tomar fotos!",
+    });
+  }, []);
 
   const startCamera = useCallback(async () => {
     try {
@@ -86,36 +104,17 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
         clearTimeout(connectingTimeoutRef.current);
       }
 
-      // Safety timeout to exit connecting state
+      // Safety timeout - activate camera after 3 seconds regardless
       connectingTimeoutRef.current = setTimeout(() => {
-        console.log('Camera connection timeout - forcing activation');
-        if (videoRef.current && stream) {
-          const video = videoRef.current;
-          if (video.videoWidth > 0 && video.videoHeight > 0) {
-            console.log('Video has valid dimensions, activating camera');
-            setIsCapturing(true);
-            setIsConnecting(false);
-            toast({
-              title: "Cámara lista",
-              description: "¡Lista para tomar fotos!",
-            });
-          } else {
-            console.log('Video timeout without valid dimensions');
-            setIsConnecting(false);
-            toast({
-              title: "Error de cámara",
-              description: "La cámara tardó mucho en activarse. Intenta de nuevo.",
-              variant: "destructive",
-            });
-          }
-        }
-      }, 8000);
+        console.log('Camera activation timeout - forcing activation');
+        activateCamera();
+      }, 3000);
       
       // Stop any existing stream first
-      if (stream) {
+      if (streamRef.current) {
         console.log('Stopping existing stream');
-        stream.getTracks().forEach(track => track.stop());
-        setStream(null);
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
       }
 
       const mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -124,7 +123,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       });
       
       console.log('Camera stream obtained');
-      setStream(mediaStream);
+      streamRef.current = mediaStream;
       setCameraPermission('granted');
       
       if (videoRef.current) {
@@ -132,54 +131,22 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
         
         const video = videoRef.current;
         
-        // Simple activation on playing event
-        const handleVideoPlaying = () => {
-          console.log('Video is playing, dimensions:', video.videoWidth, 'x', video.videoHeight);
+        // Use onloadedmetadata as the primary activation trigger
+        video.onloadedmetadata = () => {
+          console.log('Video metadata loaded - activating camera');
+          activateCamera();
+        };
+        
+        // Start playing the video
+        video.play().catch(error => {
+          console.error('Error starting video playback:', error);
+          setIsConnecting(false);
           
-          // Clear the timeout since we got a successful playing event
           if (connectingTimeoutRef.current) {
             clearTimeout(connectingTimeoutRef.current);
             connectingTimeoutRef.current = null;
           }
           
-          // Activate camera if video has valid dimensions
-          if (video.videoWidth > 0 && video.videoHeight > 0) {
-            setIsCapturing(true);
-            setIsConnecting(false);
-            toast({
-              title: "Cámara lista",
-              description: "¡Lista para tomar fotos!",
-            });
-          } else {
-            // Retry check after a short delay
-            setTimeout(() => {
-              if (video.videoWidth > 0 && video.videoHeight > 0) {
-                setIsCapturing(true);
-                setIsConnecting(false);
-                toast({
-                  title: "Cámara lista",
-                  description: "¡Lista para tomar fotos!",
-                });
-              }
-            }, 500);
-          }
-        };
-
-        // Use playing event for more reliable detection
-        video.onplaying = handleVideoPlaying;
-        
-        // Fallback with canplay event
-        video.oncanplay = () => {
-          console.log('Video can play, attempting to play...');
-          video.play().catch(error => {
-            console.error('Error playing video:', error);
-          });
-        };
-
-        // Start playing the video
-        video.play().catch(error => {
-          console.error('Error starting video playback:', error);
-          setIsConnecting(false);
           toast({
             title: "Error de cámara",
             description: "No se pudo iniciar la reproducción del video",
@@ -205,7 +172,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
         variant: "destructive",
       });
     }
-  }, [stream]);
+  }, [activateCamera]);
 
   const stopCamera = useCallback(() => {
     console.log('Stopping camera');
@@ -216,16 +183,16 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       connectingTimeoutRef.current = null;
     }
     
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
     }
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
     setIsCapturing(false);
     setIsConnecting(false);
-  }, [stream]);
+  }, []);
 
   const capturePhoto = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || currentPhotos.length >= 3) {
