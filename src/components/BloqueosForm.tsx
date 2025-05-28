@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -136,20 +135,10 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
 
       toast({
         title: "Bloqueo creado",
-        description: "El bloqueo se ha registrado exitosamente",
+        description: "El bloqueo se ha registrado exitosamente. Los valores se conservan para envío por correo.",
       });
 
-      form.reset({
-        planta_id: '',
-        area_planta_id: '',
-        producto_id: '',
-        cantidad: undefined,
-        lote: undefined,
-        turno_id: '',
-        motivo: '',
-        fecha: getCurrentDateFormatted(),
-        usuario: profile?.name || '',
-      });
+      // Note: Form values are preserved after successful submission for potential email sending
     } catch (error: any) {
       console.error('Error creating bloqueo:', error);
       toast({
