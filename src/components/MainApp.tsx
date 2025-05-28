@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Camera, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -107,7 +108,7 @@ const MainApp = () => {
             </DialogContent>
           </Dialog>
 
-          {/* Bloqueos Button - Updated Dialog configuration */}
+          {/* Bloqueos Button */}
           <Dialog open={isBloqueosOpen} onOpenChange={setIsBloqueosOpen}>
             <DialogTrigger asChild>
               <Button 
@@ -118,8 +119,10 @@ const MainApp = () => {
                 Bloqueos
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-[95vw] w-full h-[90vh] mx-auto p-0 overflow-hidden">
-              <BloqueosForm onClose={() => setIsBloqueosOpen(false)} />
+            <DialogContent className="max-w-4xl mx-auto max-h-[90vh] overflow-y-auto p-0">
+              <div className="p-6">
+                <BloqueosForm onClose={() => setIsBloqueosOpen(false)} />
+              </div>
             </DialogContent>
           </Dialog>
         </div>
