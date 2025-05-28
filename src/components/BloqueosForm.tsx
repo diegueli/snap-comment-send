@@ -1,18 +1,19 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { Form } from '@/components/ui/form';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { X, Shield, Camera, Mail } from 'lucide-react';
+import { X, Shield } from 'lucide-react';
 import BloqueosCameraModule from './BloqueosCameraModule';
+import BloqueosFormFields from './BloqueosFormFields';
+import BloqueosPhotoSection from './BloqueosPhotoSection';
+import BloqueosFormActions from './BloqueosFormActions';
 import { useBloqueoEmail } from '@/hooks/useBloqueoEmail';
 
 const bloqueosSchema = z.object({
@@ -245,281 +246,26 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
           <CardContent className="p-6">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="planta_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700 font-semibold">Planta</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="border-blue-200 focus:border-blue-500 focus:ring-blue-500">
-                              <SelectValue placeholder="Selecciona una planta" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="bg-white border-blue-200">
-                            {plantas.map((planta) => (
-                              <SelectItem key={planta.id} value={planta.id.toString()}>
-                                {planta.nombre}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="area_planta_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700 font-semibold">Área de Planta</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="border-blue-200 focus:border-blue-500 focus:ring-blue-500">
-                              <SelectValue placeholder="Selecciona un área" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="bg-white border-blue-200">
-                            {areas.map((area) => (
-                              <SelectItem key={area.id} value={area.id.toString()}>
-                                {area.nombre}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="producto_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700 font-semibold">Producto</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="border-blue-200 focus:border-blue-500 focus:ring-blue-500">
-                              <SelectValue placeholder="Selecciona un producto" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="bg-white border-blue-200">
-                            {productos.map((producto) => (
-                              <SelectItem key={producto.id} value={producto.id.toString()}>
-                                {producto.nombre}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="turno_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700 font-semibold">Turno</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="border-blue-200 focus:border-blue-500 focus:ring-blue-500">
-                              <SelectValue placeholder="Selecciona un turno" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="bg-white border-blue-200">
-                            {turnos.map((turno) => (
-                              <SelectItem key={turno.id} value={turno.id.toString()}>
-                                {turno.nombre}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="cantidad"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700 font-semibold">Cantidad</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder="Ingresa la cantidad"
-                            className="border-blue-200 focus:border-blue-500 focus:ring-blue-500"
-                            {...field}
-                            onFocus={() => handleInputFocus('cantidad')}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="lote"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700 font-semibold">Lote</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder="Ingresa el número de lote"
-                            className="border-blue-200 focus:border-blue-500 focus:ring-blue-500"
-                            {...field}
-                            onFocus={() => handleInputFocus('lote')}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="fecha"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700 font-semibold">Fecha</FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            readOnly 
-                            className="bg-gray-100 border-gray-300 text-gray-600 cursor-not-allowed"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="quien_bloqueo"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700 font-semibold">Usuario</FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            readOnly 
-                            className="bg-gray-100 border-gray-300 text-gray-600 cursor-not-allowed"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
+                <BloqueosFormFields
                   control={form.control}
-                  name="motivo"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-700 font-semibold">Motivo del Bloqueo</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Describe el motivo del bloqueo (máximo 150 caracteres)"
-                          className="resize-none border-blue-200 focus:border-blue-500 focus:ring-blue-500 min-h-[100px]"
-                          maxLength={150}
-                          {...field}
-                        />
-                      </FormControl>
-                      <div className="flex justify-between items-center mt-1">
-                        <div className="text-sm text-gray-500">
-                          {field.value?.length || 0}/150 caracteres
-                        </div>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  plantas={plantas}
+                  areas={areas}
+                  productos={productos}
+                  turnos={turnos}
+                  onInputFocus={handleInputFocus}
                 />
 
-                {/* Sección de Evidencia Fotográfica */}
-                <div className="border-t border-gray-200 pt-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-700">📸 Evidencia Fotográfica</h3>
-                    <Button
-                      type="button"
-                      onClick={() => setShowCamera(true)}
-                      className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white"
-                    >
-                      <Camera className="w-4 h-4 mr-2" />
-                      {photos.length > 0 ? `Fotos (${photos.length}/3)` : 'Agregar Fotos'}
-                    </Button>
-                  </div>
-                  
-                  {photos.length > 0 && (
-                    <div className="grid grid-cols-3 gap-3 mb-4">
-                      {photos.map((photo) => (
-                        <div key={photo.id} className="relative">
-                          <img
-                            src={photo.dataUrl}
-                            alt={`Evidencia ${photo.id}`}
-                            className="w-full aspect-square object-cover rounded-lg shadow-md border-2 border-blue-200"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <BloqueosPhotoSection
+                  photos={photos}
+                  onShowCamera={() => setShowCamera(true)}
+                />
 
-                <div className="flex gap-4 pt-6 border-t border-gray-200">
-                  <Button 
-                    type="submit" 
-                    disabled={loading} 
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-semibold py-3 shadow-lg"
-                  >
-                    {loading ? (
-                      <div className="flex items-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Guardando...
-                      </div>
-                    ) : (
-                      'Registrar Bloqueo'
-                    )}
-                  </Button>
-                  
-                  <Button
-                    type="button"
-                    onClick={handleGenerateEmail}
-                    disabled={isGeneratingEmail}
-                    className="bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white font-semibold py-3 px-6 shadow-lg"
-                  >
-                    {isGeneratingEmail ? (
-                      <div className="flex items-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Generando...
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4" />
-                        Generar Correo
-                      </div>
-                    )}
-                  </Button>
-                  
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={onClose}
-                    className="border-blue-300 text-blue-600 hover:bg-blue-50 px-8"
-                  >
-                    Cancelar
-                  </Button>
-                </div>
+                <BloqueosFormActions
+                  loading={loading}
+                  isGeneratingEmail={isGeneratingEmail}
+                  onGenerateEmail={handleGenerateEmail}
+                  onClose={onClose}
+                />
               </form>
             </Form>
           </CardContent>
