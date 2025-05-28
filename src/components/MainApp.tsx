@@ -109,8 +109,8 @@ const MainApp = () => {
               <Camera className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
               Auditoría
             </Button>
-            <ContentComponent className={isMobile ? "h-[90vh] w-full" : "max-w-md mx-auto max-h-[90vh] overflow-y-auto p-0 w-full"}>
-              <div className="p-0 h-full w-full">
+            <ContentComponent className={isMobile ? "h-[90vh] w-full overflow-y-auto" : "max-w-md mx-auto max-h-[90vh] overflow-y-auto p-0 w-full"}>
+              <div className="p-0 h-full w-full overflow-y-auto">
                 <CameraApp onClose={() => setIsCameraOpen(false)} userData={userData} />
               </div>
             </ContentComponent>
@@ -126,8 +126,8 @@ const MainApp = () => {
               <Shield className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
               Bloqueos
             </Button>
-            <ContentComponent className={isMobile ? "h-[95vh] p-0 w-full" : "max-w-full mx-auto max-h-[95vh] overflow-hidden p-0 w-[90vw]"}>
-              <div className="h-full w-full">
+            <ContentComponent className={isMobile ? "h-[95vh] p-0 w-full overflow-y-auto" : "max-w-full mx-auto max-h-[95vh] overflow-y-auto p-0 w-[90vw]"}>
+              <div className="h-full w-full overflow-y-auto">
                 <BloqueosForm onClose={() => setIsBloqueosOpen(false)} />
               </div>
             </ContentComponent>

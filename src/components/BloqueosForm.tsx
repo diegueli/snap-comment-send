@@ -221,9 +221,9 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="w-full h-full bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 p-2 sm:p-4 rounded-lg">
-      <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl h-full w-full">
-        <CardHeader className="bg-gradient-to-r from-yellow-500 to-red-600 text-white rounded-t-lg p-4 sm:p-6">
+    <div className="w-full min-h-full bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 p-2 sm:p-4 rounded-lg overflow-y-auto">
+      <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl w-full min-h-full overflow-y-auto">
+        <CardHeader className="bg-gradient-to-r from-yellow-500 to-red-600 text-white rounded-t-lg p-4 sm:p-6 flex-shrink-0">
           <CardTitle className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-white to-yellow-100 bg-clip-text text-transparent flex items-center gap-2 sm:gap-3">
             <Shield className="h-6 w-6 sm:h-8 sm:w-8" />
             🛡️ Registrar Bloqueo

@@ -160,9 +160,9 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
   }, [photos, onPhotosChange]);
 
   return (
-    <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 p-2 sm:p-6 rounded-lg w-full">
-      <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl w-full">
-        <CardHeader className="bg-gradient-to-r from-yellow-500 to-red-600 text-white rounded-t-lg p-3 sm:p-6">
+    <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 p-2 sm:p-6 rounded-lg w-full min-h-full overflow-y-auto">
+      <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl w-full min-h-full overflow-y-auto">
+        <CardHeader className="bg-gradient-to-r from-yellow-500 to-red-600 text-white rounded-t-lg p-3 sm:p-6 flex-shrink-0">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2 sm:gap-3 flex-1">
               <Camera className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -180,10 +180,10 @@ const BloqueosCameraModule: React.FC<BloqueosCameraModuleProps> = ({
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-3 sm:p-6 w-full">
+        <CardContent className="p-3 sm:p-6 w-full flex-1 overflow-y-auto">
           {isCapturing ? (
             <div className="space-y-4 w-full">
-              <div className="relative aspect-square overflow-hidden rounded-lg bg-black w-full">
+              <div className="relative aspect-square overflow-hidden rounded-lg bg-black w-full max-w-md mx-auto">
                 <video
                   ref={videoRef}
                   autoPlay
