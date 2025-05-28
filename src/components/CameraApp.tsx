@@ -93,16 +93,16 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       setCameraPermission('granted');
       
       // Wait for video element to be ready before setting srcObject
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        
-        // Ensure video starts playing
-        videoRef.current.onloadedmetadata = () => {
-          if (videoRef.current) {
-            videoRef.current.play().catch(console.error);
-          }
-        };
-      }
+
+        useEffect(() => {
+          if (videoRef.current && stream) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.onloadedmetadata = () => {
+              videoRef.current?.play().catch(console.error);
+            };
+          }
+        }, [stream]);
+
       
       toast({
         title: "Camera started",
