@@ -199,6 +199,8 @@ Usuario: ${formData.usuario}
         title: "Cliente de correo abierto",
         description: "Se ha abierto tu cliente de correo predeterminado con los datos del bloqueo",
       });
+
+      // Note: Form values are preserved after sending email for potential re-sending
     } catch (error) {
       console.error('Error opening email client:', error);
       toast({
