@@ -1,16 +1,18 @@
 
 import React, { useState } from 'react';
-import { Camera } from 'lucide-react';
+import { Camera, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import CameraApp from './CameraApp';
+import BloqueosForm from './BloqueosForm';
 import AuthForm from './AuthForm';
 import { useAuth } from '@/contexts/AuthContext';
 
 const MainApp = () => {
   const { user, profile, signOut, loading } = useAuth();
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isBloqueosOpen, setIsBloqueosOpen] = useState(false);
 
   // Show loading state while auth is initializing
   if (loading) {
@@ -32,6 +34,7 @@ const MainApp = () => {
   const handleLogout = async () => {
     await signOut();
     setIsCameraOpen(false);
+    setIsBloqueosOpen(false);
   };
 
   // Convert profile to userData format for compatibility with CameraApp
@@ -82,8 +85,9 @@ const MainApp = () => {
           </CardHeader>
         </Card>
 
-        {/* Single Auditoria Button */}
-        <div className="flex justify-center">
+        {/* Module Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          {/* Auditoria Button */}
           <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
             <DialogTrigger asChild>
               <Button 
@@ -100,6 +104,24 @@ const MainApp = () => {
               </DialogHeader>
               <div className="p-0">
                 <CameraApp onClose={() => setIsCameraOpen(false)} userData={userData} />
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Bloqueos Button */}
+          <Dialog open={isBloqueosOpen} onOpenChange={setIsBloqueosOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                className="bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white px-8 py-4 text-lg font-semibold shadow-lg"
+                size="lg"
+              >
+                <Shield className="w-6 h-6 mr-3" />
+                Bloqueos
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl mx-auto max-h-[90vh] overflow-y-auto p-0">
+              <div className="p-6">
+                <BloqueosForm onClose={() => setIsBloqueosOpen(false)} />
               </div>
             </DialogContent>
           </Dialog>

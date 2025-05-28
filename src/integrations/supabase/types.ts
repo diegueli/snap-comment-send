@@ -9,6 +9,98 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      areas_planta: {
+        Row: {
+          id: number
+          nombre: string
+        }
+        Insert: {
+          id?: number
+          nombre: string
+        }
+        Update: {
+          id?: number
+          nombre?: string
+        }
+        Relationships: []
+      }
+      bloqueos: {
+        Row: {
+          area_planta_id: number
+          cantidad: number
+          created_at: string
+          fecha: string
+          id: string
+          lote: number
+          motivo: string
+          planta_id: number
+          producto_id: number
+          quien_bloqueo: string
+          turno_id: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          area_planta_id: number
+          cantidad: number
+          created_at?: string
+          fecha: string
+          id?: string
+          lote: number
+          motivo: string
+          planta_id: number
+          producto_id: number
+          quien_bloqueo: string
+          turno_id: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          area_planta_id?: number
+          cantidad?: number
+          created_at?: string
+          fecha?: string
+          id?: string
+          lote?: number
+          motivo?: string
+          planta_id?: number
+          producto_id?: number
+          quien_bloqueo?: string
+          turno_id?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bloqueos_area_planta_id_fkey"
+            columns: ["area_planta_id"]
+            isOneToOne: false
+            referencedRelation: "areas_planta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bloqueos_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "plantas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bloqueos_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bloqueos_turno_id_fkey"
+            columns: ["turno_id"]
+            isOneToOne: false
+            referencedRelation: "turnos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           id: number
@@ -24,6 +116,36 @@ export type Database = {
           id?: never
           name?: string
           position?: string
+        }
+        Relationships: []
+      }
+      plantas: {
+        Row: {
+          id: number
+          nombre: string
+        }
+        Insert: {
+          id?: number
+          nombre: string
+        }
+        Update: {
+          id?: number
+          nombre?: string
+        }
+        Relationships: []
+      }
+      productos: {
+        Row: {
+          id: number
+          nombre: string
+        }
+        Insert: {
+          id?: number
+          nombre: string
+        }
+        Update: {
+          id?: number
+          nombre?: string
         }
         Relationships: []
       }
@@ -48,6 +170,21 @@ export type Database = {
           name?: string
           position?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      turnos: {
+        Row: {
+          id: number
+          nombre: string
+        }
+        Insert: {
+          id?: number
+          nombre: string
+        }
+        Update: {
+          id?: number
+          nombre?: string
         }
         Relationships: []
       }
