@@ -23,7 +23,7 @@ const bloqueosSchema = z.object({
   turno_id: z.string().min(1, 'Selecciona un turno'),
   motivo: z.string().min(1, 'El motivo es requerido').max(150, 'El motivo no puede exceder 150 caracteres'),
   fecha: z.string().min(1, 'La fecha es requerida'),
-  quien_bloqueo: z.string().min(1, 'Indica quién realizó el bloqueo'),
+  usuario: z.string().min(1, 'Indica quién realizó el bloqueo'),
 });
 
 type BloqueosFormData = z.infer<typeof bloqueosSchema>;
@@ -51,7 +51,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
       turno_id: '',
       motivo: '',
       fecha: new Date().toISOString().split('T')[0],
-      quien_bloqueo: '',
+      usuario: '',
     },
   });
 
