@@ -13,12 +13,15 @@ interface CapturedPhoto {
   timestamp: Date;
 }
 
+
 interface PhotoSet {
   id: string;
+  title?: string; // nuevo campo opcional
   photos: CapturedPhoto[];
   comment: string;
   timestamp: Date;
 }
+
 
 interface UserData {
   name: string;
@@ -214,10 +217,12 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
 
     const newSet: PhotoSet = {
       id: Date.now().toString(),
+      title: `Conjunto ${photoSets.length + 1}`,
       photos: [...currentPhotos],
       comment: currentComment,
       timestamp: new Date()
     };
+
 
     setPhotoSets(prev => [...prev, newSet]);
     setCurrentPhotos([]);
@@ -622,7 +627,18 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
               {photoSets.map((set, index) => (
                 <div key={set.id} className="border rounded-lg p-3 bg-gray-50">
                   <div className="flex justify-between items-center mb-2">
-                    <h4 className="font-medium">Conjunto {index + 1}</h4>
+                    <Input
+                      type="text"
+                      value={set.title ?? `Conjunto ${index + 1}`}
+                      onChange={(e) => {
+                        const newTitle = e.target.value;
+                        setPhotoSets(prev =>
+                          prev.map(s => s.id === set.id ? { ...s, title: newTitle } : s)
+                        );
+                      }}
+                      className="font-medium text-sm border-gray-300 focus:border-red-500"
+                    />
+
                     <Button
                       onClick={() => deletePhotoSet(set.id)}
                       size="sm"
