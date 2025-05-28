@@ -4,17 +4,15 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Form } from '@/components/ui/form';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { useBloqueosEmail } from '@/hooks/useBloqueosEmail';
-import { X, Shield, Mail } from 'lucide-react';
+import { useBloqueosData } from '@/hooks/useBloqueosData';
+import { X, Shield } from 'lucide-react';
+import BloqueosFormFields from './BloqueosFormFields';
+import BloqueosFormActions from './BloqueosFormActions';
 
 const bloqueosSchema = z.object({
   planta_id: z.string().min(1, 'Selecciona una planta'),
@@ -37,10 +35,7 @@ interface BloqueosFormProps {
 const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   const { user, profile } = useAuth();
   const { sendEmail, loading: emailLoading } = useBloqueosEmail();
-  const [plantas, setPlantas] = useState<Array<{ id: number; nombre: string }>>([]);
-  const [areas, setAreas] = useState<Array<{ id: number; nombre: string }>>([]);
-  const [productos, setProductos] = useState<Array<{ id: number; nombre: string }>>([]);
-  const [turnos, setTurnos] = useState<Array<{ id: number; nombre: string }>>([]);
+  const { plantas, areas, productos, turnos } = useBloqueosData();
   const [loading, setLoading] = useState(false);
 
   const form = useForm<BloqueosFormData>({
@@ -52,45 +47,12 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   });
 
   useEffect(() => {
-    loadDropdownData();
-  }, []);
-
-  useEffect(() => {
-    // Update quien_bloqueo when profile changes
     if (profile?.name) {
       form.setValue('quien_bloqueo', profile.name);
     } else if (user?.email) {
       form.setValue('quien_bloqueo', user.email);
     }
   }, [profile, user, form]);
-
-  const loadDropdownData = async () => {
-    try {
-      const [plantasResult, areasResult, productosResult, turnosResult] = await Promise.all([
-        supabase.from('plantas').select('*').order('nombre'),
-        supabase.from('areas_planta').select('*').order('nombre'),
-        supabase.from('productos').select('*').order('nombre'),
-        supabase.from('turnos').select('*').order('nombre'),
-      ]);
-
-      if (plantasResult.error) throw plantasResult.error;
-      if (areasResult.error) throw areasResult.error;
-      if (productosResult.error) throw productosResult.error;
-      if (turnosResult.error) throw turnosResult.error;
-
-      setPlantas(plantasResult.data || []);
-      setAreas(areasResult.data || []);
-      setProductos(productosResult.data || []);
-      setTurnos(turnosResult.data || []);
-    } catch (error) {
-      console.error('Error loading dropdown data:', error);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar las opciones del formulario",
-        variant: "destructive",
-      });
-    }
-  };
 
   const onSubmit = async (data: BloqueosFormData) => {
     if (!user) {
@@ -104,7 +66,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
 
     setLoading(true);
     try {
-      // Convert dd/mm/yyyy back to yyyy-mm-dd for database storage
       const [day, month, year] = data.fecha.split('/');
       const isoDate = `${year}-${month}-${day}`;
 
@@ -145,7 +106,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   const handleGenerateEmail = () => {
     const formData = form.getValues();
     
-    // Get display names for dropdowns
     const planta = plantas.find(p => p.id.toString() === formData.planta_id)?.nombre || '';
     const area = areas.find(a => a.id.toString() === formData.area_planta_id)?.nombre || '';
     const producto = productos.find(p => p.id.toString() === formData.producto_id)?.nombre || '';
@@ -188,258 +148,28 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
       
       {/* Scrollable Content */}
       <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
+        <div className="h-full overflow-y-auto">
           <div className="p-6">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="planta_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium text-gray-700">Planta</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-10 border-gray-300 focus:border-red-500 focus:ring-red-500">
-                              <SelectValue placeholder="Selecciona una planta" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="bg-white border-gray-200 z-50">
-                            {plantas.map((planta) => (
-                              <SelectItem key={planta.id} value={planta.id.toString()}>
-                                {planta.nombre}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="area_planta_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium text-gray-700">Área de Planta</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-10 border-gray-300 focus:border-red-500 focus:ring-red-500">
-                              <SelectValue placeholder="Selecciona un área" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="bg-white border-gray-200 z-50">
-                            {areas.map((area) => (
-                              <SelectItem key={area.id} value={area.id.toString()}>
-                                {area.nombre}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="producto_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium text-gray-700">Producto</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-10 border-gray-300 focus:border-red-500 focus:ring-red-500">
-                              <SelectValue placeholder="Selecciona un producto" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="bg-white border-gray-200 z-50">
-                            {productos.map((producto) => (
-                              <SelectItem key={producto.id} value={producto.id.toString()}>
-                                {producto.nombre}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="turno_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium text-gray-700">Turno</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-10 border-gray-300 focus:border-red-500 focus:ring-red-500">
-                              <SelectValue placeholder="Selecciona un turno" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="bg-white border-gray-200 z-50">
-                            {turnos.map((turno) => (
-                              <SelectItem key={turno.id} value={turno.id.toString()}>
-                                {turno.nombre}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="cantidad"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium text-gray-700">Cantidad</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder="Ingresa la cantidad"
-                            className="h-10 border-gray-300 focus:border-red-500 focus:ring-red-500"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="lote"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium text-gray-700">Lote</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder="Ingresa el número de lote"
-                            className="h-10 border-gray-300 focus:border-red-500 focus:ring-red-500"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="fecha"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium text-gray-700">Fecha</FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            readOnly
-                            className="h-10 border-gray-300 bg-gray-50 cursor-not-allowed"
-                          />
-                        </FormControl>
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="quien_bloqueo"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium text-gray-700">Usuario</FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            readOnly
-                            className="h-10 border-gray-300 bg-gray-50 cursor-not-allowed"
-                          />
-                        </FormControl>
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="motivo"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-gray-700">Motivo del Bloqueo</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Describe el motivo del bloqueo (máximo 150 caracteres)"
-                          className="resize-none border-gray-300 focus:border-red-500 focus:ring-red-500 min-h-[80px]"
-                          maxLength={150}
-                          {...field}
-                        />
-                      </FormControl>
-                      <div className="flex justify-between items-center mt-1">
-                        <div className="text-xs text-gray-500">
-                          {field.value?.length || 0}/150 caracteres
-                        </div>
-                      </div>
-                      <FormMessage className="text-xs" />
-                    </FormItem>
-                  )}
+                <BloqueosFormFields
+                  form={form}
+                  plantas={plantas}
+                  areas={areas}
+                  productos={productos}
+                  turnos={turnos}
                 />
 
-                <div className="flex gap-3 pt-4 border-t border-gray-200">
-                  <Button 
-                    type="submit" 
-                    disabled={loading} 
-                    className="flex-1 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-medium h-10"
-                  >
-                    {loading ? (
-                      <div className="flex items-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Guardando...
-                      </div>
-                    ) : (
-                      'Registrar Bloqueo'
-                    )}
-                  </Button>
-                  
-                  <Button 
-                    type="button" 
-                    onClick={handleGenerateEmail}
-                    disabled={emailLoading}
-                    className="bg-blue-500 hover:bg-blue-600 text-white font-medium h-10 px-6"
-                  >
-                    {emailLoading ? (
-                      <div className="flex items-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Generando...
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4" />
-                        Generar Correo
-                      </div>
-                    )}
-                  </Button>
-                  
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={onClose}
-                    className="border-gray-300 text-gray-600 hover:bg-gray-50 px-6 h-10"
-                  >
-                    Cancelar
-                  </Button>
-                </div>
+                <BloqueosFormActions
+                  loading={loading}
+                  emailLoading={emailLoading}
+                  onGenerateEmail={handleGenerateEmail}
+                  onClose={onClose}
+                />
               </form>
             </Form>
           </div>
-        </ScrollArea>
+        </div>
       </div>
     </div>
   );
