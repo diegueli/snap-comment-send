@@ -62,6 +62,16 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     checkCameraPermission();
   }, []);
 
+  // Set video source when stream changes
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.onloadedmetadata = () => {
+        videoRef.current?.play().catch(console.error);
+      };
+    }
+  }, [stream]);
+
   // Cleanup camera stream when component unmounts
   useEffect(() => {
     return () => {
@@ -91,18 +101,6 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       setStream(mediaStream);
       setIsCapturing(true);
       setCameraPermission('granted');
-      
-      // Wait for video element to be ready before setting srcObject
-
-        useEffect(() => {
-          if (videoRef.current && stream) {
-            videoRef.current.srcObject = stream;
-            videoRef.current.onloadedmetadata = () => {
-              videoRef.current?.play().catch(console.error);
-            };
-          }
-        }, [stream]);
-
       
       toast({
         title: "Camera started",
