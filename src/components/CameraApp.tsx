@@ -37,6 +37,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
   const [photoSets, setPhotoSets] = useState<PhotoSet[]>([]);
   const [documentTitle, setDocumentTitle] = useState('');
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
@@ -74,6 +75,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
   const startCamera = useCallback(async () => {
     try {
       console.log('Starting camera...');
+      setIsConnecting(true);
       
       // Stop any existing stream first
       if (stream) {
@@ -89,31 +91,42 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       
       console.log('Camera stream obtained');
       setStream(mediaStream);
-      setIsCapturing(true);
       setCameraPermission('granted');
       
-      // Wait for video element to be ready before setting srcObject
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
         
-        // Ensure video starts playing
-        videoRef.current.onloadedmetadata = () => {
-          if (videoRef.current) {
-            videoRef.current.play().catch(console.error);
+        // Wait for video to be fully ready before setting capturing state
+        const handleVideoReady = () => {
+          if (videoRef.current && videoRef.current.readyState >= 3) {
+            console.log('Video is ready, dimensions:', videoRef.current.videoWidth, 'x', videoRef.current.videoHeight);
+            setIsCapturing(true);
+            setIsConnecting(false);
+            toast({
+              title: "Cámara lista",
+              description: "¡Lista para tomar fotos!",
+            });
           }
         };
+
+        videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.play().then(() => {
+              handleVideoReady();
+            }).catch(console.error);
+          }
+        };
+
+        videoRef.current.oncanplay = handleVideoReady;
       }
       
-      toast({
-        title: "Camera started",
-        description: "Ready to take photos!",
-      });
     } catch (error) {
       console.error('Error accessing camera:', error);
       setCameraPermission('denied');
+      setIsConnecting(false);
       toast({
-        title: "Camera error",
-        description: "Unable to access camera. Please check permissions.",
+        title: "Error de cámara",
+        description: "No se puede acceder a la cámara. Verifica los permisos.",
         variant: "destructive",
       });
     }
@@ -129,6 +142,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       videoRef.current.srcObject = null;
     }
     setIsCapturing(false);
+    setIsConnecting(false);
   }, [stream]);
 
   const capturePhoto = useCallback(() => {
@@ -441,11 +455,11 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
   }, [stopCamera]);
 
   return (
-    <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-[80vh] p-4">
-      <div className="max-w-md mx-auto space-y-6">
+    <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-[80vh] p-2 sm:p-4 overflow-y-auto">
+      <div className="w-full max-w-md mx-auto space-y-4 sm:space-y-6">
         {/* Close Button */}
         {onClose && (
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-end mb-2 sm:mb-4">
             <Button
               onClick={onClose}
               variant="outline"
@@ -460,10 +474,10 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
         {/* Header */}
         <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
           <CardHeader className="text-center pb-3">
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-yellow-500 to-red-600 bg-clip-text text-transparent">
-              📸 Auditoría Fotográfica
+            <CardTitle className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-yellow-500 to-red-600 bg-clip-text text-transparent">
+              Auditoría Fotográfica
             </CardTitle>
-            <p className="text-sm text-gray-600">
+            <p className="text-xs sm:text-sm text-gray-600">
               Crea múltiples conjuntos de fotos y exporta como PDF
             </p>
           </CardHeader>
@@ -471,8 +485,8 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
 
         {/* Document Title Input */}
         <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
-          <CardContent className="p-4">
-            <label htmlFor="document-title" className="block text-sm font-medium text-gray-700 mb-2">
+          <CardContent className="p-3 sm:p-4">
+            <label htmlFor="document-title" className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
               Título del Documento
             </label>
             <Input
@@ -480,7 +494,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
               placeholder="Ingrese el título del documento (opcional)"
               value={documentTitle}
               onChange={(e) => setDocumentTitle(e.target.value)}
-              className="border-gray-200 focus:border-red-500"
+              className="border-gray-200 focus:border-red-500 text-sm"
             />
           </CardContent>
         </Card>
@@ -523,26 +537,37 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
           </Card>
         ) : (
           <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
-            <CardContent className="p-6 text-center">
+            <CardContent className="p-4 sm:p-6 text-center">
               <div className="mb-4">
-                <Camera className="w-16 h-16 mx-auto text-red-600 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">¿Listo para capturar fotos?</h3>
-                <p className="text-gray-600 text-sm mb-4">
-                  Toma hasta 3 fotos por conjunto y crea múltiples conjuntos
+                <Camera className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-red-600 mb-4" />
+                <h3 className="text-base sm:text-lg font-semibold mb-2">
+                  {isConnecting ? "Conectando cámara..." : "¿Listo para capturar fotos?"}
+                </h3>
+                <p className="text-gray-600 text-xs sm:text-sm mb-4">
+                  {isConnecting ? "Estableciendo conexión con la cámara" : "Toma hasta 3 fotos por conjunto y crea múltiples conjuntos"}
                 </p>
                 {cameraPermission === 'denied' && (
-                  <p className="text-red-600 text-sm mb-4">
+                  <p className="text-red-600 text-xs sm:text-sm mb-4">
                     Acceso a cámara denegado. Por favor habilita los permisos de cámara en tu navegador.
                   </p>
                 )}
               </div>
               <Button
                 onClick={startCamera}
-                className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white"
-                disabled={cameraPermission === 'denied'}
+                className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white w-full sm:w-auto"
+                disabled={cameraPermission === 'denied' || isConnecting}
               >
-                <Camera className="w-4 h-4 mr-2" />
-                Iniciar Cámara
+                {isConnecting ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Conectando...
+                  </div>
+                ) : (
+                  <>
+                    <Camera className="w-4 h-4 mr-2" />
+                    Iniciar Cámara
+                  </>
+                )}
               </Button>
             </CardContent>
           </Card>
@@ -552,8 +577,8 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
         {currentPhotos.length > 0 && (
           <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                📷 Conjunto Actual ({currentPhotos.length}/3)
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                Conjunto Actual ({currentPhotos.length}/3)
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -578,15 +603,25 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
               </div>
 
               {/* Add Photo Button */}
-              {currentPhotos.length < 3 && (
+              {currentPhotos.length < 3 && !isCapturing && (
                 <div className="mb-4">
                   <Button
                     onClick={startCamera}
                     variant="outline"
                     className="w-full border-2 border-dashed border-red-300 text-red-600 hover:border-red-500 hover:text-red-700 hover:bg-red-50"
+                    disabled={isConnecting}
                   >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Agregar Foto ({currentPhotos.length}/3)
+                    {isConnecting ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                        Conectando...
+                      </div>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Agregar Foto ({currentPhotos.length}/3)
+                      </>
+                    )}
                   </Button>
                 </div>
               )}
@@ -596,7 +631,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
                 placeholder="Agregar observaciones para este conjunto de fotos..."
                 value={currentComment}
                 onChange={(e) => setCurrentComment(e.target.value)}
-                className="resize-none border-gray-200 focus:border-red-500 mb-4"
+                className="resize-none border-gray-200 focus:border-red-500 mb-4 text-sm"
                 rows={2}
               />
               
@@ -615,7 +650,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
         {photoSets.length > 0 && (
           <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <FileText className="w-5 h-5" />
                 Conjuntos Guardados ({photoSets.length})
               </CardTitle>
@@ -624,7 +659,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
               {photoSets.map((set, index) => (
                 <div key={set.id} className="border rounded-lg p-3 bg-gray-50">
                   <div className="flex justify-between items-center mb-2">
-                    <h4 className="font-medium">Conjunto {index + 1}</h4>
+                    <h4 className="font-medium text-sm">Conjunto {index + 1}</h4>
                     <Button
                       onClick={() => deletePhotoSet(set.id)}
                       size="sm"
@@ -661,7 +696,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
                         <Textarea
                           value={editingComment}
                           onChange={(e) => setEditingComment(e.target.value)}
-                          className="resize-none border-gray-200 focus:border-red-500"
+                          className="resize-none border-gray-200 focus:border-red-500 text-sm"
                           rows={2}
                           placeholder="Editar observaciones..."
                         />
@@ -685,7 +720,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
                       </div>
                     ) : (
                       <div className="flex items-start justify-between">
-                        <p className="text-sm text-gray-600 flex-1">
+                        <p className="text-xs sm:text-sm text-gray-600 flex-1">
                           {set.comment || "Sin observaciones"}
                         </p>
                         <Button
