@@ -118,7 +118,7 @@ const MainApp = () => {
                 Bloqueos
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl w-[90vw] h-[85vh] mx-auto p-0">
+            <DialogContent className="max-w-[95vw] w-full h-[90vh] mx-auto p-0">
               <BloqueosForm onClose={() => setIsBloqueosOpen(false)} />
             </DialogContent>
           </Dialog>
