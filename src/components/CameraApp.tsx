@@ -13,15 +13,13 @@ interface CapturedPhoto {
   timestamp: Date;
 }
 
-
 interface PhotoSet {
   id: string;
-  title?: string; // nuevo campo opcional
+  title: string; // Made required instead of optional
   photos: CapturedPhoto[];
   comment: string;
   timestamp: Date;
 }
-
 
 interface UserData {
   name: string;
@@ -44,6 +42,8 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
   const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
   const [editingComment, setEditingComment] = useState('');
+  const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -223,7 +223,6 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       timestamp: new Date()
     };
 
-
     setPhotoSets(prev => [...prev, newSet]);
     setCurrentPhotos([]);
     setCurrentComment('');
@@ -232,7 +231,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       title: "Photo set saved!",
       description: `Set with ${newSet.photos.length} photo(s) added to document.`,
     });
-  }, [currentPhotos, currentComment]);
+  }, [currentPhotos, currentComment, photoSets.length]);
 
   const deletePhotoSet = useCallback((setId: string) => {
     setPhotoSets(prev => prev.filter(set => set.id !== setId));
@@ -268,6 +267,34 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
   const cancelEditingComment = useCallback(() => {
     setEditingSetId(null);
     setEditingComment('');
+  }, []);
+
+  const startEditingTitle = useCallback((setId: string, currentTitle: string) => {
+    setEditingTitleId(setId);
+    setEditingTitle(currentTitle);
+  }, []);
+
+  const saveEditedTitle = useCallback(() => {
+    if (!editingTitleId) return;
+    
+    setPhotoSets(prev => prev.map(set => 
+      set.id === editingTitleId 
+        ? { ...set, title: editingTitle.trim() || `Conjunto ${photoSets.findIndex(s => s.id === editingTitleId) + 1}` }
+        : set
+    ));
+    
+    setEditingTitleId(null);
+    setEditingTitle('');
+    
+    toast({
+      title: "Title updated",
+      description: "Photo set title has been saved.",
+    });
+  }, [editingTitleId, editingTitle, photoSets]);
+
+  const cancelEditingTitle = useCallback(() => {
+    setEditingTitleId(null);
+    setEditingTitle('');
   }, []);
 
   const generatePDF = useCallback(async () => {
@@ -343,10 +370,10 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
         yPosition = 20;
       }
 
-      // Set header with Quinta branding
+      // Set header with Quinta branding - Use the actual title from the set
       pdf.setFontSize(16);
       pdf.setTextColor(196, 47, 47); // Red color
-      pdf.text(set.title ?? `Conjunto de Fotos ${i + 1}`, 20, yPosition);
+      pdf.text(set.title, 20, yPosition);
       yPosition += 15;
 
       // Add photos
@@ -436,6 +463,8 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     setPhotoSets([]);
     setEditingSetId(null);
     setEditingComment('');
+    setEditingTitleId(null);
+    setEditingTitle('');
     stopCamera();
     toast({
       title: "App reset",
@@ -627,17 +656,45 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
               {photoSets.map((set, index) => (
                 <div key={set.id} className="border rounded-lg p-3 bg-gray-50">
                   <div className="flex justify-between items-center mb-2">
-                    <Input
-                      type="text"
-                      value={set.title ?? `Conjunto ${index + 1}`}
-                      onChange={(e) => {
-                        const newTitle = e.target.value;
-                        setPhotoSets(prev =>
-                          prev.map(s => s.id === set.id ? { ...s, title: newTitle } : s)
-                        );
-                      }}
-                      className="font-medium text-sm border-gray-300 focus:border-red-500"
-                    />
+                    {/* Title section with edit functionality */}
+                    {editingTitleId === set.id ? (
+                      <div className="flex-1 mr-2">
+                        <div className="flex gap-2">
+                          <Input
+                            value={editingTitle}
+                            onChange={(e) => setEditingTitle(e.target.value)}
+                            className="border-gray-200 focus:border-red-500"
+                            placeholder="Título del conjunto..."
+                          />
+                          <Button
+                            onClick={saveEditedTitle}
+                            size="sm"
+                            className="bg-green-500 hover:bg-green-600 text-white"
+                          >
+                            <Check className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            onClick={cancelEditingTitle}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center flex-1 mr-2">
+                        <span className="font-medium text-sm flex-1">{set.title}</span>
+                        <Button
+                          onClick={() => startEditingTitle(set.id, set.title)}
+                          size="sm"
+                          variant="ghost"
+                          className="ml-2 w-6 h-6 p-0"
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
 
                     <Button
                       onClick={() => deletePhotoSet(set.id)}
