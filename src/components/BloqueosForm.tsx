@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,7 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { X, Shield } from 'lucide-react';
+import { useBloqueosEmail } from '@/hooks/useBloqueosEmail';
+import { X, Shield, Mail } from 'lucide-react';
 
 const bloqueosSchema = z.object({
   planta_id: z.string().min(1, 'Selecciona una planta'),
@@ -34,6 +34,7 @@ interface BloqueosFormProps {
 
 const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   const { user, profile } = useAuth();
+  const { sendEmail, loading: emailLoading } = useBloqueosEmail();
   const [plantas, setPlantas] = useState<Array<{ id: number; nombre: string }>>([]);
   const [areas, setAreas] = useState<Array<{ id: number; nombre: string }>>([]);
   const [productos, setProductos] = useState<Array<{ id: number; nombre: string }>>([]);
@@ -163,10 +164,34 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
     }
   };
 
+  const handleGenerateEmail = () => {
+    const formData = form.getValues();
+    
+    // Get display names for dropdowns
+    const planta = plantas.find(p => p.id.toString() === formData.planta_id)?.nombre || '';
+    const area = areas.find(a => a.id.toString() === formData.area_planta_id)?.nombre || '';
+    const producto = productos.find(p => p.id.toString() === formData.producto_id)?.nombre || '';
+    const turno = turnos.find(t => t.id.toString() === formData.turno_id)?.nombre || '';
+
+    const emailData = {
+      planta,
+      area,
+      producto,
+      cantidad: formData.cantidad,
+      lote: formData.lote,
+      turno,
+      motivo: formData.motivo,
+      fecha: formData.fecha,
+      quien_bloqueo: formData.quien_bloqueo,
+    };
+
+    sendEmail(emailData);
+  };
+
   return (
-    <div className="w-full max-w-4xl mx-auto bg-gradient-to-br from-yellow-50 to-red-50 p-6 rounded-lg">
-      <Card className="border-2 border-red-200 shadow-xl bg-white">
-        <CardHeader className="bg-gradient-to-r from-yellow-500 to-red-600 text-white rounded-t-lg">
+    <div className="w-full h-full bg-gradient-to-br from-yellow-50 to-red-50 p-6 flex items-center justify-center">
+      <Card className="w-full max-w-5xl border-2 border-red-200 shadow-xl bg-white max-h-[90vh] overflow-hidden flex flex-col">
+        <CardHeader className="bg-gradient-to-r from-yellow-500 to-red-600 text-white flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Shield className="h-8 w-8" />
@@ -184,7 +209,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent className="p-6 flex-1 overflow-y-auto">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -402,6 +427,26 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
                     'Registrar Bloqueo'
                   )}
                 </Button>
+                
+                <Button 
+                  type="button" 
+                  onClick={handleGenerateEmail}
+                  disabled={emailLoading}
+                  className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 shadow-lg"
+                >
+                  {emailLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Generando...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      Generar Correo
+                    </div>
+                  )}
+                </Button>
+                
                 <Button 
                   type="button" 
                   variant="outline" 
