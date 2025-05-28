@@ -1,22 +1,10 @@
-
 import React from 'react';
 import { Control } from 'react-hook-form';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-
-interface BloqueosFormData {
-  planta_id: string;
-  area_planta_id: string;
-  producto_id: string;
-  cantidad: string;
-  lote: string;
-  turno_id: string;
-  motivo: string;
-  fecha: string;
-  quien_bloqueo: string;
-}
+import { BloqueosFormData } from './BloqueosForm';
 
 interface BloqueosFormFieldsProps {
   control: Control<BloqueosFormData>;

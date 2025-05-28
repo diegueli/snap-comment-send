@@ -27,7 +27,7 @@ const bloqueosSchema = z.object({
   quien_bloqueo: z.string().min(1, 'El usuario es requerido'),
 });
 
-type BloqueosFormData = z.infer<typeof bloqueosSchema>;
+export type BloqueosFormData = z.infer<typeof bloqueosSchema>;
 
 interface BloqueosFormProps {
   onClose: () => void;
@@ -63,13 +63,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   const form = useForm<BloqueosFormData>({
     resolver: zodResolver(bloqueosSchema),
     defaultValues: {
-      planta_id: '',
-      area_planta_id: '',
-      producto_id: '',
-      cantidad: '0',
-      lote: '0',
-      turno_id: '',
-      motivo: '',
       fecha: todayFormatted,
       quien_bloqueo: profile?.name || '',
     },
@@ -153,8 +146,8 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         planta_id: '',
         area_planta_id: '',
         producto_id: '',
-        cantidad: '0',
-        lote: '0',
+        cantidad: '',
+        lote: '',
         turno_id: '',
         motivo: '',
         fecha: todayFormatted,
@@ -176,7 +169,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
 
   const handleInputFocus = (fieldName: 'cantidad' | 'lote') => {
     const currentValue = form.getValues(fieldName);
-    if (currentValue === '0') {
+    if (currentValue === '' || currentValue === '0') {
       form.setValue(fieldName, '');
     }
   };
