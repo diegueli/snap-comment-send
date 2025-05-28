@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,8 +19,8 @@ const bloqueosSchema = z.object({
   planta_id: z.string().min(1, 'Selecciona una planta'),
   area_planta_id: z.string().min(1, 'Selecciona un área'),
   producto_id: z.string().min(1, 'Selecciona un producto'),
-  cantidad: z.string().min(1, 'La cantidad es requerida').transform((val) => parseInt(val)),
-  lote: z.string().min(1, 'El lote es requerido').transform((val) => parseInt(val)),
+  cantidad: z.string().min(1, 'La cantidad es requerida'),
+  lote: z.string().min(1, 'El lote es requerido'),
   turno_id: z.string().min(1, 'Selecciona un turno'),
   motivo: z.string().min(1, 'El motivo es requerido').max(150, 'El motivo no puede exceder 150 caracteres'),
   fecha: z.string().min(1, 'La fecha es requerida'),
@@ -41,16 +42,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   const [turnos, setTurnos] = useState<Array<{ id: number; nombre: string }>>([]);
   const [loading, setLoading] = useState(false);
 
-  // Format today's date as dd/mm/yyyy
-  const formatDate = (date: Date) => {
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  };
-
-  const todayFormatted = formatDate(new Date());
-
   const form = useForm<BloqueosFormData>({
     resolver: zodResolver(bloqueosSchema),
     defaultValues: {
@@ -61,20 +52,14 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
       lote: '',
       turno_id: '',
       motivo: '',
-      fecha: todayFormatted,
-      quien_bloqueo: profile?.name || '',
+      fecha: '',
+      quien_bloqueo: '',
     },
   });
 
   useEffect(() => {
     loadDropdownData();
   }, []);
-
-  useEffect(() => {
-    if (profile?.name) {
-      form.setValue('quien_bloqueo', profile.name);
-    }
-  }, [profile, form]);
 
   const loadDropdownData = async () => {
     try {
@@ -124,8 +109,8 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         planta_id: parseInt(data.planta_id),
         area_planta_id: parseInt(data.area_planta_id),
         producto_id: parseInt(data.producto_id),
-        cantidad: data.cantidad,
-        lote: data.lote,
+        cantidad: parseInt(data.cantidad),
+        lote: parseInt(data.lote),
         turno_id: parseInt(data.turno_id),
         motivo: data.motivo,
         fecha: isoDate,
@@ -140,17 +125,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         description: "El bloqueo se ha registrado exitosamente",
       });
 
-      form.reset({
-        planta_id: '',
-        area_planta_id: '',
-        producto_id: '',
-        cantidad: '',
-        lote: '',
-        turno_id: '',
-        motivo: '',
-        fecha: todayFormatted,
-        quien_bloqueo: profile?.name || '',
-      });
+      form.reset();
       onClose();
     } catch (error: any) {
       console.error('Error creating bloqueo:', error);
@@ -219,7 +194,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-gray-700 font-semibold">Planta</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="border-red-200 focus:border-red-500 focus:ring-red-500">
                             <SelectValue placeholder="Selecciona una planta" />
@@ -244,7 +219,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-gray-700 font-semibold">Área de Planta</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="border-red-200 focus:border-red-500 focus:ring-red-500">
                             <SelectValue placeholder="Selecciona un área" />
@@ -269,7 +244,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-gray-700 font-semibold">Producto</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="border-red-200 focus:border-red-500 focus:ring-red-500">
                             <SelectValue placeholder="Selecciona un producto" />
@@ -294,7 +269,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-gray-700 font-semibold">Turno</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="border-red-200 focus:border-red-500 focus:ring-red-500">
                             <SelectValue placeholder="Selecciona un turno" />
@@ -360,8 +335,8 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
                       <FormControl>
                         <Input 
                           {...field} 
-                          readOnly 
-                          className="bg-gray-100 border-gray-300 text-gray-600 cursor-not-allowed"
+                          placeholder="dd/mm/yyyy"
+                          className="border-red-200 focus:border-red-500 focus:ring-red-500"
                         />
                       </FormControl>
                       <FormMessage />
@@ -378,8 +353,8 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
                       <FormControl>
                         <Input 
                           {...field} 
-                          readOnly 
-                          className="bg-gray-100 border-gray-300 text-gray-600 cursor-not-allowed"
+                          placeholder="Nombre del usuario"
+                          className="border-red-200 focus:border-red-500 focus:ring-red-500"
                         />
                       </FormControl>
                       <FormMessage />
