@@ -1,10 +1,11 @@
+
 import React from 'react';
 import { Control } from 'react-hook-form';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { BloqueosFormData } from './BloqueosForm';
+import BloqueosSelectField from './bloqueos/BloqueosSelectField';
+import BloqueosInputField from './bloqueos/BloqueosInputField';
 
 interface BloqueosFormFieldsProps {
   control: Control<BloqueosFormData>;
@@ -26,180 +27,66 @@ const BloqueosFormFields: React.FC<BloqueosFormFieldsProps> = ({
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <FormField
+        <BloqueosSelectField
           control={control}
           name="planta_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-gray-700 font-semibold">Planta</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger className="border-red-200 focus:border-red-500 focus:ring-red-500">
-                    <SelectValue placeholder="Selecciona una planta" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent className="bg-white border-red-200">
-                  {plantas.map((planta) => (
-                    <SelectItem key={planta.id} value={planta.id.toString()}>
-                      {planta.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Planta"
+          placeholder="Selecciona una planta"
+          options={plantas}
         />
 
-        <FormField
+        <BloqueosSelectField
           control={control}
           name="area_planta_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-gray-700 font-semibold">Área de Planta</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger className="border-red-200 focus:border-red-500 focus:ring-red-500">
-                    <SelectValue placeholder="Selecciona un área" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent className="bg-white border-red-200">
-                  {areas.map((area) => (
-                    <SelectItem key={area.id} value={area.id.toString()}>
-                      {area.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Área de Planta"
+          placeholder="Selecciona un área"
+          options={areas}
         />
 
-        <FormField
+        <BloqueosSelectField
           control={control}
           name="producto_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-gray-700 font-semibold">Producto</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger className="border-red-200 focus:border-red-500 focus:ring-red-500">
-                    <SelectValue placeholder="Selecciona un producto" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent className="bg-white border-red-200">
-                  {productos.map((producto) => (
-                    <SelectItem key={producto.id} value={producto.id.toString()}>
-                      {producto.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Producto"
+          placeholder="Selecciona un producto"
+          options={productos}
         />
 
-        <FormField
+        <BloqueosSelectField
           control={control}
           name="turno_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-gray-700 font-semibold">Turno</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger className="border-red-200 focus:border-red-500 focus:ring-red-500">
-                    <SelectValue placeholder="Selecciona un turno" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent className="bg-white border-red-200">
-                  {turnos.map((turno) => (
-                    <SelectItem key={turno.id} value={turno.id.toString()}>
-                      {turno.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Turno"
+          placeholder="Selecciona un turno"
+          options={turnos}
         />
 
-        <FormField
+        <BloqueosInputField
           control={control}
           name="cantidad"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-gray-700 font-semibold">Cantidad</FormLabel>
-              <FormControl>
-                <Input
-                  type="text"
-                  placeholder="Ingresa la cantidad"
-                  className="border-red-200 focus:border-red-500 focus:ring-red-500"
-                  {...field}
-                  onFocus={() => onInputFocus('cantidad')}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Cantidad"
+          placeholder="Ingresa la cantidad"
+          onFocus={() => onInputFocus('cantidad')}
         />
 
-        <FormField
+        <BloqueosInputField
           control={control}
           name="lote"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-gray-700 font-semibold">Lote</FormLabel>
-              <FormControl>
-                <Input
-                  type="text"
-                  placeholder="Ingresa el número de lote"
-                  className="border-red-200 focus:border-red-500 focus:ring-red-500"
-                  {...field}
-                  onFocus={() => onInputFocus('lote')}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Lote"
+          placeholder="Ingresa el número de lote"
+          onFocus={() => onInputFocus('lote')}
         />
 
-        <FormField
+        <BloqueosInputField
           control={control}
           name="fecha"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-gray-700 font-semibold">Fecha</FormLabel>
-              <FormControl>
-                <Input 
-                  {...field} 
-                  readOnly 
-                  className="bg-gray-100 border-gray-300 text-gray-600 cursor-not-allowed"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Fecha"
+          readOnly
         />
 
-        <FormField
+        <BloqueosInputField
           control={control}
           name="quien_bloqueo"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-gray-700 font-semibold">Usuario</FormLabel>
-              <FormControl>
-                <Input 
-                  {...field} 
-                  readOnly 
-                  className="bg-gray-100 border-gray-300 text-gray-600 cursor-not-allowed"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Usuario"
+          readOnly
         />
       </div>
 

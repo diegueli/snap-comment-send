@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -15,6 +15,8 @@ import BloqueosFormFields from './BloqueosFormFields';
 import BloqueosPhotoSection from './BloqueosPhotoSection';
 import BloqueosFormActions from './BloqueosFormActions';
 import { useBloqueoEmail } from '@/hooks/useBloqueoEmail';
+import { useBloqueosFormData } from '@/hooks/useBloqueosFormData';
+import { useBloqueosPhotos } from '@/hooks/useBloqueosPhotos';
 
 const bloqueosSchema = z.object({
   planta_id: z.string().min(1, 'Selecciona una planta'),
@@ -34,24 +36,13 @@ interface BloqueosFormProps {
   onClose: () => void;
 }
 
-interface CapturedPhoto {
-  id: string;
-  dataUrl: string;
-  timestamp: Date;
-}
-
 const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const [plantas, setPlantas] = useState<Array<{ id: number; nombre: string }>>([]);
-  const [areas, setAreas] = useState<Array<{ id: number; nombre: string }>>([]);
-  const [productos, setProductos] = useState<Array<{ id: number; nombre: string }>>([]);
-  const [turnos, setTurnos] = useState<Array<{ id: number; nombre: string }>>([]);
-  const [loading, setLoading] = useState(false);
-  const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
+  const { plantas, areas, productos, turnos } = useBloqueosFormData();
+  const { photos, clearPhotos } = useBloqueosPhotos();
   const { generateBloqueoEmail, isGeneratingEmail } = useBloqueoEmail();
 
-  // Format today's date as dd/mm/yyyy
   const formatDate = (date: Date) => {
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -70,47 +61,10 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   });
 
   useEffect(() => {
-    loadDropdownData();
-    // Load photos from localStorage when component mounts
-    const savedPhotos = localStorage.getItem('bloqueosPhotos');
-    if (savedPhotos) {
-      setPhotos(JSON.parse(savedPhotos));
-    }
-  }, []);
-
-  useEffect(() => {
     if (profile?.name) {
       form.setValue('quien_bloqueo', profile.name);
     }
   }, [profile, form]);
-
-  const loadDropdownData = async () => {
-    try {
-      const [plantasResult, areasResult, productosResult, turnosResult] = await Promise.all([
-        supabase.from('plantas').select('*').order('nombre'),
-        supabase.from('areas_planta').select('*').order('nombre'),
-        supabase.from('productos').select('*').order('nombre'),
-        supabase.from('turnos').select('*').order('nombre'),
-      ]);
-
-      if (plantasResult.error) throw plantasResult.error;
-      if (areasResult.error) throw areasResult.error;
-      if (productosResult.error) throw productosResult.error;
-      if (turnosResult.error) throw turnosResult.error;
-
-      setPlantas(plantasResult.data || []);
-      setAreas(areasResult.data || []);
-      setProductos(productosResult.data || []);
-      setTurnos(turnosResult.data || []);
-    } catch (error) {
-      console.error('Error loading dropdown data:', error);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar las opciones del formulario",
-        variant: "destructive",
-      });
-    }
-  };
 
   const onSubmit = async (data: BloqueosFormData) => {
     if (!user) {
@@ -122,9 +76,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
       return;
     }
 
-    setLoading(true);
     try {
-      // Convert dd/mm/yyyy back to yyyy-mm-dd for database storage
       const [day, month, year] = data.fecha.split('/');
       const isoDate = `${year}-${month}-${day}`;
 
@@ -159,8 +111,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         fecha: todayFormatted,
         quien_bloqueo: profile?.name || '',
       });
-      setPhotos([]);
-      localStorage.removeItem('bloqueosPhotos');
+      clearPhotos();
       onClose();
     } catch (error: any) {
       console.error('Error creating bloqueo:', error);
@@ -169,8 +120,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         description: error.message || "No se pudo crear el bloqueo",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -182,7 +131,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   };
 
   const handleShowCamera = () => {
-    // Save current form data to localStorage before navigating
     const formData = form.getValues();
     localStorage.setItem('bloqueosFormData', JSON.stringify(formData));
     navigate('/camera');
@@ -191,7 +139,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   const handleGenerateEmail = () => {
     const formData = form.getValues();
     
-    // Obtener nombres de los elementos seleccionados
     const plantaSeleccionada = plantas.find(p => p.id.toString() === formData.planta_id);
     const areaSeleccionada = areas.find(a => a.id.toString() === formData.area_planta_id);
     const productoSeleccionado = productos.find(p => p.id.toString() === formData.producto_id);
@@ -248,7 +195,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
               />
 
               <BloqueosFormActions
-                loading={loading}
+                loading={form.formState.isSubmitting}
                 isGeneratingEmail={isGeneratingEmail}
                 onGenerateEmail={handleGenerateEmail}
                 onClose={onClose}

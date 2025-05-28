@@ -4,20 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import BloqueosCameraModule from '@/components/BloqueosCameraModule';
-
-interface CapturedPhoto {
-  id: string;
-  dataUrl: string;
-  timestamp: Date;
-}
+import { useBloqueosPhotos } from '@/hooks/useBloqueosPhotos';
 
 const Camera = () => {
   const navigate = useNavigate();
-
-  const handlePhotosChange = (photos: CapturedPhoto[]) => {
-    // Store photos in localStorage to pass back to the form
-    localStorage.setItem('bloqueosPhotos', JSON.stringify(photos));
-  };
+  const { photos, updatePhotos } = useBloqueosPhotos();
 
   const handleClose = () => {
     navigate('/');
@@ -39,8 +30,8 @@ const Camera = () => {
         
         <div className="w-full flex-1">
           <BloqueosCameraModule
-            photos={JSON.parse(localStorage.getItem('bloqueosPhotos') || '[]')}
-            onPhotosChange={handlePhotosChange}
+            photos={photos}
+            onPhotosChange={updatePhotos}
             onClose={handleClose}
           />
         </div>
