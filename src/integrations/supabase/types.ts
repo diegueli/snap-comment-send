@@ -24,6 +24,54 @@ export type Database = {
         }
         Relationships: []
       }
+      auditorias: {
+        Row: {
+          area: string
+          auditor: string
+          created_at: string
+          evidencia: string | null
+          fecha: string
+          fecha_compromiso: string | null
+          id: string
+          levantamiento: string | null
+          responsable: string | null
+          status: string | null
+          titulo_documento: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          area: string
+          auditor: string
+          created_at?: string
+          evidencia?: string | null
+          fecha: string
+          fecha_compromiso?: string | null
+          id?: string
+          levantamiento?: string | null
+          responsable?: string | null
+          status?: string | null
+          titulo_documento: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          area?: string
+          auditor?: string
+          created_at?: string
+          evidencia?: string | null
+          fecha?: string
+          fecha_compromiso?: string | null
+          id?: string
+          levantamiento?: string | null
+          responsable?: string | null
+          status?: string | null
+          titulo_documento?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bloqueos: {
         Row: {
           area_planta_id: number

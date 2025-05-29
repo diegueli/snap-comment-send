@@ -1,803 +1,460 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Camera, RotateCcw, FileText, Trash2, MessageCircle, Plus, X, Edit, Check } from 'lucide-react';
+import React, { useState, useRef, useCallback } from 'react';
+import { Camera, X, RotateCcw, Download, Edit2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import AuditoriaForm from './AuditoriaForm';
 import jsPDF from 'jspdf';
 
-interface CapturedPhoto {
-  id: string;
-  dataUrl: string;
-  timestamp: Date;
+interface CameraAppProps {
+  onClose: () => void;
+  userData: {
+    name: string;
+    email: string;
+    position: string;
+  };
 }
 
 interface PhotoSet {
   id: string;
-  title: string; // Made required instead of optional
-  photos: CapturedPhoto[];
+  title: string;
+  photos: string[];
   comment: string;
-  timestamp: Date;
 }
 
-interface UserData {
-  name: string;
-  email: string;
-  position: string;
-}
-
-interface CameraAppProps {
-  onClose?: () => void;
-  userData: UserData | null;
+interface AuditoriaData {
+  id: string;
+  titulo_documento: string;
+  fecha: string;
+  auditor: string;
+  area: string;
+  levantamiento?: string;
+  responsable?: string;
+  fecha_compromiso?: string;
+  status: string;
+  evidencia?: string;
 }
 
 const CameraApp = ({ onClose, userData }: CameraAppProps) => {
-  const [currentPhotos, setCurrentPhotos] = useState<CapturedPhoto[]>([]);
-  const [currentComment, setCurrentComment] = useState('');
+  const [currentView, setCurrentView] = useState<'form' | 'camera'>('form');
+  const [auditoriaData, setAuditoriaData] = useState<AuditoriaData | null>(null);
+  const [currentPhoto, setCurrentPhoto] = useState<string | null>(null);
   const [photoSets, setPhotoSets] = useState<PhotoSet[]>([]);
-  const [documentTitle, setDocumentTitle] = useState('');
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
-  const [editingSetId, setEditingSetId] = useState<string | null>(null);
-  const [editingComment, setEditingComment] = useState('');
+  const [currentSetIndex, setCurrentSetIndex] = useState(0);
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
-  const [editingTitle, setEditingTitle] = useState('');
+  const [tempTitle, setTempTitle] = useState('');
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [tempComment, setTempComment] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
-  // Check camera permission on component mount
-  useEffect(() => {
-    const checkCameraPermission = async () => {
-      try {
-        const permission = await navigator.permissions.query({ name: 'camera' as PermissionName });
-        setCameraPermission(permission.state);
-        
-        permission.addEventListener('change', () => {
-          setCameraPermission(permission.state);
-        });
-      } catch (error) {
-        console.log('Permission API not supported');
-      }
-    };
-    
-    checkCameraPermission();
-  }, []);
-
-  // Set video source when stream changes
-  useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
-      videoRef.current.onloadedmetadata = () => {
-        videoRef.current?.play().catch(console.error);
-      };
-    }
-  }, [stream]);
-
-  // Cleanup camera stream when component unmounts
-  useEffect(() => {
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [stream]);
-
-  const startCamera = useCallback(async () => {
+  const startCamera = async () => {
     try {
-      console.log('Starting camera...');
-      
-      // Stop any existing stream first
-      if (stream) {
-        console.log('Stopping existing stream');
-        stream.getTracks().forEach(track => track.stop());
-        setStream(null);
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
       }
-
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-        audio: false
-      });
-      
-      console.log('Camera stream obtained');
-      setStream(mediaStream);
-      setIsCapturing(true);
-      setCameraPermission('granted');
-      
-      toast({
-        title: "Camera started",
-        description: "Ready to take photos!",
-      });
     } catch (error) {
       console.error('Error accessing camera:', error);
-      setCameraPermission('denied');
-      toast({
-        title: "Camera error",
-        description: "Unable to access camera. Please check permissions.",
-        variant: "destructive",
-      });
+      alert('No se pudo acceder a la cámara. Asegúrate de permitir el acceso.');
     }
-  }, [stream]);
+  };
 
-  const stopCamera = useCallback(() => {
-    console.log('Stopping camera');
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
     }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    setIsCapturing(false);
-  }, [stream]);
+  };
 
-  const capturePhoto = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current || currentPhotos.length >= 3) {
-      if (currentPhotos.length >= 3) {
-        toast({
-          title: "Maximum photos reached",
-          description: "You can only take up to 3 photos per set.",
-          variant: "destructive",
-        });
-      }
-      return;
-    }
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-
-    if (context) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      context.drawImage(video, 0, 0);
+  const takePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+      const context = canvas.getContext('2d');
       
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-      const newPhoto: CapturedPhoto = {
-        id: Date.now().toString(),
-        dataUrl,
-        timestamp: new Date()
-      };
-
-      setCurrentPhotos(prev => [...prev, newPhoto]);
-      toast({
-        title: "Photo captured!",
-        description: `Photo ${currentPhotos.length + 1}/3 saved`,
-      });
-
-      if (currentPhotos.length + 1 >= 3) {
-        stopCamera();
-        toast({
-          title: "All photos captured",
-          description: "You can now add a comment and save this set.",
-        });
+      if (context) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0);
+        
+        const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+        setCurrentPhoto(dataURL);
       }
     }
-  }, [currentPhotos.length, stopCamera]);
+  };
 
-  const deletePhoto = useCallback((photoId: string) => {
-    setCurrentPhotos(prev => prev.filter(photo => photo.id !== photoId));
-    toast({
-      title: "Photo deleted",
-      description: "Photo removed from current set.",
-    });
-  }, []);
+  const handleStartCamera = (data: AuditoriaData) => {
+    setAuditoriaData(data);
+    setCurrentView('camera');
+    setTimeout(startCamera, 100);
+  };
 
-  const deletePhotoFromSet = useCallback((setId: string, photoId: string) => {
-    setPhotoSets(prev => prev.map(set => {
-      if (set.id === setId) {
-        const updatedPhotos = set.photos.filter(photo => photo.id !== photoId);
-        if (updatedPhotos.length === 0) {
-          toast({
-            title: "Photo set deleted",
-            description: "Set removed as it had no remaining photos.",
-          });
-          return null;
-        }
-        toast({
-          title: "Photo deleted",
-          description: "Photo removed from set.",
-        });
-        return { ...set, photos: updatedPhotos };
+  const addPhotoToCurrentSet = () => {
+    if (!currentPhoto || !auditoriaData) return;
+
+    setPhotoSets(prev => {
+      const newSets = [...prev];
+      
+      if (newSets[currentSetIndex]) {
+        newSets[currentSetIndex].photos.push(currentPhoto);
+      } else {
+        newSets[currentSetIndex] = {
+          id: `set-${Date.now()}`,
+          title: auditoriaData.area,
+          photos: [currentPhoto],
+          comment: ''
+        };
       }
-      return set;
-    }).filter(Boolean) as PhotoSet[]);
-  }, []);
-
-  const saveCurrentSet = useCallback(() => {
-    if (currentPhotos.length === 0) {
-      toast({
-        title: "No photos to save",
-        description: "Please capture at least one photo first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const newSet: PhotoSet = {
-      id: Date.now().toString(),
-      title: `Conjunto ${photoSets.length + 1}`,
-      photos: [...currentPhotos],
-      comment: currentComment,
-      timestamp: new Date()
-    };
-
-    setPhotoSets(prev => [...prev, newSet]);
-    setCurrentPhotos([]);
-    setCurrentComment('');
-    
-    toast({
-      title: "Photo set saved!",
-      description: `Set with ${newSet.photos.length} photo(s) added to document.`,
+      
+      return newSets;
     });
-  }, [currentPhotos, currentComment, photoSets.length]);
-
-  const deletePhotoSet = useCallback((setId: string) => {
-    setPhotoSets(prev => prev.filter(set => set.id !== setId));
-    toast({
-      title: "Photo set deleted",
-      description: "Set removed from document.",
-    });
-  }, []);
-
-  const startEditingComment = useCallback((setId: string, currentComment: string) => {
-    setEditingSetId(setId);
-    setEditingComment(currentComment);
-  }, []);
-
-  const saveEditedComment = useCallback(() => {
-    if (!editingSetId) return;
     
-    setPhotoSets(prev => prev.map(set => 
-      set.id === editingSetId 
-        ? { ...set, comment: editingComment }
-        : set
-    ));
-    
-    setEditingSetId(null);
-    setEditingComment('');
-    
-    toast({
-      title: "Comment updated",
-      description: "Photo set comment has been saved.",
-    });
-  }, [editingSetId, editingComment]);
+    setCurrentPhoto(null);
+  };
 
-  const cancelEditingComment = useCallback(() => {
-    setEditingSetId(null);
-    setEditingComment('');
-  }, []);
+  const createNewSet = () => {
+    if (!auditoriaData) return;
+    
+    const newSetIndex = photoSets.length;
+    setCurrentSetIndex(newSetIndex);
+    setPhotoSets(prev => [...prev, {
+      id: `set-${Date.now()}`,
+      title: auditoriaData.area,
+      photos: [],
+      comment: ''
+    }]);
+  };
 
-  const startEditingTitle = useCallback((setId: string, currentTitle: string) => {
+  const switchToSet = (index: number) => {
+    setCurrentSetIndex(index);
+  };
+
+  const startEditingTitle = (setId: string, currentTitle: string) => {
     setEditingTitleId(setId);
-    setEditingTitle(currentTitle);
-  }, []);
+    setTempTitle(currentTitle);
+  };
 
-  const saveEditedTitle = useCallback(() => {
-    if (!editingTitleId) return;
-    
-    setPhotoSets(prev => prev.map(set => 
-      set.id === editingTitleId 
-        ? { ...set, title: editingTitle.trim() || `Conjunto ${photoSets.findIndex(s => s.id === editingTitleId) + 1}` }
-        : set
-    ));
-    
+  const saveTitle = (setId: string) => {
+    setPhotoSets(prev => 
+      prev.map(set => 
+        set.id === setId ? { ...set, title: tempTitle } : set
+      )
+    );
     setEditingTitleId(null);
-    setEditingTitle('');
-    
-    toast({
-      title: "Title updated",
-      description: "Photo set title has been saved.",
-    });
-  }, [editingTitleId, editingTitle, photoSets]);
+    setTempTitle('');
+  };
 
-  const cancelEditingTitle = useCallback(() => {
-    setEditingTitleId(null);
-    setEditingTitle('');
-  }, []);
+  const startEditingComment = (setId: string, currentComment: string) => {
+    setEditingCommentId(setId);
+    setTempComment(currentComment);
+  };
 
-  const generatePDF = useCallback(async () => {
-    if (photoSets.length === 0) {
-      toast({
-        title: "No hay conjuntos de fotos para exportar",
-        description: "Por favor crea al menos un conjunto de fotos primero.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const saveComment = (setId: string) => {
+    setPhotoSets(prev => 
+      prev.map(set => 
+        set.id === setId ? { ...set, comment: tempComment } : set
+      )
+    );
+    setEditingCommentId(null);
+    setTempComment('');
+  };
+
+  const generatePDF = () => {
+    if (!auditoriaData) return;
 
     const pdf = new jsPDF();
-    const pageHeight = pdf.internal.pageSize.height;
     const pageWidth = pdf.internal.pageSize.width;
-    let yPosition = 20;
-
-    // Add Quinta alimentos logo and branding
-    try {
-      // Fetch the logo image
-      const logoResponse = await fetch('/lovable-uploads/9ad6adb6-f76a-4982-92e9-09618c309f7c.png');
-      const logoBlob = await logoResponse.blob();
-      const logoBase64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(logoBlob);
-      });
-
-      // Add logo to PDF
-      pdf.addImage(logoBase64, 'PNG', 20, yPosition, 40, 20);
-      yPosition += 25;
-    } catch (error) {
-      console.log('Could not load logo, continuing without it');
-    }
-
-    // Company header
+    const pageHeight = pdf.internal.pageSize.height;
+    
+    // Header
     pdf.setFontSize(20);
-    pdf.setTextColor(196, 47, 47); // Red color from logo
-    pdf.text('QUINTA ALIMENTOS', pageWidth / 2, yPosition, { align: 'center' });
-    yPosition += 10;
-
+    pdf.text('Quinta Alimentos', pageWidth / 2, 30, { align: 'center' });
+    
     pdf.setFontSize(16);
-    pdf.setTextColor(0, 0, 0);
-    const title = documentTitle || 'Reporte de Auditoría';
-    pdf.text(title, pageWidth / 2, yPosition, { align: 'center' });
+    pdf.text('Auditoría', pageWidth / 2, 45, { align: 'center' });
+    
+    // Document info
+    pdf.setFontSize(12);
+    let yPosition = 65;
+    
+    pdf.text(`Título: ${auditoriaData.titulo_documento}`, 20, yPosition);
+    yPosition += 10;
+    pdf.text(`Fecha: ${auditoriaData.fecha}`, 20, yPosition);
+    yPosition += 10;
+    pdf.text(`Auditor: ${auditoriaData.auditor}`, 20, yPosition);
+    yPosition += 10;
+    
+    if (auditoriaData.responsable) {
+      pdf.text(`Responsable: ${auditoriaData.responsable}`, 20, yPosition);
+      yPosition += 10;
+    }
+    
+    if (auditoriaData.fecha_compromiso) {
+      pdf.text(`Fecha de Compromiso: ${auditoriaData.fecha_compromiso}`, 20, yPosition);
+      yPosition += 10;
+    }
+    
+    pdf.text(`Status: ${auditoriaData.status}`, 20, yPosition);
     yPosition += 15;
 
-    // Date and time
-    pdf.setFontSize(12);
-    pdf.text(`Generado el: ${new Date().toLocaleDateString('es-ES')} a las ${new Date().toLocaleTimeString('es-ES')}`, pageWidth / 2, yPosition, { align: 'center' });
-    yPosition += 20;
-
-    // Auditor information (user data)
-    if (userData) {
-      pdf.setFontSize(12);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text('AUDITOR:', 20, yPosition);
-      yPosition += 8;
-      pdf.text(`Nombre: ${userData.name}`, 20, yPosition);
-      yPosition += 6;
-      pdf.text(`Cargo: ${userData.position}`, 20, yPosition);
-      yPosition += 6;
-      pdf.text(`Email: ${userData.email}`, 20, yPosition);
-      yPosition += 15;
-    }
-
-    for (let i = 0; i < photoSets.length; i++) {
-      const set = photoSets[i];
+    // Photo sets
+    photoSets.forEach((set, setIndex) => {
+      if (set.photos.length === 0) return;
       
       // Check if we need a new page
       if (yPosition > pageHeight - 100) {
         pdf.addPage();
-        yPosition = 20;
+        yPosition = 30;
       }
-
-      // Set header with Quinta branding - Use the actual title from the set
-      pdf.setFontSize(16);
-      pdf.setTextColor(196, 47, 47); // Red color
-      pdf.text(set.title, 20, yPosition);
+      
+      // Set title
+      pdf.setFontSize(14);
+      pdf.text(`${set.title}`, 20, yPosition);
       yPosition += 15;
-
-      // Add photos
-      for (let j = 0; j < set.photos.length; j++) {
-        const photo = set.photos[j];
-        
-        // Check if we need a new page for photos
+      
+      // Set comment if exists
+      if (set.comment.trim()) {
+        pdf.setFontSize(10);
+        const commentLines = pdf.splitTextToSize(`Levantamiento: ${set.comment}`, pageWidth - 40);
+        pdf.text(commentLines, 20, yPosition);
+        yPosition += commentLines.length * 5 + 10;
+      }
+      
+      // Photos
+      set.photos.forEach((photo, photoIndex) => {
         if (yPosition > pageHeight - 80) {
           pdf.addPage();
-          yPosition = 20;
+          yPosition = 30;
         }
-
+        
         try {
           const imgWidth = 60;
-          const imgHeight = 60;
-          pdf.addImage(photo.dataUrl, 'JPEG', 20 + (j * 65), yPosition, imgWidth, imgHeight);
+          const imgHeight = 80;
+          pdf.addImage(photo, 'JPEG', 20, yPosition, imgWidth, imgHeight);
+          yPosition += imgHeight + 10;
         } catch (error) {
           console.error('Error adding image to PDF:', error);
         }
-      }
+      });
       
-      yPosition += 70;
-
-      // Add comment
-      if (set.comment) {
-        pdf.setFontSize(12);
-        pdf.setTextColor(0, 0, 0);
-        pdf.text('Observaciones:', 20, yPosition);
-        yPosition += 10;
-        
-        const splitComment = pdf.splitTextToSize(set.comment, pageWidth - 40);
-        pdf.text(splitComment, 20, yPosition);
-        yPosition += splitComment.length * 5 + 10;
-      }
-
       yPosition += 10;
-    }
-
-    // Add signature section at the end
-    if (userData) {
-      if (yPosition > pageHeight - 60) {
-        pdf.addPage();
-        yPosition = 20;
-      }
-
-      yPosition += 20;
-      pdf.setFontSize(12);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text('FIRMA DEL AUDITOR:', 20, yPosition);
-      yPosition += 20;
-
-      // Signature line
-      pdf.line(20, yPosition, 120, yPosition);
-      yPosition += 10;
-
-      pdf.setFontSize(10);
-      pdf.text(`${userData.name}`, 20, yPosition);
-      yPosition += 5;
-      pdf.text(`${userData.position}`, 20, yPosition);
-      yPosition += 5;
-      pdf.text(`Fecha: ${new Date().toLocaleDateString('es-ES')}`, 20, yPosition);
-    }
-
-    const pdfBlob = pdf.output('blob');
-    const pdfUrl = URL.createObjectURL(pdfBlob);
-    
-    // Create a download link to force download and open in Acrobat Reader
-    const link = document.createElement('a');
-    link.href = pdfUrl;
-    link.download = `${documentTitle || 'Reporte de Auditoría'}_${new Date().toISOString().split('T')[0]}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // Clean up the URL object
-    setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
-    
-    toast({
-      title: "PDF descargado",
-      description: "Documento descargado exitosamente.",
     });
-  }, [photoSets, documentTitle, userData]);
+    
+    pdf.save(`auditoria_${auditoriaData.titulo_documento}_${auditoriaData.fecha}.pdf`);
+  };
 
-  const resetApp = useCallback(() => {
-    setCurrentPhotos([]);
-    setCurrentComment('');
-    setPhotoSets([]);
-    setEditingSetId(null);
-    setEditingComment('');
-    setEditingTitleId(null);
-    setEditingTitle('');
+  const handleClose = () => {
     stopCamera();
-    toast({
-      title: "App reset",
-      description: "All photo sets and comments cleared.",
-    });
-  }, [stopCamera]);
+    onClose();
+  };
+
+  if (currentView === 'form') {
+    return <AuditoriaForm onStartCamera={handleStartCamera} />;
+  }
+
+  const currentSet = photoSets[currentSetIndex];
 
   return (
-    <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-[80vh] p-4">
-      <div className="max-w-md mx-auto space-y-6">
-        {/* Close Button */}
-        {onClose && (
-          <div className="flex justify-end mb-4">
+    <div className="w-full max-w-md mx-auto bg-white">
+      {/* Header */}
+      <div className="flex justify-between items-center p-4 border-b">
+        <h2 className="text-lg font-semibold">Auditoría</h2>
+        <Button onClick={handleClose} variant="ghost" size="sm">
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
+
+      {/* Document Info */}
+      {auditoriaData && (
+        <div className="p-4 bg-gray-50 border-b">
+          <h3 className="font-medium">{auditoriaData.titulo_documento}</h3>
+          <p className="text-sm text-gray-600">
+            {auditoriaData.fecha} - {auditoriaData.auditor}
+          </p>
+        </div>
+      )}
+
+      {/* Set Navigation */}
+      <div className="p-4 border-b">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium">
+            {currentSet ? currentSet.title : auditoriaData?.area || 'Nuevo Conjunto'}
+          </span>
+          <span className="text-xs text-gray-500">
+            {currentSetIndex + 1}/{Math.max(photoSets.length, 1)}
+          </span>
+        </div>
+        
+        <div className="flex gap-2 overflow-x-auto">
+          {photoSets.map((set, index) => (
             <Button
-              onClick={onClose}
-              variant="outline"
+              key={set.id}
+              onClick={() => switchToSet(index)}
+              variant={index === currentSetIndex ? 'default' : 'outline'}
               size="sm"
-              className="bg-white/80 backdrop-blur-sm border-white"
+              className="whitespace-nowrap"
             >
-              <X className="w-4 h-4" />
+              {set.title} ({set.photos.length})
             </Button>
+          ))}
+          <Button onClick={createNewSet} variant="outline" size="sm">
+            +
+          </Button>
+        </div>
+      </div>
+
+      {/* Camera View */}
+      <div className="relative">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          className="w-full h-64 object-cover bg-black"
+        />
+        <canvas ref={canvasRef} className="hidden" />
+        
+        {currentPhoto && (
+          <div className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center">
+            <div className="bg-white p-4 rounded-lg max-w-xs">
+              <img src={currentPhoto} alt="Captured" className="w-full h-40 object-cover rounded mb-3" />
+              <div className="flex gap-2">
+                <Button onClick={() => setCurrentPhoto(null)} variant="outline" size="sm" className="flex-1">
+                  <RotateCcw className="w-4 h-4 mr-1" />
+                  Repetir
+                </Button>
+                <Button onClick={addPhotoToCurrentSet} size="sm" className="flex-1">
+                  Guardar
+                </Button>
+              </div>
+            </div>
           </div>
         )}
+      </div>
 
-        {/* Header */}
-        <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
-          <CardHeader className="text-center pb-3">
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-yellow-500 to-red-600 bg-clip-text text-transparent">
-              📸 Auditoría Fotográfica
-            </CardTitle>
-            <p className="text-sm text-gray-600">
-              Crea múltiples conjuntos de fotos y exporta como PDF
-            </p>
-          </CardHeader>
-        </Card>
+      {/* Camera Controls */}
+      <div className="p-4 border-b">
+        <Button onClick={takePhoto} className="w-full" size="lg">
+          <Camera className="w-5 h-5 mr-2" />
+          Tomar Foto
+        </Button>
+      </div>
 
-        {/* Document Title Input */}
-        <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
-          <CardContent className="p-4">
-            <label htmlFor="document-title" className="block text-sm font-medium text-gray-700 mb-2">
-              Título del Documento
-            </label>
-            <Input
-              id="document-title"
-              placeholder="Ingrese el título del documento (opcional)"
-              value={documentTitle}
-              onChange={(e) => setDocumentTitle(e.target.value)}
-              className="border-gray-200 focus:border-red-500"
-            />
-          </CardContent>
-        </Card>
-
-        {/* Camera Section */}
-        {isCapturing ? (
-          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl overflow-hidden">
-            <CardContent className="p-0">
-              <div className="relative aspect-square">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4">
+      {/* Current Set Photos */}
+      {currentSet && currentSet.photos.length > 0 && (
+        <div className="p-4 border-b">
+          <div className="flex items-center justify-between mb-3">
+            <span className="font-medium">
+              {editingTitleId === currentSet.id ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={tempTitle}
+                    onChange={(e) => setTempTitle(e.target.value)}
+                    className="text-sm"
+                    onKeyPress={(e) => e.key === 'Enter' && saveTitle(currentSet.id)}
+                  />
                   <Button
-                    onClick={capturePhoto}
-                    size="lg"
-                    className="rounded-full bg-white text-red-600 hover:bg-gray-100 shadow-lg"
-                    disabled={currentPhotos.length >= 3}
+                    onClick={() => saveTitle(currentSet.id)}
+                    size="sm"
+                    variant="ghost"
                   >
-                    <Camera className="w-6 h-6" />
-                  </Button>
-                  <Button
-                    onClick={stopCamera}
-                    variant="outline"
-                    size="lg"
-                    className="rounded-full bg-white/80 backdrop-blur-sm border-white"
-                  >
-                    Detener
+                    <Check className="w-4 h-4" />
                   </Button>
                 </div>
-                <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                  {currentPhotos.length}/3
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
-            <CardContent className="p-6 text-center">
-              <div className="mb-4">
-                <Camera className="w-16 h-16 mx-auto text-red-600 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">¿Listo para capturar fotos?</h3>
-                <p className="text-gray-600 text-sm mb-4">
-                  Toma hasta 3 fotos por conjunto y crea múltiples conjuntos
-                </p>
-                {cameraPermission === 'denied' && (
-                  <p className="text-red-600 text-sm mb-4">
-                    Acceso a cámara denegado. Por favor habilita los permisos de cámara en tu navegador.
-                  </p>
-                )}
-              </div>
-              <Button
-                onClick={startCamera}
-                className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white"
-                disabled={cameraPermission === 'denied'}
-              >
-                <Camera className="w-4 h-4 mr-2" />
-                Iniciar Cámara
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Current Photo Gallery */}
-        {currentPhotos.length > 0 && (
-          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                📷 Conjunto Actual ({currentPhotos.length}/3)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-2 mb-4">
-                {currentPhotos.map((photo) => (
-                  <div key={photo.id} className="relative group">
-                    <img
-                      src={photo.dataUrl}
-                      alt={`Captured photo ${photo.id}`}
-                      className="w-full aspect-square object-cover rounded-lg shadow-md"
-                    />
-                    <Button
-                      onClick={() => deletePhoto(photo.id)}
-                      size="sm"
-                      variant="destructive"
-                      className="absolute top-1 right-1 w-6 h-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-
-              {/* Add Photo Button */}
-              {currentPhotos.length < 3 && (
-                <div className="mb-4">
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span>{currentSet.title}</span>
                   <Button
-                    onClick={startCamera}
-                    variant="outline"
-                    className="w-full border-2 border-dashed border-red-300 text-red-600 hover:border-red-500 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => startEditingTitle(currentSet.id, currentSet.title)}
+                    size="sm"
+                    variant="ghost"
                   >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Agregar Foto ({currentPhotos.length}/3)
+                    <Edit2 className="w-4 h-4" />
                   </Button>
                 </div>
               )}
-              
-              {/* Current Comment */}
-              <Textarea
-                placeholder="Agregar observaciones para este conjunto de fotos..."
-                value={currentComment}
-                onChange={(e) => setCurrentComment(e.target.value)}
-                className="resize-none border-gray-200 focus:border-red-500 mb-4"
-                rows={2}
-              />
-              
-              <Button
-                onClick={saveCurrentSet}
-                className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Guardar Conjunto de Fotos
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+            </span>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {currentSet.photos.map((photo, index) => (
+              <div key={index} className="aspect-square">
+                <img 
+                  src={photo} 
+                  alt={`Foto ${index + 1}`}
+                  className="w-full h-full object-cover rounded border"
+                />
+              </div>
+            ))}
+          </div>
 
-        {/* Saved Photo Sets */}
-        {photoSets.length > 0 && (
-          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Conjuntos Guardados ({photoSets.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {photoSets.map((set, index) => (
-                <div key={set.id} className="border rounded-lg p-3 bg-gray-50">
-                  <div className="flex justify-between items-center mb-2">
-                    {/* Title section with edit functionality */}
-                    {editingTitleId === set.id ? (
-                      <div className="flex-1 mr-2">
-                        <div className="flex gap-2">
-                          <Input
-                            value={editingTitle}
-                            onChange={(e) => setEditingTitle(e.target.value)}
-                            className="border-gray-200 focus:border-red-500"
-                            placeholder="Título del conjunto..."
-                          />
-                          <Button
-                            onClick={saveEditedTitle}
-                            size="sm"
-                            className="bg-green-500 hover:bg-green-600 text-white"
-                          >
-                            <Check className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            onClick={cancelEditingTitle}
-                            size="sm"
-                            variant="outline"
-                          >
-                            <X className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center flex-1 mr-2">
-                        <span className="font-medium text-sm flex-1">{set.title}</span>
-                        <Button
-                          onClick={() => startEditingTitle(set.id, set.title)}
-                          size="sm"
-                          variant="ghost"
-                          className="ml-2 w-6 h-6 p-0"
-                        >
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    )}
-
-                    <Button
-                      onClick={() => deletePhotoSet(set.id)}
-                      size="sm"
-                      variant="destructive"
-                      className="w-6 h-6 p-0"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-3 gap-1 mb-2">
-                    {set.photos.map((photo) => (
-                      <div key={photo.id} className="relative group">
-                        <img
-                          src={photo.dataUrl}
-                          alt="Set photo"
-                          className="w-full aspect-square object-cover rounded"
-                        />
-                        <Button
-                          onClick={() => deletePhotoFromSet(set.id, photo.id)}
-                          size="sm"
-                          variant="destructive"
-                          className="absolute top-1 right-1 w-5 h-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Trash2 className="w-2 h-2" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Comment section with edit functionality */}
-                  <div className="mt-2">
-                    {editingSetId === set.id ? (
-                      <div className="space-y-2">
-                        <Textarea
-                          value={editingComment}
-                          onChange={(e) => setEditingComment(e.target.value)}
-                          className="resize-none border-gray-200 focus:border-red-500"
-                          rows={2}
-                          placeholder="Editar observaciones..."
-                        />
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={saveEditedComment}
-                            size="sm"
-                            className="bg-green-500 hover:bg-green-600 text-white"
-                          >
-                            <Check className="w-3 h-3 mr-1" />
-                            Guardar
-                          </Button>
-                          <Button
-                            onClick={cancelEditingComment}
-                            size="sm"
-                            variant="outline"
-                          >
-                            Cancelar
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-start justify-between">
-                        <p className="text-sm text-gray-600 flex-1">
-                          {set.comment || "Sin observaciones"}
-                        </p>
-                        <Button
-                          onClick={() => startEditingComment(set.id, set.comment)}
-                          size="sm"
-                          variant="ghost"
-                          className="ml-2 w-6 h-6 p-0"
-                        >
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Levantamiento</Label>
+            {editingCommentId === currentSet.id ? (
+              <div className="space-y-2">
+                <Textarea
+                  value={tempComment}
+                  onChange={(e) => setTempComment(e.target.value)}
+                  placeholder="Observaciones para este conjunto..."
+                  rows={3}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => saveComment(currentSet.id)}
+                    size="sm"
+                    className="flex-1"
+                  >
+                    Guardar
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setEditingCommentId(null);
+                      setTempComment('');
+                    }}
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
                 </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="p-2 bg-gray-50 rounded border min-h-[60px]">
+                  {currentSet.comment || 'Sin observaciones'}
+                </div>
+                <Button
+                  onClick={() => startEditingComment(currentSet.id, currentSet.comment)}
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                >
+                  <Edit2 className="w-4 h-4 mr-2" />
+                  {currentSet.comment ? 'Editar Observaciones' : 'Agregar Observaciones'}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
-        {/* Action Buttons */}
-        <div className="flex gap-3">
-          <Button
-            onClick={generatePDF}
-            className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
-            disabled={photoSets.length === 0}
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Descargar PDF
-          </Button>
-          <Button
-            onClick={resetApp}
-            variant="outline"
-            className="bg-white/80 backdrop-blur-sm border-white hover:bg-white"
-          >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Reiniciar
+      {/* Export Button */}
+      {photoSets.some(set => set.photos.length > 0) && (
+        <div className="p-4">
+          <Button onClick={generatePDF} className="w-full" size="lg">
+            <Download className="w-5 h-5 mr-2" />
+            Generar PDF
           </Button>
         </div>
-
-        <canvas ref={canvasRef} className="hidden" />
-      </div>
+      )}
     </div>
   );
 };
