@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Camera, RotateCcw, FileText, Trash2, Plus, X, Edit, Check } from 'lucide-react';
+import { Camera, RotateCcw, FileText, Trash2, Plus, X, Edit, Check, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -57,6 +58,8 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
   const [editingAreaId, setEditingAreaId] = useState<string | null>(null);
   const [editingArea, setEditingArea] = useState('');
   const [showAreaInput, setShowAreaInput] = useState(false);
+  const [auditoriaId, setAuditoriaId] = useState<string | null>(null);
+  const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -278,47 +281,80 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     }).filter(Boolean) as PhotoSet[]);
   }, []);
 
-  const saveToDatabase = useCallback(async () => {
-    if (!auditoriaData || !userData) {
+  const closeAuditoria = useCallback(async () => {
+    if (!auditoriaData || !userData || photoSets.length === 0) {
       toast({
-        title: "Error",
-        description: "Datos de auditoría no disponibles.",
+        title: "No se puede cerrar la auditoría",
+        description: "Debe tener al menos un conjunto de fotos guardado.",
         variant: "destructive",
       });
-      return null;
+      return;
     }
 
+    setIsSavingToDatabase(true);
+
     try {
-      const { data, error } = await supabase
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) {
+        throw new Error('Usuario no autenticado');
+      }
+
+      // Convertir fecha de dd/mm/aaaa a formato ISO
+      const [day, month, year] = auditoriaData.fecha.split('/');
+      const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+
+      // Crear la auditoría principal
+      const { data: auditoria, error: auditoriaError } = await supabase
         .from('auditorias')
         .insert({
-          user_id: (await supabase.auth.getUser()).data.user?.id,
+          user_id: user.user.id,
           titulo_documento: auditoriaData.tituloDocumento,
-          fecha: auditoriaData.fecha,
+          fecha: isoDate,
           auditor: auditoriaData.auditor,
-          area: photoSets.map(set => set.area).join(', '),
-          levantamiento: photoSets.map(set => set.levantamiento).filter(Boolean).join('; '),
-          responsable: photoSets.map(set => set.responsable).filter(Boolean).join(', '),
+          status: 'Activo'
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (auditoriaError) throw auditoriaError;
+
+      setAuditoriaId(auditoria.id);
+
+      // Guardar cada set de fotos
+      for (const set of photoSets) {
+        const fotosJson = set.photos.map(photo => ({
+          id: photo.id,
+          dataUrl: photo.dataUrl,
+          timestamp: photo.timestamp.toISOString()
+        }));
+
+        const { error: setError } = await supabase
+          .from('auditoria_sets')
+          .insert({
+            auditoria_id: auditoria.id,
+            area: set.area,
+            levantamiento: set.levantamiento || null,
+            responsable: set.responsable || null,
+            fotos: fotosJson
+          });
+
+        if (setError) throw setError;
+      }
 
       toast({
-        title: "Guardado en base de datos",
-        description: "Auditoría guardada exitosamente.",
+        title: "Auditoría cerrada exitosamente",
+        description: "Todos los datos han sido guardados en la base de datos.",
       });
 
-      return data;
     } catch (error) {
-      console.error('Error saving to database:', error);
+      console.error('Error saving auditoria:', error);
       toast({
-        title: "Error al guardar",
+        title: "Error al cerrar auditoría",
         description: "No se pudo guardar en la base de datos.",
         variant: "destructive",
       });
-      return null;
+    } finally {
+      setIsSavingToDatabase(false);
     }
   }, [auditoriaData, userData, photoSets]);
 
@@ -331,9 +367,6 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       });
       return;
     }
-
-    // Save to database first
-    await saveToDatabase();
 
     const pdf = new jsPDF();
     const pageHeight = pdf.internal.pageSize.height;
@@ -468,7 +501,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       yPosition += 5;
       pdf.text(`${userData.position}`, 20, yPosition);
       yPosition += 5;
-      pdf.text(`Fecha: ${new Date().toLocaleDateString('es-ES')}`, 20, yPosition);
+      pdf.text(`Fecha: ${auditoriaData.fecha}`, 20, yPosition);
     }
 
     const pdfBlob = pdf.output('blob');
@@ -476,7 +509,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     
     const link = document.createElement('a');
     link.href = pdfUrl;
-    link.download = `${auditoriaData?.tituloDocumento || 'Auditoria'}_${new Date().toISOString().split('T')[0]}.pdf`;
+    link.download = `${auditoriaData?.tituloDocumento || 'Auditoria'}_${auditoriaData?.fecha.replace(/\//g, '-') || new Date().toISOString().split('T')[0]}.pdf`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -487,7 +520,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       title: "PDF descargado",
       description: "Documento descargado exitosamente.",
     });
-  }, [photoSets, auditoriaData, userData, saveToDatabase]);
+  }, [photoSets, auditoriaData, userData]);
 
   const resetApp = useCallback(() => {
     setAuditoriaData(null);
@@ -502,6 +535,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     setEditingAreaId(null);
     setEditingArea('');
     setShowAreaInput(false);
+    setAuditoriaId(null);
     stopCamera();
     toast({
       title: "Aplicación reiniciada",
@@ -895,24 +929,33 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
         )}
 
         {/* Action Buttons */}
-        <div className="flex gap-3">
-          <Button
-            onClick={generatePDF}
-            className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
-            disabled={photoSets.length === 0}
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Descargar PDF
-          </Button>
-          <Button
-            onClick={resetApp}
-            variant="outline"
-            className="bg-white/80 backdrop-blur-sm border-white hover:bg-white"
-          >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Reiniciar
-          </Button>
-        </div>
+        {photoSets.length > 0 && (
+          <div className="flex gap-2">
+            <Button
+              onClick={closeAuditoria}
+              className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white"
+              disabled={isSavingToDatabase}
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {isSavingToDatabase ? 'Guardando...' : 'Cerrar Auditoría'}
+            </Button>
+            <Button
+              onClick={generatePDF}
+              className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Descargar PDF
+            </Button>
+            <Button
+              onClick={resetApp}
+              variant="outline"
+              className="bg-white/80 backdrop-blur-sm border-white hover:bg-white"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Reiniciar
+            </Button>
+          </div>
+        )}
 
         <canvas ref={canvasRef} className="hidden" />
       </div>

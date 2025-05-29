@@ -24,47 +24,79 @@ export type Database = {
         }
         Relationships: []
       }
-      auditorias: {
+      auditoria_sets: {
         Row: {
           area: string
-          auditor: string
+          auditoria_id: string
           created_at: string
           evidencia: string | null
-          fecha: string
-          fecha_compromiso: string | null
+          fotos: Json | null
           id: string
           levantamiento: string | null
           responsable: string | null
+          updated_at: string
+        }
+        Insert: {
+          area: string
+          auditoria_id: string
+          created_at?: string
+          evidencia?: string | null
+          fotos?: Json | null
+          id?: string
+          levantamiento?: string | null
+          responsable?: string | null
+          updated_at?: string
+        }
+        Update: {
+          area?: string
+          auditoria_id?: string
+          created_at?: string
+          evidencia?: string | null
+          fotos?: Json | null
+          id?: string
+          levantamiento?: string | null
+          responsable?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auditoria_sets_auditoria_id_fkey"
+            columns: ["auditoria_id"]
+            isOneToOne: false
+            referencedRelation: "auditorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      auditorias: {
+        Row: {
+          auditor: string
+          created_at: string
+          fecha: string
+          fecha_compromiso: string | null
+          id: string
           status: string | null
           titulo_documento: string
           updated_at: string
           user_id: string
         }
         Insert: {
-          area: string
           auditor: string
           created_at?: string
-          evidencia?: string | null
           fecha: string
           fecha_compromiso?: string | null
           id?: string
-          levantamiento?: string | null
-          responsable?: string | null
           status?: string | null
           titulo_documento: string
           updated_at?: string
           user_id: string
         }
         Update: {
-          area?: string
           auditor?: string
           created_at?: string
-          evidencia?: string | null
           fecha?: string
           fecha_compromiso?: string | null
           id?: string
-          levantamiento?: string | null
-          responsable?: string | null
           status?: string | null
           titulo_documento?: string
           updated_at?: string

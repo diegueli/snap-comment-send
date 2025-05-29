@@ -21,7 +21,8 @@ interface AuditoriaFormProps {
 
 const AuditoriaForm = ({ onSubmit, userData }: AuditoriaFormProps) => {
   const [tituloDocumento, setTituloDocumento] = useState('');
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date();
+  const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
   const auditor = userData?.name || '';
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -29,7 +30,7 @@ const AuditoriaForm = ({ onSubmit, userData }: AuditoriaFormProps) => {
     if (tituloDocumento.trim()) {
       onSubmit({
         tituloDocumento: tituloDocumento.trim(),
-        fecha: today,
+        fecha: formattedDate,
         auditor
       });
     }
@@ -65,25 +66,18 @@ const AuditoriaForm = ({ onSubmit, userData }: AuditoriaFormProps) => {
             <label htmlFor="fecha" className="block text-sm font-medium text-gray-700 mb-2">
               Fecha
             </label>
-            <Input
-              id="fecha"
-              type="date"
-              value={today}
-              readOnly
-              className="bg-gray-100 border-gray-200 cursor-not-allowed"
-            />
+            <div className="bg-gray-100 border border-gray-200 rounded-md px-3 py-2 text-sm">
+              {formattedDate}
+            </div>
           </div>
 
           <div>
             <label htmlFor="auditor" className="block text-sm font-medium text-gray-700 mb-2">
               Auditor
             </label>
-            <Input
-              id="auditor"
-              value={auditor}
-              readOnly
-              className="bg-gray-100 border-gray-200 cursor-not-allowed"
-            />
+            <div className="bg-gray-100 border border-gray-200 rounded-md px-3 py-2 text-sm">
+              {auditor}
+            </div>
           </div>
 
           <Button
