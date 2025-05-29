@@ -928,12 +928,12 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
           </Card>
         )}
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Changed from flex gap-2 to space-y-3 for vertical alignment */}
         {photoSets.length > 0 && (
-          <div className="flex gap-2">
+          <div className="space-y-3">
             <Button
               onClick={closeAuditoria}
-              className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white"
+              className="w-full bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white"
               disabled={isSavingToDatabase}
             >
               <Save className="w-4 h-4 mr-2" />
@@ -941,7 +941,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
             </Button>
             <Button
               onClick={generatePDF}
-              className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
+              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
             >
               <FileText className="w-4 h-4 mr-2" />
               Descargar PDF
@@ -949,7 +949,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
             <Button
               onClick={resetApp}
               variant="outline"
-              className="bg-white/80 backdrop-blur-sm border-white hover:bg-white"
+              className="w-full bg-white/80 backdrop-blur-sm border-white hover:bg-white"
             >
               <RotateCcw className="w-4 h-4 mr-2" />
               Reiniciar
