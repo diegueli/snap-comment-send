@@ -1,53 +1,23 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User, Mail, Briefcase, Lock, Eye, EyeOff, Building } from 'lucide-react';
+import { User, Mail, Briefcase, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-
-interface Gerencia {
-  id: number;
-  nombre: string;
-}
 
 const AuthForm = () => {
   const { signUp, signIn, loading } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [gerencias, setGerencias] = useState<Gerencia[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     position: '',
-    password: '',
-    gerencia: ''
+    password: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (isSignUp) {
-      fetchGerencias();
-    }
-  }, [isSignUp]);
-
-  const fetchGerencias = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('gerencias')
-        .select('*')
-        .eq('activo', true)
-        .order('nombre');
-
-      if (error) throw error;
-      setGerencias(data || []);
-    } catch (error) {
-      console.error('Error fetching gerencias:', error);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +27,7 @@ const AuthForm = () => {
       return;
     }
 
-    if (isSignUp && (!formData.name.trim() || !formData.position.trim() || !formData.gerencia.trim())) {
+    if (isSignUp && (!formData.name.trim() || !formData.position.trim())) {
       return;
     }
 
@@ -71,7 +41,7 @@ const AuthForm = () => {
     
     try {
       if (isSignUp) {
-        await signUp(formData.email, formData.password, formData.name, formData.position, formData.gerencia);
+        await signUp(formData.email, formData.password, formData.name, formData.position);
       } else {
         await signIn(formData.email, formData.password);
       }
@@ -89,17 +59,9 @@ const AuthForm = () => {
     }));
   };
 
-  const handleGerenciaChange = (value: string) => {
-    const selectedGerencia = gerencias.find(g => g.id.toString() === value);
-    setFormData(prev => ({
-      ...prev,
-      gerencia: selectedGerencia?.nombre || ''
-    }));
-  };
-
   const toggleAuthMode = () => {
     setIsSignUp(!isSignUp);
-    setFormData({ name: '', email: '', position: '', password: '', gerencia: '' });
+    setFormData({ name: '', email: '', position: '', password: '' });
   };
 
   if (loading) {
@@ -204,29 +166,6 @@ const AuthForm = () => {
                       className="pl-10 border-gray-200 focus:border-red-500"
                       required={isSignUp}
                     />
-                  </div>
-                </div>
-              )}
-
-              {isSignUp && (
-                <div className="space-y-2">
-                  <Label htmlFor="gerencia" className="text-gray-700">
-                    Gerencia
-                  </Label>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400 z-10" />
-                    <Select value={formData.gerencia ? gerencias.find(g => g.nombre === formData.gerencia)?.id.toString() || '' : ''} onValueChange={handleGerenciaChange} required={isSignUp}>
-                      <SelectTrigger className="pl-10 border-gray-200 focus:border-red-500">
-                        <SelectValue placeholder="Seleccione la gerencia" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {gerencias.map((gerencia) => (
-                          <SelectItem key={gerencia.id} value={gerencia.id.toString()}>
-                            {gerencia.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </div>
                 </div>
               )}
