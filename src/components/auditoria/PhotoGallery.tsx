@@ -164,11 +164,6 @@ const PhotoGallery = ({
             Responsable
           </label>
           
-          {/* Debug info visible en desarrollo */}
-          <div className="mb-2 text-xs text-gray-500">
-            Debug: Loading={loading.toString()}, Error={error || 'none'}, Count={gerencias.length}
-          </div>
-          
           {error && (
             <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
               Error: {error}
@@ -211,12 +206,6 @@ const PhotoGallery = ({
               )}
             </SelectContent>
           </Select>
-          
-          {!loading && !error && gerencias.length > 0 && (
-            <div className="mt-1 text-xs text-gray-500">
-              {gerencias.length} gerencia(s) disponible(s)
-            </div>
-          )}
         </div>
         
         <Button
