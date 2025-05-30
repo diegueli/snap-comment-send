@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Trash2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -39,13 +38,22 @@ const PhotoGallery = ({
     const fetchGerencias = async () => {
       try {
         console.log('Fetching gerencias...');
+        
+        // First, let's check if there's any data at all in the table
+        const { data: allGerencias, error: allError } = await supabase
+          .from('gerencias')
+          .select('id, nombre, iniciales, activo');
+
+        console.log('All gerencias in table:', { data: allGerencias, error: allError });
+
+        // Now get only active ones
         const { data, error } = await supabase
           .from('gerencias')
           .select('id, nombre, iniciales, activo')
           .eq('activo', true)
           .order('nombre');
 
-        console.log('Gerencias query result:', { data, error });
+        console.log('Active gerencias query result:', { data, error });
 
         if (error) {
           console.error('Error fetching gerencias:', error);
