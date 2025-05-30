@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,11 +7,19 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { User, Mail, Briefcase, Lock, Eye, EyeOff, Building } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Gerencia {
+  id: number;
+  nombre: string;
+  iniciales: string;
+}
 
 const AuthForm = () => {
   const { signUp, signIn, loading } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [gerencias, setGerencias] = useState<Gerencia[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -20,6 +28,31 @@ const AuthForm = () => {
     gerencia: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fetch gerencias on component mount
+  useEffect(() => {
+    const fetchGerencias = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('gerencias')
+          .select('*')
+          .eq('activo', true)
+          .order('nombre');
+
+        if (error) {
+          console.error('Error fetching gerencias:', error);
+        } else {
+          setGerencias(data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching gerencias:', error);
+      }
+    };
+
+    if (isSignUp) {
+      fetchGerencias();
+    }
+  }, [isSignUp]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,9 +224,11 @@ const AuthForm = () => {
                         <SelectValue placeholder="Seleccione la gerencia" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Calidad">Calidad</SelectItem>
-                        <SelectItem value="Mantenimiento">Mantenimiento</SelectItem>
-                        <SelectItem value="Inocuidad">Inocuidad</SelectItem>
+                        {gerencias.map((gerencia) => (
+                          <SelectItem key={gerencia.id} value={gerencia.nombre}>
+                            {gerencia.nombre}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

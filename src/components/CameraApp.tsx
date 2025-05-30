@@ -23,7 +23,7 @@ interface PhotoSet {
   area: string;
   photos: CapturedPhoto[];
   levantamiento: string;
-  responsable: string;
+  gerenciaId: number | null;
   timestamp: Date;
 }
 
@@ -46,8 +46,10 @@ interface AuditoriaFormData {
   plantaNombre: string;
 }
 
-interface Profile {
-  gerencia: string | null;
+interface Gerencia {
+  id: number;
+  nombre: string;
+  iniciales: string;
 }
 
 const CameraApp = ({ onClose, userData }: CameraAppProps) => {
@@ -55,25 +57,48 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
   const [currentPhotos, setCurrentPhotos] = useState<CapturedPhoto[]>([]);
   const [currentArea, setCurrentArea] = useState('');
   const [currentLevantamiento, setCurrentLevantamiento] = useState('');
-  const [currentResponsable, setCurrentResponsable] = useState('');
+  const [currentGerenciaId, setCurrentGerenciaId] = useState<number | null>(null);
   const [photoSets, setPhotoSets] = useState<PhotoSet[]>([]);
   const [isCapturing, setIsCapturing] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
   const [editingLevantamiento, setEditingLevantamiento] = useState('');
-  const [editingResponsable, setEditingResponsable] = useState('');
+  const [editingGerenciaId, setEditingGerenciaId] = useState<number | null>(null);
   const [editingAreaId, setEditingAreaId] = useState<string | null>(null);
   const [editingArea, setEditingArea] = useState('');
   const [showAreaInput, setShowAreaInput] = useState(false);
   const [auditoriaId, setAuditoriaId] = useState<string | null>(null);
+  const [codigoAuditoria, setCodigoAuditoria] = useState<string | null>(null);
   const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
-  const [userProfile, setUserProfile] = useState<Profile | null>(null);
-  const [gerenciasOptions, setGerenciasOptions] = useState<string[]>(['Calidad', 'Mantenimiento', 'Inocuidad']);
+  const [gerencias, setGerencias] = useState<Gerencia[]>([]);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { uploadPhoto, deletePhoto: deletePhotoFromStorage, uploading } = usePhotoUpload();
+
+  // Fetch gerencias on component mount
+  useEffect(() => {
+    const fetchGerencias = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('gerencias')
+          .select('*')
+          .eq('activo', true)
+          .order('nombre');
+
+        if (error) {
+          console.error('Error fetching gerencias:', error);
+        } else {
+          setGerencias(data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching gerencias:', error);
+      }
+    };
+
+    fetchGerencias();
+  }, []);
 
   // Fetch user profile on component mount
   useEffect(() => {
@@ -273,7 +298,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       area: currentArea.trim(),
       photos: [...currentPhotos],
       levantamiento: currentLevantamiento,
-      responsable: currentResponsable,
+      gerenciaId: currentGerenciaId,
       timestamp: new Date()
     };
 
@@ -281,14 +306,14 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     setCurrentPhotos([]);
     setCurrentArea('');
     setCurrentLevantamiento('');
-    setCurrentResponsable('');
+    setCurrentGerenciaId(null);
     setShowAreaInput(false);
     
     toast({
       title: "¡Conjunto de fotos guardado!",
       description: `Conjunto "${newSet.area}" con ${newSet.photos.length} foto(s) agregado.`,
     });
-  }, [currentPhotos, currentArea, currentLevantamiento, currentResponsable]);
+  }, [currentPhotos, currentArea, currentLevantamiento, currentGerenciaId]);
 
   const deletePhotoSet = useCallback((setId: string) => {
     setPhotoSets(prev => prev.filter(set => set.id !== setId));
@@ -358,6 +383,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       if (auditoriaError) throw auditoriaError;
 
       setAuditoriaId(auditoria.id);
+      setCodigoAuditoria(auditoria.codigo_auditoria);
 
       // Procesar y guardar cada set de fotos
       for (const set of photoSets) {
@@ -366,7 +392,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
         // Subir cada foto al storage y obtener URLs
         for (const photo of set.photos) {
           try {
-            const url = await uploadPhoto(photo.dataUrl, auditoria.id, set.area);
+            const url = await uploadPhoto(photo.dataUrl, auditoria.codigo_auditoria, set.area);
             photoUrls.push(url);
           } catch (error) {
             console.error('Error uploading photo:', error);
@@ -380,7 +406,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
             auditoria_id: auditoria.id,
             area: set.area,
             levantamiento: set.levantamiento || null,
-            responsable: set.responsable || null,
+            gerencia_id: set.gerenciaId,
             foto_urls: photoUrls
           });
 
@@ -418,6 +444,13 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     const pageHeight = pdf.internal.pageSize.height;
     const pageWidth = pdf.internal.pageSize.width;
     let yPosition = 20;
+
+    // Add codigo_auditoria in the top right corner
+    if (codigoAuditoria) {
+      pdf.setFontSize(12);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(codigoAuditoria, pageWidth - 30, 15, { align: 'right' });
+    }
 
     // Add Quinta alimentos logo and branding
     try {
@@ -467,6 +500,10 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       pdf.text(`Fecha: ${auditoriaData.fecha}`, 20, yPosition);
       yPosition += 6;
       pdf.text(`Planta: ${auditoriaData.plantaNombre}`, 20, yPosition);
+      if (codigoAuditoria) {
+        yPosition += 6;
+        pdf.text(`Código: ${codigoAuditoria}`, 20, yPosition);
+      }
       yPosition += 15;
     }
 
@@ -477,6 +514,12 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       if (yPosition > pageHeight - 100) {
         pdf.addPage();
         yPosition = 20;
+        // Add codigo_auditoria on new page as well
+        if (codigoAuditoria) {
+          pdf.setFontSize(12);
+          pdf.setTextColor(0, 0, 0);
+          pdf.text(codigoAuditoria, pageWidth - 30, 15, { align: 'right' });
+        }
       }
 
       // Set header with area name
@@ -492,6 +535,11 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
         if (yPosition > pageHeight - 80) {
           pdf.addPage();
           yPosition = 20;
+          if (codigoAuditoria) {
+            pdf.setFontSize(12);
+            pdf.setTextColor(0, 0, 0);
+            pdf.text(codigoAuditoria, pageWidth - 30, 15, { align: 'right' });
+          }
         }
 
         try {
@@ -517,12 +565,15 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
         yPosition += splitLevantamiento.length * 5 + 10;
       }
 
-      // Add responsable
-      if (set.responsable) {
-        pdf.setFontSize(12);
-        pdf.setTextColor(0, 0, 0);
-        pdf.text(`Responsable: ${set.responsable}`, 20, yPosition);
-        yPosition += 10;
+      // Add gerencia responsable
+      if (set.gerenciaId) {
+        const gerencia = gerencias.find(g => g.id === set.gerenciaId);
+        if (gerencia) {
+          pdf.setFontSize(12);
+          pdf.setTextColor(0, 0, 0);
+          pdf.text(`Responsable: ${gerencia.nombre}`, 20, yPosition);
+          yPosition += 10;
+        }
       }
 
       yPosition += 10;
@@ -533,6 +584,11 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       if (yPosition > pageHeight - 80) {
         pdf.addPage();
         yPosition = 20;
+        if (codigoAuditoria) {
+          pdf.setFontSize(12);
+          pdf.setTextColor(0, 0, 0);
+          pdf.text(codigoAuditoria, pageWidth - 30, 15, { align: 'right' });
+        }
       }
 
       yPosition += 30;
@@ -558,6 +614,10 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       pdf.text(`${userData.position}`, centerX, yPosition, { align: 'center' });
       yPosition += 5;
       pdf.text(`Fecha: ${auditoriaData.fecha}`, centerX, yPosition, { align: 'center' });
+      if (codigoAuditoria) {
+        yPosition += 5;
+        pdf.text(`Código: ${codigoAuditoria}`, centerX, yPosition, { align: 'center' });
+      }
     }
 
     const pdfBlob = pdf.output('blob');
@@ -565,7 +625,10 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     
     const link = document.createElement('a');
     link.href = pdfUrl;
-    link.download = `${auditoriaData?.tituloDocumento || 'Auditoria'}_${auditoriaData?.fecha.replace(/\//g, '-') || new Date().toISOString().split('T')[0]}.pdf`;
+    const filename = codigoAuditoria ? 
+      `${codigoAuditoria}_${auditoriaData?.tituloDocumento || 'Auditoria'}.pdf` :
+      `${auditoriaData?.tituloDocumento || 'Auditoria'}_${auditoriaData?.fecha.replace(/\//g, '-') || new Date().toISOString().split('T')[0]}.pdf`;
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -576,22 +639,23 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       title: "PDF descargado",
       description: "Documento descargado exitosamente.",
     });
-  }, [photoSets, auditoriaData, userData]);
+  }, [photoSets, auditoriaData, userData, codigoAuditoria, gerencias]);
 
   const resetApp = useCallback(() => {
     setAuditoriaData(null);
     setCurrentPhotos([]);
     setCurrentArea('');
     setCurrentLevantamiento('');
-    setCurrentResponsable('');
+    setCurrentGerenciaId(null);
     setPhotoSets([]);
     setEditingSetId(null);
     setEditingLevantamiento('');
-    setEditingResponsable('');
+    setEditingGerenciaId(null);
     setEditingAreaId(null);
     setEditingArea('');
     setShowAreaInput(false);
     setAuditoriaId(null);
+    setCodigoAuditoria(null);
     stopCamera();
     toast({
       title: "Aplicación reiniciada",
@@ -654,6 +718,11 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
             <p className="text-sm text-gray-600">
               Planta: {auditoriaData.plantaNombre}
             </p>
+            {codigoAuditoria && (
+              <p className="text-sm font-semibold text-red-600">
+                Código: {codigoAuditoria}
+              </p>
+            )}
           </CardHeader>
         </Card>
 
@@ -786,14 +855,14 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
                 <label htmlFor="responsable" className="block text-sm font-medium text-gray-700 mb-2">
                   Responsable
                 </label>
-                <Select value={currentResponsable} onValueChange={setCurrentResponsable}>
+                <Select value={currentGerenciaId?.toString() || ''} onValueChange={(value) => setCurrentGerenciaId(Number(value))}>
                   <SelectTrigger className="border-gray-200 focus:border-red-500">
                     <SelectValue placeholder="Seleccione la gerencia responsable" />
                   </SelectTrigger>
                   <SelectContent>
-                    {gerenciasOptions.map((gerencia) => (
-                      <SelectItem key={gerencia} value={gerencia}>
-                        {gerencia}
+                    {gerencias.map((gerencia) => (
+                      <SelectItem key={gerencia.id} value={gerencia.id.toString()}>
+                        {gerencia.nombre}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -917,14 +986,14 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
                           rows={2}
                           placeholder="Editar levantamiento..."
                         />
-                        <Select value={editingResponsable} onValueChange={setEditingResponsable}>
+                        <Select value={editingGerenciaId?.toString() || ''} onValueChange={(value) => setEditingGerenciaId(Number(value))}>
                           <SelectTrigger className="border-gray-200 focus:border-red-500">
                             <SelectValue placeholder="Seleccione responsable..." />
                           </SelectTrigger>
                           <SelectContent>
-                            {gerenciasOptions.map((gerencia) => (
-                              <SelectItem key={gerencia} value={gerencia}>
-                                {gerencia}
+                            {gerencias.map((gerencia) => (
+                              <SelectItem key={gerencia.id} value={gerencia.id.toString()}>
+                                {gerencia.nombre}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -934,12 +1003,12 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
                             onClick={() => {
                               setPhotoSets(prev => prev.map(s => 
                                 s.id === set.id 
-                                  ? { ...s, levantamiento: editingLevantamiento, responsable: editingResponsable }
+                                  ? { ...s, levantamiento: editingLevantamiento, gerenciaId: editingGerenciaId }
                                   : s
                               ));
                               setEditingSetId(null);
                               setEditingLevantamiento('');
-                              setEditingResponsable('');
+                              setEditingGerenciaId(null);
                             }}
                             size="sm"
                             className="bg-green-500 hover:bg-green-600 text-white"
@@ -951,7 +1020,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
                             onClick={() => {
                               setEditingSetId(null);
                               setEditingLevantamiento('');
-                              setEditingResponsable('');
+                              setEditingGerenciaId(null);
                             }}
                             size="sm"
                             variant="outline"
@@ -974,14 +1043,14 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
                           <div className="flex-1">
                             <p className="text-xs text-gray-500 font-medium">Responsable:</p>
                             <p className="text-sm text-gray-600">
-                              {set.responsable || "Sin responsable"}
+                              {set.gerenciaId ? gerencias.find(g => g.id === set.gerenciaId)?.nombre || "Sin responsable" : "Sin responsable"}
                             </p>
                           </div>
                           <Button
                             onClick={() => {
                               setEditingSetId(set.id);
                               setEditingLevantamiento(set.levantamiento);
-                              setEditingResponsable(set.responsable);
+                              setEditingGerenciaId(set.gerenciaId);
                             }}
                             size="sm"
                             variant="ghost"

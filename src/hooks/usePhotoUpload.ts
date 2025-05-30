@@ -40,7 +40,7 @@ export const usePhotoUpload = () => {
     });
   };
 
-  const uploadPhoto = async (dataUrl: string, auditoriaId: string, areaName: string): Promise<string> => {
+  const uploadPhoto = async (dataUrl: string, codigoAuditoria: string, areaName: string): Promise<string> => {
     try {
       setUploading(true);
 
@@ -55,9 +55,9 @@ export const usePhotoUpload = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
-      // Create unique filename
+      // Create unique filename using codigo_auditoria
       const timestamp = new Date().getTime();
-      const fileName = `${user.id}/${auditoriaId}/${areaName}_${timestamp}.jpg`;
+      const fileName = `${codigoAuditoria}/${areaName}_${timestamp}.jpg`;
 
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
