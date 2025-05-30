@@ -428,22 +428,53 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     }
 
     const pdfBlob = pdf.output('blob');
-    const pdfUrl = URL.createObjectURL(pdfBlob);
     
+    // Crear nombre del archivo
+    const fileName = `${auditoriaData?.tituloDocumento || 'Auditoria'}_${selectedPlanta?.nombre || 'Planta'}_${auditoriaData?.fecha.replace(/\//g, '-') || new Date().toISOString().split('T')[0]}.pdf`;
+    
+    try {
+      // Subir PDF a Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('bucket_auditorias')
+        .upload(`pdfs/${auditoriaId || Date.now()}/${fileName}`, pdfBlob, {
+          contentType: 'application/pdf',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Error uploading PDF to Supabase:', uploadError);
+        toast({
+          title: "Error al guardar PDF",
+          description: "No se pudo guardar el PDF en el servidor, pero se descargará localmente.",
+          variant: "destructive",
+        });
+      } else {
+        console.log('PDF uploaded successfully:', uploadData);
+        toast({
+          title: "PDF guardado",
+          description: "PDF guardado en el servidor y descargado localmente.",
+        });
+      }
+    } catch (error) {
+      console.error('Error during PDF upload:', error);
+      toast({
+        title: "Error al guardar PDF",
+        description: "Error durante la subida del PDF al servidor.",
+        variant: "destructive",
+      });
+    }
+
+    // Descargar PDF localmente
+    const pdfUrl = URL.createObjectURL(pdfBlob);
     const link = document.createElement('a');
     link.href = pdfUrl;
-    link.download = `${auditoriaData?.tituloDocumento || 'Auditoria'}_${selectedPlanta?.nombre || 'Planta'}_${auditoriaData?.fecha.replace(/\//g, '-') || new Date().toISOString().split('T')[0]}.pdf`;
+    link.download = fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     
     setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
-    
-    toast({
-      title: "PDF descargado",
-      description: "Documento descargado exitosamente.",
-    });
-  }, [photoSets, auditoriaData, userData, selectedPlanta]);
+  }, [photoSets, auditoriaData, userData, selectedPlanta, auditoriaId]);
 
   const resetApp = useCallback(() => {
     setAuditoriaData(null);
