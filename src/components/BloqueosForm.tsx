@@ -7,11 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { X, Mail } from 'lucide-react';
+import { X, Mail, Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const bloqueosSchema = z.object({
   planta_id: z.string().min(1, 'Selecciona una planta'),
@@ -39,6 +42,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   const [turnos, setTurnos] = useState<Array<{ id: number; nombre: string }>>([]);
   const [loading, setLoading] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [productoOpen, setProductoOpen] = useState(false);
 
   // Format current date as dd/mm/yyyy
   const getCurrentDateFormatted = () => {
@@ -361,26 +365,66 @@ Usuario: ${formData.usuario}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-red-800">Producto</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="border-red-200 focus:border-red-400">
-                            <SelectValue placeholder={productos.length > 0 ? "Selecciona un producto" : "Cargando productos..."} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {productos.length > 0 ? (
-                            productos.map((producto) => (
-                              <SelectItem key={producto.id} value={producto.id.toString()}>
-                                {producto.nombre || `Producto ${producto.id}`}
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem value="no-productos" disabled>
-                              No hay productos disponibles
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
+                      <Popover open={productoOpen} onOpenChange={setProductoOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={productoOpen}
+                              className={cn(
+                                "w-full justify-between border-red-200 focus:border-red-400 hover:bg-red-50",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value
+                                ? productos.find(
+                                    (producto) => producto.id.toString() === field.value
+                                  )?.nombre || "Producto no encontrado"
+                                : "Buscar producto..."}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0" align="start">
+                          <Command>
+                            <CommandInput 
+                              placeholder="Buscar producto..." 
+                              className="h-9"
+                            />
+                            <CommandList>
+                              <CommandEmpty>
+                                {productos.length === 0 
+                                  ? "No hay productos disponibles" 
+                                  : "No se encontraron productos"}
+                              </CommandEmpty>
+                              <CommandGroup>
+                                {productos.map((producto) => (
+                                  <CommandItem
+                                    key={producto.id}
+                                    value={producto.nombre || `Producto ${producto.id}`}
+                                    onSelect={() => {
+                                      field.onChange(producto.id.toString());
+                                      setProductoOpen(false);
+                                    }}
+                                    className="cursor-pointer"
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        field.value === producto.id.toString()
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                    />
+                                    {producto.nombre || `Producto ${producto.id}`}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
