@@ -306,11 +306,17 @@ Usuario: ${formData.usuario}
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {plantas.map((planta) => (
-                            <SelectItem key={planta.id} value={planta.id.toString()}>
-                              {planta.nombre}
+                          {plantas.length > 0 ? (
+                            plantas.map((planta) => (
+                              <SelectItem key={planta.id} value={planta.id.toString()}>
+                                {planta.nombre}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="no-plantas" disabled>
+                              No hay plantas disponibles
                             </SelectItem>
-                          ))}
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -331,11 +337,17 @@ Usuario: ${formData.usuario}
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {areas.map((area) => (
-                            <SelectItem key={area.id} value={area.id.toString()}>
-                              {area.nombre}
+                          {areas.length > 0 ? (
+                            areas.map((area) => (
+                              <SelectItem key={area.id} value={area.id.toString()}>
+                                {area.nombre}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="no-areas" disabled>
+                              No hay áreas disponibles
                             </SelectItem>
-                          ))}
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -363,7 +375,7 @@ Usuario: ${formData.usuario}
                               </SelectItem>
                             ))
                           ) : (
-                            <SelectItem value="" disabled>
+                            <SelectItem value="no-productos" disabled>
                               No hay productos disponibles
                             </SelectItem>
                           )}
@@ -387,11 +399,17 @@ Usuario: ${formData.usuario}
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {turnos.map((turno) => (
-                            <SelectItem key={turno.id} value={turno.id.toString()}>
-                              {turno.nombre}
+                          {turnos.length > 0 ? (
+                            turnos.map((turno) => (
+                              <SelectItem key={turno.id} value={turno.id.toString()}>
+                                {turno.nombre}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="no-turnos" disabled>
+                              No hay turnos disponibles
                             </SelectItem>
-                          ))}
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
