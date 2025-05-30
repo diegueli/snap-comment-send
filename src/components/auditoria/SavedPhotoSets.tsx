@@ -48,8 +48,7 @@ const SavedPhotoSets = ({
 
   const handleSaveSetEdit = (setId: string) => {
     onUpdatePhotoSet(setId, { 
-      levantamiento: editingLevantamiento, 
-      responsable: editingResponsable 
+      levantamiento: editingLevantamiento
     });
     setEditingSetId(null);
     setEditingLevantamiento('');
@@ -163,12 +162,6 @@ const SavedPhotoSets = ({
                     rows={2}
                     placeholder="Editar levantamiento..."
                   />
-                  <Input
-                    value={editingResponsable}
-                    onChange={(e) => setEditingResponsable(e.target.value)}
-                    className="border-gray-200 focus:border-red-500"
-                    placeholder="Editar responsable..."
-                  />
                   <div className="flex gap-2">
                     <Button
                       onClick={() => handleSaveSetEdit(set.id)}
@@ -200,14 +193,6 @@ const SavedPhotoSets = ({
                         {set.levantamiento || "Sin levantamiento"}
                       </p>
                     </div>
-                  </div>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="text-xs text-gray-500 font-medium">Responsable:</p>
-                      <p className="text-sm text-gray-600">
-                        {set.responsable || "Sin responsable"}
-                      </p>
-                    </div>
                     <Button
                       onClick={() => startEditingSet(set)}
                       size="sm"
@@ -216,6 +201,14 @@ const SavedPhotoSets = ({
                     >
                       <Edit className="w-3 h-3" />
                     </Button>
+                  </div>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-500 font-medium">Responsable:</p>
+                      <p className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                        {set.responsable || "Sin responsable"}
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
