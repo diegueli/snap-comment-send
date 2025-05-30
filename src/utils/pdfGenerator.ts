@@ -1,4 +1,3 @@
-
 import jsPDF from 'jspdf';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +9,7 @@ interface GeneratePDFParams {
   userData: UserData | null;
   selectedPlanta: Planta | null;
   auditoriaId: string | null;
+  codigoAuditoria?: string | null;
 }
 
 export const generatePDF = async ({
@@ -17,7 +17,8 @@ export const generatePDF = async ({
   auditoriaData,
   userData,
   selectedPlanta,
-  auditoriaId
+  auditoriaId,
+  codigoAuditoria
 }: GeneratePDFParams) => {
   if (photoSets.length === 0) {
     toast({
@@ -88,7 +89,12 @@ export const generatePDF = async ({
       pdf.text(`Email: ${userData.email}`, 20, yPosition);
       yPosition += 6;
       pdf.text(`Fecha: ${auditoriaData.fecha}`, 20, yPosition);
-      yPosition += 15;
+      yPosition += 6;
+      if (codigoAuditoria) {
+        pdf.text(`Código: ${codigoAuditoria}`, 20, yPosition);
+        yPosition += 6;
+      }
+      yPosition += 10;
     }
 
     // Procesar conjuntos de fotos
@@ -192,8 +198,9 @@ export const generatePDF = async ({
     return;
   }
   
-  // Crear nombre del archivo
-  const fileName = `${auditoriaData?.tituloDocumento || 'Auditoria'}_${selectedPlanta?.nombre || 'Planta'}_${auditoriaData?.fecha.replace(/\//g, '-') || new Date().toISOString().split('T')[0]}.pdf`;
+  // Crear nombre del archivo usando el código de auditoría
+  const baseFileName = codigoAuditoria || `${auditoriaData?.tituloDocumento || 'Auditoria'}_${selectedPlanta?.nombre || 'Planta'}`;
+  const fileName = `${baseFileName}_${auditoriaData?.fecha.replace(/\//g, '-') || new Date().toISOString().split('T')[0]}.pdf`;
   
   // Solo intentar subir si el PDF se generó correctamente
   if (pdfBlob && pdfBlob.size > 0) {

@@ -1,4 +1,3 @@
-
 import React, { useCallback } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -35,14 +34,17 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     currentArea,
     currentLevantamiento,
     currentResponsable,
+    currentResponsableId,
     photoSets,
     editingSetId,
     editingLevantamiento,
     editingResponsable,
+    editingResponsableId,
     editingAreaId,
     editingArea,
     showAreaInput,
     auditoriaId,
+    codigoAuditoria,
     isSavingToDatabase,
     setAuditoriaData,
     setSelectedPlanta,
@@ -50,14 +52,17 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     setCurrentArea,
     setCurrentLevantamiento,
     setCurrentResponsable,
+    setCurrentResponsableId,
     setPhotoSets,
     setEditingSetId,
     setEditingLevantamiento,
     setEditingResponsable,
+    setEditingResponsableId,
     setEditingAreaId,
     setEditingArea,
     setShowAreaInput,
     setAuditoriaId,
+    setCodigoAuditoria,
     setIsSavingToDatabase,
     resetState
   } = useAuditoriaState();
@@ -85,13 +90,15 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     currentArea,
     currentLevantamiento,
     currentResponsable,
+    currentResponsableId,
     setCurrentArea,
     setCurrentLevantamiento,
     setCurrentResponsable,
+    setCurrentResponsableId,
     setShowAreaInput
   });
 
-  const handleAuditoriaSubmit = useCallback(async (formData: AuditoriaFormData) => {
+  const handleAuditoriaSubmit = useCallback(async (formData: AuditoriaFormData & { codigoAuditoria: string }) => {
     try {
       const { data: planta, error } = await supabase
         .from('plantas')
@@ -103,6 +110,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       
       setSelectedPlanta(planta);
       setAuditoriaData(formData);
+      setCodigoAuditoria(formData.codigoAuditoria);
     } catch (error) {
       console.error('Error fetching planta:', error);
       toast({
@@ -111,7 +119,12 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
         variant: "destructive",
       });
     }
-  }, [setSelectedPlanta, setAuditoriaData]);
+  }, [setSelectedPlanta, setAuditoriaData, setCodigoAuditoria]);
+
+  const handleResponsableChange = useCallback((responsable: string, gerenciaId?: number) => {
+    setCurrentResponsable(responsable);
+    setCurrentResponsableId(gerenciaId || null);
+  }, [setCurrentResponsable, setCurrentResponsableId]);
 
   const handleStartCamera = useCallback(async () => {
     const success = await startCamera(currentArea);
@@ -153,9 +166,10 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       auditoriaData,
       userData,
       selectedPlanta,
-      auditoriaId
+      auditoriaId,
+      codigoAuditoria
     });
-  }, [photoSets, auditoriaData, userData, selectedPlanta, auditoriaId]);
+  }, [photoSets, auditoriaData, userData, selectedPlanta, auditoriaId, codigoAuditoria]);
 
   const resetApp = useCallback(async () => {
     resetState();
@@ -207,7 +221,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
           </div>
         )}
 
-        <AuditoriaHeader auditoriaData={auditoriaData} />
+        <AuditoriaHeader auditoriaData={auditoriaData} codigoAuditoria={codigoAuditoria} />
 
         {(showAreaInput || (!isCapturing && currentPhotos.length === 0)) && (
           <AreaInput
@@ -235,7 +249,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
             currentLevantamiento={currentLevantamiento}
             currentResponsable={currentResponsable}
             setCurrentLevantamiento={setCurrentLevantamiento}
-            setCurrentResponsable={setCurrentResponsable}
+            setCurrentResponsable={handleResponsableChange}
             onDeletePhoto={deletePhoto}
             onStartCamera={handleStartCamera}
             onSaveCurrentSet={saveCurrentSet}
@@ -247,11 +261,13 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
           editingSetId={editingSetId}
           editingLevantamiento={editingLevantamiento}
           editingResponsable={editingResponsable}
+          editingResponsableId={editingResponsableId}
           editingAreaId={editingAreaId}
           editingArea={editingArea}
           setEditingSetId={setEditingSetId}
           setEditingLevantamiento={setEditingLevantamiento}
           setEditingResponsable={setEditingResponsable}
+          setEditingResponsableId={setEditingResponsableId}
           setEditingAreaId={setEditingAreaId}
           setEditingArea={setEditingArea}
           onUpdatePhotoSet={updatePhotoSet}

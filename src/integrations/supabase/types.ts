@@ -29,9 +29,8 @@ export type Database = {
           area: string
           auditoria_id: string
           created_at: string
-          evidencia: string | null
           foto_urls: string[] | null
-          gerencia_id: number | null
+          gerencia_resp_id: number | null
           id: string
           levantamiento: string | null
           responsable: string | null
@@ -41,9 +40,8 @@ export type Database = {
           area: string
           auditoria_id: string
           created_at?: string
-          evidencia?: string | null
           foto_urls?: string[] | null
-          gerencia_id?: number | null
+          gerencia_resp_id?: number | null
           id?: string
           levantamiento?: string | null
           responsable?: string | null
@@ -53,9 +51,8 @@ export type Database = {
           area?: string
           auditoria_id?: string
           created_at?: string
-          evidencia?: string | null
           foto_urls?: string[] | null
-          gerencia_id?: number | null
+          gerencia_resp_id?: number | null
           id?: string
           levantamiento?: string | null
           responsable?: string | null
@@ -70,8 +67,8 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "auditoria_sets_gerencia_id_fkey"
-            columns: ["gerencia_id"]
+            foreignKeyName: "auditoria_sets_gerencia_resp_id_fkey"
+            columns: ["gerencia_resp_id"]
             isOneToOne: false
             referencedRelation: "gerencias"
             referencedColumns: ["id"]

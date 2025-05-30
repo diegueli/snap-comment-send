@@ -3,13 +3,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { CapturedPhoto, PhotoSet, AuditoriaFormData, UserData } from '@/types/auditoria';
 
-export const uploadPhotoToStorage = async (photo: CapturedPhoto, area: string, auditoriaId: string): Promise<string | null> => {
-  if (!photo.file || !auditoriaId) return null;
+export const uploadPhotoToStorage = async (photo: CapturedPhoto, area: string, codigoAuditoria: string): Promise<string | null> => {
+  if (!photo.file || !codigoAuditoria) return null;
 
   try {
     // Limpiar el nombre del área para usarlo en el nombre del archivo
     const cleanAreaName = area.replace(/[^a-zA-Z0-9]/g, '_');
-    const fileName = `${auditoriaId}/${cleanAreaName}_${Date.now()}_${photo.id}.jpg`;
+    const fileName = `${codigoAuditoria}/${cleanAreaName}_${Date.now()}_${photo.id}.jpg`;
     
     const { data, error } = await supabase.storage
       .from('bucket_auditorias')
@@ -31,7 +31,7 @@ export const uploadPhotoToStorage = async (photo: CapturedPhoto, area: string, a
 };
 
 export const closeAuditoria = async (
-  auditoriaData: AuditoriaFormData,
+  auditoriaData: AuditoriaFormData & { codigoAuditoria: string },
   userData: UserData,
   photoSets: PhotoSet[],
   setAuditoriaId: (id: string) => void
@@ -62,6 +62,7 @@ export const closeAuditoria = async (
         fecha: isoDate,
         auditor: auditoriaData.auditor,
         planta_id: auditoriaData.plantaId,
+        codigo_auditoria: auditoriaData.codigoAuditoria,
         status: 'Activo'
       })
       .select()
@@ -74,9 +75,9 @@ export const closeAuditoria = async (
     for (const set of photoSets) {
       const photoUrls: string[] = [];
       
-      // Upload photos and collect URLs, now including area in filename
+      // Upload photos and collect URLs, using codigo_auditoria for naming
       for (const photo of set.photos) {
-        const url = await uploadPhotoToStorage(photo, set.area, auditoria.id);
+        const url = await uploadPhotoToStorage(photo, set.area, auditoriaData.codigoAuditoria);
         if (url) {
           photoUrls.push(url);
         }
@@ -89,6 +90,7 @@ export const closeAuditoria = async (
           area: set.area,
           levantamiento: set.levantamiento || null,
           responsable: set.responsable || null,
+          gerencia_resp_id: set.gerencia_resp_id || null,
           foto_urls: photoUrls
         });
 

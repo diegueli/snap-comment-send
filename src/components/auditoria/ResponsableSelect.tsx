@@ -7,7 +7,7 @@ import { Gerencia } from '@/types/auditoria';
 
 interface ResponsableSelectProps {
   value: string;
-  onValueChange: (value: string) => void;
+  onValueChange: (value: string, gerenciaId?: number) => void;
 }
 
 const ResponsableSelect = ({ value, onValueChange }: ResponsableSelectProps) => {
@@ -73,6 +73,11 @@ const ResponsableSelect = ({ value, onValueChange }: ResponsableSelectProps) => 
     fetchGerencias();
   }, []);
 
+  const handleValueChange = (selectedNombre: string) => {
+    const selectedGerencia = gerencias.find(g => g.nombre === selectedNombre);
+    onValueChange(selectedNombre, selectedGerencia?.id);
+  };
+
   console.log('🎯 Estado actual de ResponsableSelect:', {
     loading,
     error,
@@ -92,7 +97,7 @@ const ResponsableSelect = ({ value, onValueChange }: ResponsableSelectProps) => 
         </div>
       )}
       
-      <Select onValueChange={onValueChange} value={value}>
+      <Select onValueChange={handleValueChange} value={value}>
         <SelectTrigger className="border-gray-200 focus:border-red-500 bg-white">
           <SelectValue placeholder="Seleccione una gerencia responsable" />
         </SelectTrigger>

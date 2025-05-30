@@ -9,14 +9,17 @@ export const useAuditoriaState = () => {
   const [currentArea, setCurrentArea] = useState('');
   const [currentLevantamiento, setCurrentLevantamiento] = useState('');
   const [currentResponsable, setCurrentResponsable] = useState('');
+  const [currentResponsableId, setCurrentResponsableId] = useState<number | null>(null);
   const [photoSets, setPhotoSets] = useState<PhotoSet[]>([]);
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
   const [editingLevantamiento, setEditingLevantamiento] = useState('');
   const [editingResponsable, setEditingResponsable] = useState('');
+  const [editingResponsableId, setEditingResponsableId] = useState<number | null>(null);
   const [editingAreaId, setEditingAreaId] = useState<string | null>(null);
   const [editingArea, setEditingArea] = useState('');
   const [showAreaInput, setShowAreaInput] = useState(false);
   const [auditoriaId, setAuditoriaId] = useState<string | null>(null);
+  const [codigoAuditoria, setCodigoAuditoria] = useState<string | null>(null);
   const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
 
   const resetState = useCallback(() => {
@@ -26,14 +29,17 @@ export const useAuditoriaState = () => {
     setCurrentArea('');
     setCurrentLevantamiento('');
     setCurrentResponsable('');
+    setCurrentResponsableId(null);
     setPhotoSets([]);
     setEditingSetId(null);
     setEditingLevantamiento('');
     setEditingResponsable('');
+    setEditingResponsableId(null);
     setEditingAreaId(null);
     setEditingArea('');
     setShowAreaInput(false);
     setAuditoriaId(null);
+    setCodigoAuditoria(null);
     setIsSavingToDatabase(false);
   }, []);
 
@@ -45,14 +51,17 @@ export const useAuditoriaState = () => {
     currentArea,
     currentLevantamiento,
     currentResponsable,
+    currentResponsableId,
     photoSets,
     editingSetId,
     editingLevantamiento,
     editingResponsable,
+    editingResponsableId,
     editingAreaId,
     editingArea,
     showAreaInput,
     auditoriaId,
+    codigoAuditoria,
     isSavingToDatabase,
     // Setters
     setAuditoriaData,
@@ -61,14 +70,17 @@ export const useAuditoriaState = () => {
     setCurrentArea,
     setCurrentLevantamiento,
     setCurrentResponsable,
+    setCurrentResponsableId,
     setPhotoSets,
     setEditingSetId,
     setEditingLevantamiento,
     setEditingResponsable,
+    setEditingResponsableId,
     setEditingAreaId,
     setEditingArea,
     setShowAreaInput,
     setAuditoriaId,
+    setCodigoAuditoria,
     setIsSavingToDatabase,
     // Actions
     resetState

@@ -12,6 +12,7 @@ export interface PhotoSet {
   photos: CapturedPhoto[];
   levantamiento: string;
   responsable: string;
+  gerencia_resp_id?: number;
   timestamp: Date;
 }
 
@@ -31,6 +32,7 @@ export interface AuditoriaFormData {
 
 export interface AuditoriaData extends AuditoriaFormData {
   id?: string;
+  codigoAuditoria?: string;
 }
 
 export interface Planta {

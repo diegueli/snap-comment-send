@@ -9,7 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import { AuditoriaFormData, UserData, Planta } from '@/types/auditoria';
 
 interface AuditoriaFormProps {
-  onSubmit: (data: AuditoriaFormData) => void;
+  onSubmit: (data: AuditoriaFormData & { codigoAuditoria: string }) => void;
   userData: UserData | null;
 }
 
@@ -18,6 +18,7 @@ const AuditoriaForm = ({ onSubmit, userData }: AuditoriaFormProps) => {
   const [plantaId, setPlantaId] = useState<number | null>(null);
   const [plantas, setPlantas] = useState<Planta[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   const today = new Date();
   const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
@@ -48,15 +49,48 @@ const AuditoriaForm = ({ onSubmit, userData }: AuditoriaFormProps) => {
     fetchPlantas();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const generateCodigoAuditoria = async (plantaId: number): Promise<string> => {
+    try {
+      // Llamar a la función de Supabase para generar el código
+      const { data, error } = await supabase.rpc('generate_auditoria_code', {
+        p_planta_id: plantaId
+      });
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error generating auditoria code:', error);
+      // Fallback: generar código localmente
+      const planta = plantas.find(p => p.id === plantaId);
+      const iniciales = planta?.iniciales || 'XX';
+      const numero = Math.floor(Math.random() * 9000 + 1000);
+      return `${iniciales}${numero}`;
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (tituloDocumento.trim() && plantaId) {
-      onSubmit({
-        tituloDocumento: tituloDocumento.trim(),
-        fecha: formattedDate,
-        auditor,
-        plantaId
-      });
+      setSubmitting(true);
+      try {
+        const codigoAuditoria = await generateCodigoAuditoria(plantaId);
+        onSubmit({
+          tituloDocumento: tituloDocumento.trim(),
+          fecha: formattedDate,
+          auditor,
+          plantaId,
+          codigoAuditoria
+        });
+      } catch (error) {
+        console.error('Error generating codigo:', error);
+        toast({
+          title: "Error",
+          description: "No se pudo generar el código de auditoría.",
+          variant: "destructive",
+        });
+      } finally {
+        setSubmitting(false);
+      }
     }
   };
 
@@ -129,9 +163,9 @@ const AuditoriaForm = ({ onSubmit, userData }: AuditoriaFormProps) => {
           <Button
             type="submit"
             className="w-full bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white"
-            disabled={!tituloDocumento.trim() || !plantaId || loading}
+            disabled={!tituloDocumento.trim() || !plantaId || loading || submitting}
           >
-            Continuar
+            {submitting ? 'Generando código...' : 'Continuar'}
           </Button>
         </form>
       </CardContent>

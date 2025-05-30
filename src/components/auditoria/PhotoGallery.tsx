@@ -13,7 +13,7 @@ interface PhotoGalleryProps {
   currentLevantamiento: string;
   currentResponsable: string;
   setCurrentLevantamiento: (value: string) => void;
-  setCurrentResponsable: (value: string) => void;
+  setCurrentResponsable: (value: string, gerenciaId?: number) => void;
   onDeletePhoto: (photoId: string) => void;
   onStartCamera: () => void;
   onSaveCurrentSet: () => void;
