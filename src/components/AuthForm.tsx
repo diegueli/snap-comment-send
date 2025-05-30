@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { User, Mail, Briefcase, Lock, Eye, EyeOff } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { User, Mail, Briefcase, Lock, Eye, EyeOff, Building } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const AuthForm = () => {
@@ -15,7 +16,8 @@ const AuthForm = () => {
     name: '',
     email: '',
     position: '',
-    password: ''
+    password: '',
+    gerencia: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -27,7 +29,7 @@ const AuthForm = () => {
       return;
     }
 
-    if (isSignUp && (!formData.name.trim() || !formData.position.trim())) {
+    if (isSignUp && (!formData.name.trim() || !formData.position.trim() || !formData.gerencia.trim())) {
       return;
     }
 
@@ -41,7 +43,7 @@ const AuthForm = () => {
     
     try {
       if (isSignUp) {
-        await signUp(formData.email, formData.password, formData.name, formData.position);
+        await signUp(formData.email, formData.password, formData.name, formData.position, formData.gerencia);
       } else {
         await signIn(formData.email, formData.password);
       }
@@ -59,9 +61,16 @@ const AuthForm = () => {
     }));
   };
 
+  const handleGerenciaChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      gerencia: value
+    }));
+  };
+
   const toggleAuthMode = () => {
     setIsSignUp(!isSignUp);
-    setFormData({ name: '', email: '', position: '', password: '' });
+    setFormData({ name: '', email: '', position: '', password: '', gerencia: '' });
   };
 
   if (loading) {
@@ -166,6 +175,27 @@ const AuthForm = () => {
                       className="pl-10 border-gray-200 focus:border-red-500"
                       required={isSignUp}
                     />
+                  </div>
+                </div>
+              )}
+
+              {isSignUp && (
+                <div className="space-y-2">
+                  <Label htmlFor="gerencia" className="text-gray-700">
+                    Gerencia
+                  </Label>
+                  <div className="relative">
+                    <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400 z-10" />
+                    <Select value={formData.gerencia} onValueChange={handleGerenciaChange} required={isSignUp}>
+                      <SelectTrigger className="pl-10 border-gray-200 focus:border-red-500">
+                        <SelectValue placeholder="Seleccione la gerencia" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Calidad">Calidad</SelectItem>
+                        <SelectItem value="Mantenimiento">Mantenimiento</SelectItem>
+                        <SelectItem value="Inocuidad">Inocuidad</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               )}

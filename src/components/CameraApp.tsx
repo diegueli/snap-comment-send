@@ -1,12 +1,13 @@
-
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Camera, RotateCcw, FileText, Trash2, Plus, X, Edit, Check, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { usePhotoUpload } from '@/hooks/usePhotoUpload';
 import jsPDF from 'jspdf';
 import AuditoriaForm from './AuditoriaForm';
 
@@ -14,6 +15,7 @@ interface CapturedPhoto {
   id: string;
   dataUrl: string;
   timestamp: Date;
+  uploadedUrl?: string;
 }
 
 interface PhotoSet {
@@ -40,6 +42,12 @@ interface AuditoriaFormData {
   tituloDocumento: string;
   fecha: string;
   auditor: string;
+  plantaId: number;
+  plantaNombre: string;
+}
+
+interface Profile {
+  gerencia: string | null;
 }
 
 const CameraApp = ({ onClose, userData }: CameraAppProps) => {
@@ -60,8 +68,38 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
   const [showAreaInput, setShowAreaInput] = useState(false);
   const [auditoriaId, setAuditoriaId] = useState<string | null>(null);
   const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
+  const [userProfile, setUserProfile] = useState<Profile | null>(null);
+  const [gerenciasOptions, setGerenciasOptions] = useState<string[]>(['Calidad', 'Mantenimiento', 'Inocuidad']);
+  
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { uploadPhoto, deletePhoto, uploading } = usePhotoUpload();
+
+  // Fetch user profile on component mount
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('gerencia')
+            .eq('id', user.id)
+            .single();
+          
+          if (error) {
+            console.error('Error fetching user profile:', error);
+          } else {
+            setUserProfile(profile);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   // Check camera permission on component mount
   useEffect(() => {
@@ -311,6 +349,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
           titulo_documento: auditoriaData.tituloDocumento,
           fecha: isoDate,
           auditor: auditoriaData.auditor,
+          planta_id: auditoriaData.plantaId,
           status: 'Activo'
         })
         .select()
@@ -320,13 +359,20 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
 
       setAuditoriaId(auditoria.id);
 
-      // Guardar cada set de fotos
+      // Procesar y guardar cada set de fotos
       for (const set of photoSets) {
-        const fotosJson = set.photos.map(photo => ({
-          id: photo.id,
-          dataUrl: photo.dataUrl,
-          timestamp: photo.timestamp.toISOString()
-        }));
+        const photoUrls: string[] = [];
+        
+        // Subir cada foto al storage y obtener URLs
+        for (const photo of set.photos) {
+          try {
+            const url = await uploadPhoto(photo.dataUrl, auditoria.id, set.area);
+            photoUrls.push(url);
+          } catch (error) {
+            console.error('Error uploading photo:', error);
+            // Continuar con las demás fotos aunque una falle
+          }
+        }
 
         const { error: setError } = await supabase
           .from('auditoria_sets')
@@ -335,7 +381,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
             area: set.area,
             levantamiento: set.levantamiento || null,
             responsable: set.responsable || null,
-            fotos: fotosJson
+            foto_urls: photoUrls
           });
 
         if (setError) throw setError;
@@ -356,7 +402,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     } finally {
       setIsSavingToDatabase(false);
     }
-  }, [auditoriaData, userData, photoSets]);
+  }, [auditoriaData, userData, photoSets, uploadPhoto]);
 
   const generatePDF = useCallback(async () => {
     if (photoSets.length === 0) {
@@ -419,6 +465,8 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       pdf.text(`Email: ${userData.email}`, 20, yPosition);
       yPosition += 6;
       pdf.text(`Fecha: ${auditoriaData.fecha}`, 20, yPosition);
+      yPosition += 6;
+      pdf.text(`Planta: ${auditoriaData.plantaNombre}`, 20, yPosition);
       yPosition += 15;
     }
 
@@ -480,28 +528,36 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       yPosition += 10;
     }
 
-    // Add signature section
+    // Add signature section - CENTERED
     if (auditoriaData && userData) {
-      if (yPosition > pageHeight - 60) {
+      if (yPosition > pageHeight - 80) {
         pdf.addPage();
         yPosition = 20;
       }
 
-      yPosition += 20;
+      yPosition += 30;
       pdf.setFontSize(12);
       pdf.setTextColor(0, 0, 0);
-      pdf.text('FIRMA DEL AUDITOR:', 20, yPosition);
+      
+      // Center the signature section
+      const centerX = pageWidth / 2;
+      pdf.text('FIRMA DEL AUDITOR:', centerX, yPosition, { align: 'center' });
       yPosition += 20;
 
-      pdf.line(20, yPosition, 120, yPosition);
-      yPosition += 10;
+      // Centered signature line
+      const lineWidth = 80;
+      const lineStartX = centerX - (lineWidth / 2);
+      const lineEndX = centerX + (lineWidth / 2);
+      pdf.line(lineStartX, yPosition, lineEndX, yPosition);
+      yPosition += 15;
 
+      // Centered signature details
       pdf.setFontSize(10);
-      pdf.text(`${auditoriaData.auditor}`, 20, yPosition);
+      pdf.text(`${auditoriaData.auditor}`, centerX, yPosition, { align: 'center' });
       yPosition += 5;
-      pdf.text(`${userData.position}`, 20, yPosition);
+      pdf.text(`${userData.position}`, centerX, yPosition, { align: 'center' });
       yPosition += 5;
-      pdf.text(`Fecha: ${auditoriaData.fecha}`, 20, yPosition);
+      pdf.text(`Fecha: ${auditoriaData.fecha}`, centerX, yPosition, { align: 'center' });
     }
 
     const pdfBlob = pdf.output('blob');
@@ -594,6 +650,9 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
             </CardTitle>
             <p className="text-sm text-gray-600">
               Auditor: {auditoriaData.auditor} | Fecha: {auditoriaData.fecha}
+            </p>
+            <p className="text-sm text-gray-600">
+              Planta: {auditoriaData.plantaNombre}
             </p>
           </CardHeader>
         </Card>
@@ -727,21 +786,27 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
                 <label htmlFor="responsable" className="block text-sm font-medium text-gray-700 mb-2">
                   Responsable
                 </label>
-                <Input
-                  id="responsable"
-                  placeholder="Nombre del responsable"
-                  value={currentResponsable}
-                  onChange={(e) => setCurrentResponsable(e.target.value)}
-                  className="border-gray-200 focus:border-red-500"
-                />
+                <Select value={currentResponsable} onValueChange={setCurrentResponsable}>
+                  <SelectTrigger className="border-gray-200 focus:border-red-500">
+                    <SelectValue placeholder="Seleccione la gerencia responsable" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {gerenciasOptions.map((gerencia) => (
+                      <SelectItem key={gerencia} value={gerencia}>
+                        {gerencia}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               
               <Button
                 onClick={saveCurrentSet}
                 className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white"
+                disabled={uploading}
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Guardar Conjunto de Fotos
+                {uploading ? 'Guardando...' : 'Guardar Conjunto de Fotos'}
               </Button>
             </CardContent>
           </Card>
@@ -841,7 +906,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
                     ))}
                   </div>
                   
-                  {/* Levantamiento section */}
+                  {/* Levantamiento and Responsable section */}
                   <div className="mt-2">
                     {editingSetId === set.id ? (
                       <div className="space-y-2">
@@ -852,12 +917,18 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
                           rows={2}
                           placeholder="Editar levantamiento..."
                         />
-                        <Input
-                          value={editingResponsable}
-                          onChange={(e) => setEditingResponsable(e.target.value)}
-                          className="border-gray-200 focus:border-red-500"
-                          placeholder="Editar responsable..."
-                        />
+                        <Select value={editingResponsable} onValueChange={setEditingResponsable}>
+                          <SelectTrigger className="border-gray-200 focus:border-red-500">
+                            <SelectValue placeholder="Seleccione responsable..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {gerenciasOptions.map((gerencia) => (
+                              <SelectItem key={gerencia} value={gerencia}>
+                                {gerencia}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <div className="flex gap-2">
                           <Button
                             onClick={() => {
@@ -928,13 +999,13 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
           </Card>
         )}
 
-        {/* Action Buttons - Changed from flex gap-2 to space-y-3 for vertical alignment */}
+        {/* Action Buttons - Vertical alignment */}
         {photoSets.length > 0 && (
           <div className="space-y-3">
             <Button
               onClick={closeAuditoria}
               className="w-full bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white"
-              disabled={isSavingToDatabase}
+              disabled={isSavingToDatabase || uploading}
             >
               <Save className="w-4 h-4 mr-2" />
               {isSavingToDatabase ? 'Guardando...' : 'Cerrar Auditoría'}

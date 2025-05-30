@@ -30,7 +30,7 @@ export type Database = {
           auditoria_id: string
           created_at: string
           evidencia: string | null
-          fotos: Json | null
+          foto_urls: string[] | null
           id: string
           levantamiento: string | null
           responsable: string | null
@@ -41,7 +41,7 @@ export type Database = {
           auditoria_id: string
           created_at?: string
           evidencia?: string | null
-          fotos?: Json | null
+          foto_urls?: string[] | null
           id?: string
           levantamiento?: string | null
           responsable?: string | null
@@ -52,7 +52,7 @@ export type Database = {
           auditoria_id?: string
           created_at?: string
           evidencia?: string | null
-          fotos?: Json | null
+          foto_urls?: string[] | null
           id?: string
           levantamiento?: string | null
           responsable?: string | null
@@ -75,6 +75,7 @@ export type Database = {
           fecha: string
           fecha_compromiso: string | null
           id: string
+          planta_id: number | null
           status: string | null
           titulo_documento: string
           updated_at: string
@@ -86,6 +87,7 @@ export type Database = {
           fecha: string
           fecha_compromiso?: string | null
           id?: string
+          planta_id?: number | null
           status?: string | null
           titulo_documento: string
           updated_at?: string
@@ -97,12 +99,21 @@ export type Database = {
           fecha?: string
           fecha_compromiso?: string | null
           id?: string
+          planta_id?: number | null
           status?: string | null
           titulo_documento?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "auditorias_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "plantas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bloqueos: {
         Row: {
@@ -214,6 +225,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          gerencia: string | null
           id: string
           name: string
           position: string
@@ -221,6 +233,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          gerencia?: string | null
           id: string
           name: string
           position: string
@@ -228,6 +241,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          gerencia?: string | null
           id?: string
           name?: string
           position?: string
