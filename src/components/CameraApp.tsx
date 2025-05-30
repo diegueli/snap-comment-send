@@ -100,32 +100,6 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     fetchGerencias();
   }, []);
 
-  // Fetch user profile on component mount
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('gerencia')
-            .eq('id', user.id)
-            .single();
-          
-          if (error) {
-            console.error('Error fetching user profile:', error);
-          } else {
-            setUserProfile(profile);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching user profile:', error);
-      }
-    };
-
-    fetchUserProfile();
-  }, []);
-
   // Check camera permission on component mount
   useEffect(() => {
     const checkCameraPermission = async () => {
