@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Trash2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -42,49 +43,45 @@ const PhotoGallery = ({
         setLoading(true);
         setError(null);
 
-        // Test de conexión a Supabase
-        const { data: testConnection, error: connectionError } = await supabase
+        // Consulta simplificada para debugging
+        const { data, error, count } = await supabase
           .from('gerencias')
-          .select('count', { count: 'exact', head: true });
+          .select('*', { count: 'exact' });
 
-        if (connectionError) {
-          console.error('❌ Error de conexión a Supabase:', connectionError);
-          throw new Error(`Error de conexión: ${connectionError.message}`);
-        }
-
-        console.log('✅ Conexión a Supabase exitosa. Total registros:', testConnection);
-
-        // Consulta principal
-        const { data, error } = await supabase
-          .from('gerencias')
-          .select('id, nombre, iniciales, activo')
-          .eq('activo', true)
-          .order('nombre');
-
-        console.log('📊 Resultado de la consulta:', { data, error });
+        console.log('📊 Respuesta completa de Supabase:', { 
+          data, 
+          error, 
+          count,
+          dataLength: data?.length 
+        });
 
         if (error) {
-          console.error('❌ Error en la consulta de gerencias:', error);
+          console.error('❌ Error en la consulta:', error);
           throw new Error(`Error en consulta: ${error.message}`);
         }
 
         if (!data) {
-          console.warn('⚠️ La consulta no devolvió datos');
+          console.warn('⚠️ Data es null o undefined');
           setGerencias([]);
-          setError('No se recibieron datos de la consulta');
+          setError('No se recibieron datos');
           return;
         }
 
-        console.log('✅ Gerencias cargadas exitosamente:', data.length, 'registros');
-        setGerencias(data);
+        console.log('✅ Datos recibidos:', data);
+        
+        // Filtrar solo las activas en el frontend para mejor debugging
+        const gerenciasActivas = data.filter(g => g.activo === true);
+        console.log('✅ Gerencias activas filtradas:', gerenciasActivas);
+        
+        setGerencias(gerenciasActivas);
 
-        if (data.length === 0) {
-          setError('No hay gerencias activas disponibles');
+        if (gerenciasActivas.length === 0) {
+          setError('No hay gerencias activas en los datos');
         }
 
       } catch (error: any) {
-        console.error('💥 Error completo en fetchGerencias:', error);
-        setError(error.message || 'Error desconocido al cargar gerencias');
+        console.error('💥 Error completo:', error);
+        setError(error.message || 'Error desconocido');
         setGerencias([]);
         toast({
           title: "Error al cargar gerencias",
@@ -104,7 +101,7 @@ const PhotoGallery = ({
     loading,
     error,
     gerenciasCount: gerencias.length,
-    gerencias: gerencias.map(g => ({ id: g.id, nombre: g.nombre }))
+    gerencias: gerencias.map(g => ({ id: g.id, nombre: g.nombre, activo: g.activo }))
   });
 
   return (
@@ -166,18 +163,25 @@ const PhotoGallery = ({
           <label htmlFor="responsable" className="block text-sm font-medium text-gray-700 mb-2">
             Responsable
           </label>
+          
+          {/* Debug info visible en desarrollo */}
+          <div className="mb-2 text-xs text-gray-500">
+            Debug: Loading={loading.toString()}, Error={error || 'none'}, Count={gerencias.length}
+          </div>
+          
           {error && (
             <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
               Error: {error}
             </div>
           )}
+          
           <Select onValueChange={setCurrentResponsable} value={currentResponsable}>
             <SelectTrigger className="border-gray-200 focus:border-red-500 bg-white">
               <SelectValue placeholder="Seleccione una gerencia responsable" />
             </SelectTrigger>
             <SelectContent className="bg-white border border-gray-200 shadow-lg z-50 max-h-60">
               {loading ? (
-                <SelectItem value="loading" disabled>
+                <SelectItem value="loading-state" disabled>
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
                     Cargando gerencias...
@@ -185,10 +189,10 @@ const PhotoGallery = ({
                 </SelectItem>
               ) : error ? (
                 <SelectItem value="error-state" disabled>
-                  <div className="text-red-600">Error al cargar gerencias</div>
+                  <div className="text-red-600">Error: {error}</div>
                 </SelectItem>
               ) : gerencias.length === 0 ? (
-                <SelectItem value="no-gerencias" disabled>
+                <SelectItem value="no-data-state" disabled>
                   <div className="text-gray-500">No hay gerencias disponibles</div>
                 </SelectItem>
               ) : (
@@ -207,6 +211,7 @@ const PhotoGallery = ({
               )}
             </SelectContent>
           </Select>
+          
           {!loading && !error && gerencias.length > 0 && (
             <div className="mt-1 text-xs text-gray-500">
               {gerencias.length} gerencia(s) disponible(s)
