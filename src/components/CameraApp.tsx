@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +26,18 @@ interface UserProfile {
   gerencia_id: number | null;
 }
 
-const CameraApp = () => {
+interface UserData {
+  name: string;
+  email: string;
+  position: string;
+}
+
+interface CameraAppProps {
+  onClose?: () => void;
+  userData?: UserData;
+}
+
+const CameraApp: React.FC<CameraAppProps> = ({ onClose, userData }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
