@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -16,12 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { supabase } from '@/integrations/supabase/client';
-
-interface Producto {
-  id: number;
-  nombre: string | null;
-}
+import { useProductSearch } from '@/hooks/useProductSearch';
 
 interface ProductComboboxProps {
   value: string;
@@ -36,31 +31,8 @@ const ProductCombobox: React.FC<ProductComboboxProps> = ({
   placeholder = "Selecciona un producto...",
   className,
 }) => {
-  const [open, setOpen] = useState(false);
-  const [productos, setProductos] = useState<Producto[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    loadProductos();
-  }, []);
-
-  const loadProductos = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('productos')
-        .select('id, nombre')
-        .not('nombre', 'is', null)
-        .order('nombre');
-
-      if (error) throw error;
-      setProductos(data || []);
-    } catch (error) {
-      console.error('Error loading productos:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [open, setOpen] = React.useState(false);
+  const { productos, loading } = useProductSearch();
 
   const selectedProduct = productos.find((producto) => producto.id.toString() === value);
 

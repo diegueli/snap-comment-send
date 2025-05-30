@@ -1,18 +1,20 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { Form } from '@/components/ui/form';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { X, Mail } from 'lucide-react';
+import { useDropdownData } from '@/hooks/useDropdownData';
+import FormHeader from './FormHeader';
+import SelectField from './common/SelectField';
+import InputField from './common/InputField';
+import TextareaField from './common/TextareaField';
 import ProductCombobox from './ProductCombobox';
 
 const bloqueosSchema = z.object({
@@ -35,13 +37,10 @@ interface BloqueosFormProps {
 
 const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   const { user, profile } = useAuth();
-  const [plantas, setPlantas] = useState<Array<{ id: number; nombre: string }>>([]);
-  const [areas, setAreas] = useState<Array<{ id: number; nombre: string }>>([]);
-  const [turnos, setTurnos] = useState<Array<{ id: number; nombre: string }>>([]);
+  const { data: dropdownData, loading: dropdownLoading } = useDropdownData();
   const [loading, setLoading] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
 
-  // Format current date as dd/mm/yyyy
   const getCurrentDateFormatted = () => {
     const today = new Date();
     const day = today.getDate().toString().padStart(2, '0');
@@ -66,39 +65,10 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   });
 
   useEffect(() => {
-    loadDropdownData();
-  }, []);
-
-  useEffect(() => {
     if (profile?.name) {
       form.setValue('usuario', profile.name);
     }
   }, [profile, form]);
-
-  const loadDropdownData = async () => {
-    try {
-      const [plantasResult, areasResult, turnosResult] = await Promise.all([
-        supabase.from('plantas').select('*').order('nombre'),
-        supabase.from('areas_planta').select('*').order('nombre'),
-        supabase.from('turnos').select('*').order('nombre'),
-      ]);
-
-      if (plantasResult.error) throw plantasResult.error;
-      if (areasResult.error) throw areasResult.error;
-      if (turnosResult.error) throw turnosResult.error;
-
-      setPlantas(plantasResult.data || []);
-      setAreas(areasResult.data || []);
-      setTurnos(turnosResult.data || []);
-    } catch (error) {
-      console.error('Error loading dropdown data:', error);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar las opciones del formulario",
-        variant: "destructive",
-      });
-    }
-  };
 
   const onSubmit = async (data: BloqueosFormData) => {
     if (!user) {
@@ -112,7 +82,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
 
     setLoading(true);
     try {
-      // Convert dd/mm/yyyy to yyyy-mm-dd for database
       const dateParts = data.fecha.split('/');
       const dbDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
 
@@ -135,8 +104,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         title: "Bloqueo creado",
         description: "El bloqueo se ha registrado exitosamente. Los valores se conservan para envío por correo.",
       });
-
-      // Note: Form values are preserved after successful submission for potential email sending
     } catch (error: any) {
       console.error('Error creating bloqueo:', error);
       toast({
@@ -152,12 +119,10 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   const sendEmail = async () => {
     const formData = form.getValues();
     
-    // Get names for display
-    const plantaName = plantas.find(p => p.id.toString() === formData.planta_id)?.nombre || 'No seleccionada';
-    const areaName = areas.find(a => a.id.toString() === formData.area_planta_id)?.nombre || 'No seleccionada';
-    const turnoName = turnos.find(t => t.id.toString() === formData.turno_id)?.nombre || 'No seleccionado';
+    const plantaName = dropdownData.plantas.find(p => p.id.toString() === formData.planta_id)?.nombre || 'No seleccionada';
+    const areaName = dropdownData.areas.find(a => a.id.toString() === formData.area_planta_id)?.nombre || 'No seleccionada';
+    const turnoName = dropdownData.turnos.find(t => t.id.toString() === formData.turno_id)?.nombre || 'No seleccionado';
 
-    // Get product name
     let productoName = 'No seleccionado';
     if (formData.producto_id) {
       try {
@@ -191,20 +156,16 @@ Usuario: ${formData.usuario}
 
     setSendingEmail(true);
     try {
-      // Create mailto link with enhanced subject
       const subject = encodeURIComponent(`Registro de Bloqueo - ${plantaName} - ${productoName} - ${formData.fecha}`);
       const body = encodeURIComponent(emailBody.trim());
       const mailtoLink = `mailto:?subject=${subject}&body=${body}`;
       
-      // Open default email client
       window.location.href = mailtoLink;
       
       toast({
         title: "Cliente de correo abierto",
         description: "Se ha abierto tu cliente de correo predeterminado con los datos del bloqueo",
       });
-
-      // Note: Form values are preserved after sending email for potential re-sending
     } catch (error) {
       console.error('Error opening email client:', error);
       toast({
@@ -219,29 +180,11 @@ Usuario: ${formData.usuario}
 
   return (
     <div className="w-full max-w-4xl mx-auto overflow-y-auto max-h-[80vh]">
-      {/* Header with Logo and Title */}
-      <Card className="mb-6 bg-gradient-to-r from-red-50 to-orange-50 border-red-200">
-        <CardHeader className="text-center pb-4">
-          <div className="flex justify-center items-center mb-4">
-            <img 
-              src="/lovable-uploads/9ad6adb6-f76a-4982-92e9-09618c309f7c.png" 
-              alt="Quinta alimentos logo" 
-              className="h-12 object-contain"
-            />
-          </div>
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent mb-2">
-            Módulo de Bloqueos
-          </CardTitle>
-          <p className="text-gray-700 text-sm leading-relaxed max-w-2xl mx-auto">
-            Este módulo permite registrar y gestionar bloqueos de productos en el sistema. 
-            Documenta productos que requieren retención por motivos de calidad, seguridad o 
-            control de procesos, asegurando la trazabilidad completa desde la identificación 
-            hasta la resolución del bloqueo.
-          </p>
-        </CardHeader>
-      </Card>
+      <FormHeader 
+        title="Módulo de Bloqueos"
+        description="Este módulo permite registrar y gestionar bloqueos de productos en el sistema. Documenta productos que requieren retención por motivos de calidad, seguridad o control de procesos, asegurando la trazabilidad completa desde la identificación hasta la resolución del bloqueo."
+      />
 
-      {/* Form Card */}
       <Card className="border-red-200 shadow-lg">
         <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-red-50 to-orange-50">
           <CardTitle className="text-xl font-bold text-red-800 flex-1 text-center">
@@ -260,204 +203,91 @@ Usuario: ${formData.usuario}
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
+                <SelectField
                   control={form.control}
                   name="planta_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-red-800">Planta</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="border-red-200 focus:border-red-400">
-                            <SelectValue placeholder="Selecciona una planta" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {plantas.map((planta) => (
-                            <SelectItem key={planta.id} value={planta.id.toString()}>
-                              {planta.nombre}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Planta"
+                  placeholder="Selecciona una planta"
+                  options={dropdownData.plantas}
+                  required
                 />
 
-                <FormField
+                <SelectField
                   control={form.control}
                   name="area_planta_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-red-800">Área de Planta</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="border-red-200 focus:border-red-400">
-                            <SelectValue placeholder="Selecciona un área" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {areas.map((area) => (
-                            <SelectItem key={area.id} value={area.id.toString()}>
-                              {area.nombre}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Área de Planta"
+                  placeholder="Selecciona un área"
+                  options={dropdownData.areas}
+                  required
                 />
 
-                <FormField
-                  control={form.control}
-                  name="producto_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-red-800">Producto</FormLabel>
-                      <FormControl>
-                        <ProductCombobox
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          placeholder="Buscar y seleccionar producto..."
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div>
+                  <label className="text-red-800 text-sm font-medium">Producto *</label>
+                  <ProductCombobox
+                    value={form.watch('producto_id')}
+                    onValueChange={(value) => form.setValue('producto_id', value)}
+                    placeholder="Buscar y seleccionar producto..."
+                  />
+                </div>
 
-                <FormField
+                <SelectField
                   control={form.control}
                   name="turno_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-red-800">Turno</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="border-red-200 focus:border-red-400">
-                            <SelectValue placeholder="Selecciona un turno" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {turnos.map((turno) => (
-                            <SelectItem key={turno.id} value={turno.id.toString()}>
-                              {turno.nombre}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Turno"
+                  placeholder="Selecciona un turno"
+                  options={dropdownData.turnos}
+                  required
                 />
 
-                <FormField
+                <InputField
                   control={form.control}
                   name="cantidad"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-red-800">Cantidad</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="Ingresa la cantidad"
-                          className="border-red-200 focus:border-red-400"
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Cantidad"
+                  placeholder="Ingresa la cantidad"
+                  type="number"
+                  required
                 />
 
-                <FormField
+                <InputField
                   control={form.control}
                   name="lote"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-red-800">Lote</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="Ingresa el número de lote"
-                          className="border-red-200 focus:border-red-400"
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Lote"
+                  placeholder="Ingresa el número de lote"
+                  type="number"
+                  required
                 />
 
-                <FormField
+                <InputField
                   control={form.control}
                   name="fecha"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-red-800">Fecha</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="text" 
-                          className="border-red-200 bg-gray-50 text-center font-medium"
-                          readOnly
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Fecha"
+                  placeholder=""
+                  readOnly
                 />
 
-                <FormField
+                <InputField
                   control={form.control}
                   name="usuario"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-red-800">Usuario</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Usuario que registra el bloqueo" 
-                          className="border-red-200 bg-gray-50"
-                          readOnly
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Usuario"
+                  placeholder="Usuario que registra el bloqueo"
+                  readOnly
                 />
               </div>
 
-              <FormField
+              <TextareaField
                 control={form.control}
                 name="motivo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-red-800">Motivo del Bloqueo</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Describe el motivo del bloqueo (máximo 150 caracteres)"
-                        className="resize-none border-red-200 focus:border-red-400"
-                        maxLength={150}
-                        {...field}
-                      />
-                    </FormControl>
-                    <div className="text-sm text-gray-500 text-right">
-                      {field.value?.length || 0}/150
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="Motivo del Bloqueo"
+                placeholder="Describe el motivo del bloqueo (máximo 150 caracteres)"
+                maxLength={150}
+                showCharCount
+                required
               />
 
               <div className="flex flex-col sm:flex-row gap-3 pt-6">
                 <Button 
                   type="submit" 
-                  disabled={loading} 
+                  disabled={loading || dropdownLoading} 
                   className="flex-1 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700"
                 >
                   {loading ? 'Guardando...' : 'Registrar Bloqueo'}

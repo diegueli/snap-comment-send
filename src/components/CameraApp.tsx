@@ -3,14 +3,27 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Camera, CameraType } from 'react-camera-pro';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { X, Camera as CameraIcon, RotateCcw, Save } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDropdownData } from '@/hooks/useDropdownData';
+import SelectField from './common/SelectField';
+import InputField from './common/InputField';
+import TextareaField from './common/TextareaField';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Form } from '@/components/ui/form';
+import * as z from 'zod';
+
+const auditSetSchema = z.object({
+  area: z.string().min(1, 'El área es requerida'),
+  levantamiento: z.string().min(1, 'El levantamiento es requerido'),
+  evidencia: z.string().min(1, 'La evidencia es requerida'),
+  responsable: z.string().min(1, 'Selecciona un responsable'),
+});
+
+type AuditSetFormData = z.infer<typeof auditSetSchema>;
 
 interface CameraAppProps {
   onClose: () => void;
@@ -22,77 +35,26 @@ interface CameraAppProps {
   };
 }
 
-interface UserProfile {
-  id: string;
-  name: string;
-  position: string;
-  gerencia_id: number | null;
-}
-
-interface Gerencia {
-  id: number;
-  nombre: string;
-}
-
 const CameraApp: React.FC<CameraAppProps> = ({ onClose, userData }) => {
   const camera = useRef<CameraType>(null);
   const { user } = useAuth();
+  const { data: dropdownData } = useDropdownData();
   const [image, setImage] = useState<string | null>(null);
-  const [area, setArea] = useState('');
-  const [levantamiento, setLevantamiento] = useState('');
-  const [evidencia, setEvidencia] = useState('');
-  const [responsable, setResponsable] = useState('');
   const [loading, setLoading] = useState(false);
-  const [gerencias, setGerencias] = useState<Gerencia[]>([]);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  useEffect(() => {
-    fetchGerencias();
-    if (user) {
-      fetchUserProfile();
-    }
-  }, [user]);
-
-  const fetchGerencias = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('gerencias')
-        .select('*')
-        .order('nombre');
-
-      if (error) throw error;
-      setGerencias(data || []);
-    } catch (error) {
-      console.error('Error fetching gerencias:', error);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar las gerencias",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const fetchUserProfile = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (error) throw error;
-      setUserProfile(data);
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-    }
-  };
+  const form = useForm<AuditSetFormData>({
+    resolver: zodResolver(auditSetSchema),
+    defaultValues: {
+      area: '',
+      levantamiento: '',
+      evidencia: '',
+      responsable: '',
+    },
+  });
 
   const takePhoto = useCallback(() => {
     if (camera.current) {
       const photo = camera.current.takePhoto();
-      // Asegurar que solo manejamos strings
       if (typeof photo === 'string') {
         setImage(photo);
       }
@@ -103,16 +65,38 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, userData }) => {
     setImage(null);
   };
 
-  const saveAuditSet = async () => {
-    if (!area || !levantamiento || !evidencia || !responsable) {
-      toast({
-        title: "Campos requeridos",
-        description: "Por favor completa todos los campos",
-        variant: "destructive",
-      });
-      return;
-    }
+  const uploadPhoto = async (imageData: string): Promise<string | null> => {
+    try {
+      const fileName = `audit_${userData.auditoriaId}_${Date.now()}.jpg`;
+      const base64Data = imageData.split(',')[1];
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      
+      const byteArray = new Uint8Array(byteNumbers);
+      const file = new Blob([byteArray], { type: 'image/jpeg' });
 
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('audit-photos')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('audit-photos')
+        .getPublicUrl(fileName);
+
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      return null;
+    }
+  };
+
+  const onSubmit = async (data: AuditSetFormData) => {
     if (!image) {
       toast({
         title: "Foto requerida",
@@ -124,40 +108,14 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, userData }) => {
 
     setLoading(true);
     try {
-      let fotoUrl = null;
+      const fotoUrl = await uploadPhoto(image);
 
-      // Upload photo if taken
-      if (image) {
-        const fileName = `audit_${userData.auditoriaId}_${Date.now()}.jpg`;
-        const base64Data = image.split(',')[1];
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const file = new Blob([byteArray], { type: 'image/jpeg' });
-
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('audit-photos')
-          .upload(fileName, file);
-
-        if (uploadError) throw uploadError;
-
-        const { data: urlData } = supabase.storage
-          .from('audit-photos')
-          .getPublicUrl(fileName);
-
-        fotoUrl = urlData.publicUrl;
-      }
-
-      // Save audit set
       const { error } = await supabase.from('auditoria_sets').insert({
         auditoria_id: userData.auditoriaId,
-        area,
-        levantamiento,
-        evidencia,
-        gerencia_id: parseInt(responsable),
+        area: data.area,
+        levantamiento: data.levantamiento,
+        evidencia: data.evidencia,
+        gerencia_id: parseInt(data.responsable),
         foto_urls: fotoUrl ? [fotoUrl] : null,
       });
 
@@ -223,60 +181,47 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, userData }) => {
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <Label htmlFor="area">Área</Label>
-              <Input
-                id="area"
-                value={area}
-                onChange={(e) => setArea(e.target.value)}
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <InputField
+                control={form.control}
+                name="area"
+                label="Área"
                 placeholder="Ingresa el área"
+                required
               />
-            </div>
 
-            <div>
-              <Label htmlFor="responsable">Responsable</Label>
-              <Select value={responsable} onValueChange={setResponsable}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona el responsable" />
-                </SelectTrigger>
-                <SelectContent>
-                  {gerencias.map((gerencia) => (
-                    <SelectItem key={gerencia.id} value={gerencia.id.toString()}>
-                      {gerencia.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <SelectField
+                control={form.control}
+                name="responsable"
+                label="Responsable"
+                placeholder="Selecciona el responsable"
+                options={dropdownData.gerencias}
+                required
+              />
 
-            <div>
-              <Label htmlFor="levantamiento">Levantamiento</Label>
-              <Textarea
-                id="levantamiento"
-                value={levantamiento}
-                onChange={(e) => setLevantamiento(e.target.value)}
+              <TextareaField
+                control={form.control}
+                name="levantamiento"
+                label="Levantamiento"
                 placeholder="Describe el levantamiento"
-                className="min-h-[100px]"
+                required
               />
-            </div>
 
-            <div>
-              <Label htmlFor="evidencia">Evidencia</Label>
-              <Textarea
-                id="evidencia"
-                value={evidencia}
-                onChange={(e) => setEvidencia(e.target.value)}
+              <TextareaField
+                control={form.control}
+                name="evidencia"
+                label="Evidencia"
                 placeholder="Describe la evidencia"
-                className="min-h-[100px]"
+                required
               />
-            </div>
-          </div>
 
-          <Button onClick={saveAuditSet} disabled={loading} className="w-full">
-            <Save className="mr-2 h-4 w-4" />
-            {loading ? 'Guardando...' : 'Guardar Set de Auditoría'}
-          </Button>
+              <Button type="submit" disabled={loading} className="w-full">
+                <Save className="mr-2 h-4 w-4" />
+                {loading ? 'Guardando...' : 'Guardar Set de Auditoría'}
+              </Button>
+            </form>
+          </Form>
         </CardContent>
       </Card>
     </div>
