@@ -1,9 +1,9 @@
-import React, { useState, useCallback } from 'react';
+
+import React, { useCallback } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import jsPDF from 'jspdf';
 import AuditoriaForm from './AuditoriaForm';
 import AuditoriaHeader from './auditoria/AuditoriaHeader';
 import AreaInput from './auditoria/AreaInput';
@@ -13,13 +13,13 @@ import SavedPhotoSets from './auditoria/SavedPhotoSets';
 import ActionButtons from './auditoria/ActionButtons';
 import { useCamera } from '@/hooks/useCamera';
 import { usePhotoCapture } from '@/hooks/usePhotoCapture';
+import { useAuditoriaState } from '@/hooks/useAuditoriaState';
+import { usePhotoActions } from '@/hooks/usePhotoActions';
+import { generatePDF } from '@/utils/pdfGenerator';
+import { closeAuditoria } from '@/utils/auditoriaStorage';
 import { 
-  CapturedPhoto, 
-  PhotoSet, 
   UserData, 
-  AuditoriaFormData,
-  AuditoriaData,
-  Planta 
+  AuditoriaFormData
 } from '@/types/auditoria';
 
 interface CameraAppProps {
@@ -28,21 +28,39 @@ interface CameraAppProps {
 }
 
 const CameraApp = ({ onClose, userData }: CameraAppProps) => {
-  const [auditoriaData, setAuditoriaData] = useState<AuditoriaData | null>(null);
-  const [selectedPlanta, setSelectedPlanta] = useState<Planta | null>(null);
-  const [currentPhotos, setCurrentPhotos] = useState<CapturedPhoto[]>([]);
-  const [currentArea, setCurrentArea] = useState('');
-  const [currentLevantamiento, setCurrentLevantamiento] = useState('');
-  const [currentResponsable, setCurrentResponsable] = useState('');
-  const [photoSets, setPhotoSets] = useState<PhotoSet[]>([]);
-  const [editingSetId, setEditingSetId] = useState<string | null>(null);
-  const [editingLevantamiento, setEditingLevantamiento] = useState('');
-  const [editingResponsable, setEditingResponsable] = useState('');
-  const [editingAreaId, setEditingAreaId] = useState<string | null>(null);
-  const [editingArea, setEditingArea] = useState('');
-  const [showAreaInput, setShowAreaInput] = useState(false);
-  const [auditoriaId, setAuditoriaId] = useState<string | null>(null);
-  const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
+  const {
+    auditoriaData,
+    selectedPlanta,
+    currentPhotos,
+    currentArea,
+    currentLevantamiento,
+    currentResponsable,
+    photoSets,
+    editingSetId,
+    editingLevantamiento,
+    editingResponsable,
+    editingAreaId,
+    editingArea,
+    showAreaInput,
+    auditoriaId,
+    isSavingToDatabase,
+    setAuditoriaData,
+    setSelectedPlanta,
+    setCurrentPhotos,
+    setCurrentArea,
+    setCurrentLevantamiento,
+    setCurrentResponsable,
+    setPhotoSets,
+    setEditingSetId,
+    setEditingLevantamiento,
+    setEditingResponsable,
+    setEditingAreaId,
+    setEditingArea,
+    setShowAreaInput,
+    setAuditoriaId,
+    setIsSavingToDatabase,
+    resetState
+  } = useAuditoriaState();
 
   const { 
     isCapturing, 
@@ -53,6 +71,25 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
   } = useCamera();
 
   const { canvasRef, capturePhoto } = usePhotoCapture();
+
+  const {
+    deletePhoto,
+    saveCurrentSet,
+    deletePhotoSet,
+    deletePhotoFromSet,
+    updatePhotoSet
+  } = usePhotoActions({
+    currentPhotos,
+    setCurrentPhotos,
+    setPhotoSets,
+    currentArea,
+    currentLevantamiento,
+    currentResponsable,
+    setCurrentArea,
+    setCurrentLevantamiento,
+    setCurrentResponsable,
+    setShowAreaInput
+  });
 
   const handleAuditoriaSubmit = useCallback(async (formData: AuditoriaFormData) => {
     try {
@@ -74,34 +111,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
         variant: "destructive",
       });
     }
-  }, []);
-
-  const uploadPhotoToStorage = useCallback(async (photo: CapturedPhoto, area: string): Promise<string | null> => {
-    if (!photo.file || !auditoriaId) return null;
-
-    try {
-      // Limpiar el nombre del área para usarlo en el nombre del archivo
-      const cleanAreaName = area.replace(/[^a-zA-Z0-9]/g, '_');
-      const fileName = `${auditoriaId}/${cleanAreaName}_${Date.now()}_${photo.id}.jpg`;
-      
-      const { data, error } = await supabase.storage
-        .from('bucket_auditorias')
-        .upload(fileName, photo.file, {
-          contentType: 'image/jpeg',
-        });
-
-      if (error) throw error;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('bucket_auditorias')
-        .getPublicUrl(fileName);
-
-      return publicUrl;
-    } catch (error) {
-      console.error('Error uploading photo:', error);
-      return null;
-    }
-  }, [auditoriaId]);
+  }, [setSelectedPlanta, setAuditoriaData]);
 
   const handleStartCamera = useCallback(async () => {
     const success = await startCamera(currentArea);
@@ -110,7 +120,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     } else {
       setShowAreaInput(true);
     }
-  }, [startCamera, currentArea]);
+  }, [startCamera, currentArea, setShowAreaInput]);
 
   const handleCapturePhoto = useCallback(async () => {
     const newPhoto = await capturePhoto(videoRef, currentPhotos);
@@ -125,420 +135,36 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
         });
       }
     }
-  }, [capturePhoto, videoRef, currentPhotos, stopCamera]);
+  }, [capturePhoto, videoRef, currentPhotos, setCurrentPhotos, stopCamera]);
 
-  const deletePhoto = useCallback((photoId: string) => {
-    setCurrentPhotos(prev => prev.filter(photo => photo.id !== photoId));
-    toast({
-      title: "Foto eliminada",
-      description: "Foto removida del conjunto actual.",
-    });
-  }, []);
-
-  const saveCurrentSet = useCallback(async () => {
-    if (currentPhotos.length === 0) {
-      toast({
-        title: "No hay fotos para guardar",
-        description: "Por favor capture al menos una foto primero.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!currentArea.trim()) {
-      toast({
-        title: "Área requerida",
-        description: "Por favor ingrese el área.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const newSet: PhotoSet = {
-      id: Date.now().toString(),
-      area: currentArea.trim(),
-      photos: [...currentPhotos],
-      levantamiento: currentLevantamiento,
-      responsable: currentResponsable,
-      timestamp: new Date()
-    };
-
-    setPhotoSets(prev => [...prev, newSet]);
-    setCurrentPhotos([]);
-    setCurrentArea('');
-    setCurrentLevantamiento('');
-    setCurrentResponsable('');
-    setShowAreaInput(false);
+  const handleCloseAuditoria = useCallback(async () => {
+    if (!auditoriaData || !userData) return;
     
-    toast({
-      title: "¡Conjunto de fotos guardado!",
-      description: `Conjunto "${newSet.area}" con ${newSet.photos.length} foto(s) agregado.`,
-    });
-  }, [currentPhotos, currentArea, currentLevantamiento, currentResponsable]);
-
-  const deletePhotoSet = useCallback((setId: string) => {
-    setPhotoSets(prev => prev.filter(set => set.id !== setId));
-    toast({
-      title: "Conjunto eliminado",
-      description: "Conjunto removido del documento.",
-    });
-  }, []);
-
-  const deletePhotoFromSet = useCallback((setId: string, photoId: string) => {
-    setPhotoSets(prev => prev.map(set => {
-      if (set.id === setId) {
-        const updatedPhotos = set.photos.filter(photo => photo.id !== photoId);
-        if (updatedPhotos.length === 0) {
-          toast({
-            title: "Conjunto eliminado",
-            description: "Conjunto removido al no tener fotos restantes.",
-          });
-          return null;
-        }
-        toast({
-          title: "Foto eliminada",
-          description: "Foto removida del conjunto.",
-        });
-        return { ...set, photos: updatedPhotos };
-      }
-      return set;
-    }).filter(Boolean) as PhotoSet[]);
-  }, []);
-
-  const updatePhotoSet = useCallback((setId: string, updates: Partial<PhotoSet>) => {
-    setPhotoSets(prev => prev.map(set => 
-      set.id === setId ? { ...set, ...updates } : set
-    ));
-  }, []);
-
-  const closeAuditoria = useCallback(async () => {
-    if (!auditoriaData || !userData || photoSets.length === 0) {
-      toast({
-        title: "No se puede cerrar la auditoría",
-        description: "Debe tener al menos un conjunto de fotos guardado.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsSavingToDatabase(true);
-
-    try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) {
-        throw new Error('Usuario no autenticado');
-      }
-
-      const [day, month, year] = auditoriaData.fecha.split('/');
-      const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-
-      const { data: auditoria, error: auditoriaError } = await supabase
-        .from('auditorias')
-        .insert({
-          user_id: user.user.id,
-          titulo_documento: auditoriaData.tituloDocumento,
-          fecha: isoDate,
-          auditor: auditoriaData.auditor,
-          planta_id: auditoriaData.plantaId,
-          status: 'Activo'
-        })
-        .select()
-        .single();
-
-      if (auditoriaError) throw auditoriaError;
-
-      setAuditoriaId(auditoria.id);
-
-      for (const set of photoSets) {
-        const photoUrls: string[] = [];
-        
-        // Upload photos and collect URLs, now including area in filename
-        for (const photo of set.photos) {
-          const url = await uploadPhotoToStorage(photo, set.area);
-          if (url) {
-            photoUrls.push(url);
-          }
-        }
-
-        const { error: setError } = await supabase
-          .from('auditoria_sets')
-          .insert({
-            auditoria_id: auditoria.id,
-            area: set.area,
-            levantamiento: set.levantamiento || null,
-            responsable: set.responsable || null,
-            foto_urls: photoUrls
-          });
-
-        if (setError) throw setError;
-      }
-
-      toast({
-        title: "Auditoría cerrada exitosamente",
-        description: "Todos los datos han sido guardados en la base de datos.",
-      });
-
-    } catch (error) {
-      console.error('Error saving auditoria:', error);
-      toast({
-        title: "Error al cerrar auditoría",
-        description: "No se pudo guardar en la base de datos.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSavingToDatabase(false);
-    }
-  }, [auditoriaData, userData, photoSets, uploadPhotoToStorage]);
-
-  const generatePDF = useCallback(async () => {
-    if (photoSets.length === 0) {
-      toast({
-        title: "No hay conjuntos de fotos para exportar",
-        description: "Por favor crea al menos un conjunto de fotos primero.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    let pdf: jsPDF;
-    let pdfBlob: Blob;
-
-    try {
-      pdf = new jsPDF();
-      const pageHeight = pdf.internal.pageSize.height;
-      const pageWidth = pdf.internal.pageSize.width;
-      let yPosition = 20;
-
-      try {
-        const logoResponse = await fetch('/lovable-uploads/9ad6adb6-f76a-4982-92e9-09618c309f7c.png');
-        const logoBlob = await logoResponse.blob();
-        const logoBase64 = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(logoBlob);
-        });
-
-        pdf.addImage(logoBase64, 'PNG', 20, yPosition, 40, 20);
-        yPosition += 25;
-      } catch (error) {
-        console.log('Could not load logo, continuing without it');
-      }
-
-      pdf.setFontSize(20);
-      pdf.setTextColor(196, 47, 47);
-      pdf.text('QUINTA ALIMENTOS', pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 10;
-
-      pdf.setFontSize(16);
-      pdf.setTextColor(0, 0, 0);
-      const title = auditoriaData?.tituloDocumento || 'Reporte de Auditoría';
-      pdf.text(title, pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 15;
-
-      pdf.setFontSize(12);
-      pdf.text(`Generado el: ${new Date().toLocaleDateString('es-ES')} a las ${new Date().toLocaleTimeString('es-ES')}`, pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 20;
-
-      if (auditoriaData && userData && selectedPlanta) {
-        pdf.setFontSize(12);
-        pdf.setTextColor(0, 0, 0);
-        pdf.text('INFORMACIÓN DE LA AUDITORÍA:', 20, yPosition);
-        yPosition += 8;
-        pdf.text(`Planta: ${selectedPlanta.nombre}`, 20, yPosition);
-        yPosition += 6;
-        pdf.text(`Auditor: ${auditoriaData.auditor}`, 20, yPosition);
-        yPosition += 6;
-        pdf.text(`Cargo: ${userData.position}`, 20, yPosition);
-        yPosition += 6;
-        pdf.text(`Email: ${userData.email}`, 20, yPosition);
-        yPosition += 6;
-        pdf.text(`Fecha: ${auditoriaData.fecha}`, 20, yPosition);
-        yPosition += 15;
-      }
-
-      for (let i = 0; i < photoSets.length; i++) {
-        const set = photoSets[i];
-        
-        if (yPosition > pageHeight - 100) {
-          pdf.addPage();
-          yPosition = 20;
-        }
-
-        pdf.setFontSize(16);
-        pdf.setTextColor(196, 47, 47);
-        pdf.text(`ÁREA: ${set.area}`, 20, yPosition);
-        yPosition += 15;
-
-        for (let j = 0; j < set.photos.length; j++) {
-          const photo = set.photos[j];
-          
-          if (yPosition > pageHeight - 80) {
-            pdf.addPage();
-            yPosition = 20;
-          }
-
-          try {
-            const imgWidth = 60;
-            const imgHeight = 60;
-            const imgSrc = photo.url || URL.createObjectURL(photo.file!);
-            pdf.addImage(imgSrc, 'JPEG', 20 + (j * 65), yPosition, imgWidth, imgHeight);
-          } catch (error) {
-            console.error('Error adding image to PDF:', error);
-          }
-        }
-        
-        yPosition += 70;
-
-        if (set.levantamiento) {
-          pdf.setFontSize(12);
-          pdf.setTextColor(0, 0, 0);
-          pdf.text('Levantamiento:', 20, yPosition);
-          yPosition += 10;
-          
-          const splitLevantamiento = pdf.splitTextToSize(set.levantamiento, pageWidth - 40);
-          pdf.text(splitLevantamiento, 20, yPosition);
-          yPosition += splitLevantamiento.length * 5 + 10;
-        }
-
-        if (set.responsable) {
-          pdf.setFontSize(12);
-          pdf.setTextColor(0, 0, 0);
-          pdf.text(`Responsable: ${set.responsable}`, 20, yPosition);
-          yPosition += 10;
-        }
-
-        yPosition += 10;
-      }
-
-      if (auditoriaData && userData) {
-        if (yPosition > pageHeight - 60) {
-          pdf.addPage();
-          yPosition = 20;
-        }
-
-        yPosition += 20;
-        pdf.setFontSize(12);
-        pdf.setTextColor(0, 0, 0);
-        pdf.text('FIRMA DEL AUDITOR:', 20, yPosition);
-        yPosition += 20;
-
-        pdf.line(20, yPosition, 120, yPosition);
-        yPosition += 10;
-
-        pdf.setFontSize(10);
-        pdf.text(`${auditoriaData.auditor}`, 20, yPosition);
-        yPosition += 5;
-        pdf.text(`${userData.position}`, 20, yPosition);
-        yPosition += 5;
-        pdf.text(`Fecha: ${auditoriaData.fecha}`, 20, yPosition);
-      }
-
-      // Generar el blob del PDF
-      pdfBlob = pdf.output('blob');
-      
-      console.log('PDF generado exitosamente, tamaño:', pdfBlob.size, 'bytes');
-      
-    } catch (error) {
-      console.error('Error generando PDF:', error);
-      toast({
-        title: "Error al generar PDF",
-        description: "No se pudo generar el PDF. Verifique los datos e intente nuevamente.",
-        variant: "destructive",
-      });
-      return;
-    }
     
-    // Crear nombre del archivo
-    const fileName = `${auditoriaData?.tituloDocumento || 'Auditoria'}_${selectedPlanta?.nombre || 'Planta'}_${auditoriaData?.fecha.replace(/\//g, '-') || new Date().toISOString().split('T')[0]}.pdf`;
+    const success = await closeAuditoria(auditoriaData, userData, photoSets, setAuditoriaId);
     
-    // Solo intentar subir si el PDF se generó correctamente
-    if (pdfBlob && pdfBlob.size > 0) {
-      try {
-        console.log('Intentando subir PDF a Supabase Storage...');
-        
-        // Subir PDF a Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('bucket_auditorias')
-          .upload(`pdfs/${auditoriaId || Date.now()}/${fileName}`, pdfBlob, {
-            contentType: 'application/pdf',
-            upsert: true
-          });
+    setIsSavingToDatabase(false);
+  }, [auditoriaData, userData, photoSets, setAuditoriaId, setIsSavingToDatabase]);
 
-        if (uploadError) {
-          console.error('Error uploading PDF to Supabase:', uploadError);
-          toast({
-            title: "Error al guardar PDF",
-            description: "No se pudo guardar el PDF en el servidor, pero se descargará localmente.",
-            variant: "destructive",
-          });
-        } else {
-          console.log('PDF uploaded successfully:', uploadData);
-          toast({
-            title: "PDF guardado",
-            description: "PDF guardado en el servidor y descargado localmente.",
-          });
-        }
-      } catch (error) {
-        console.error('Error during PDF upload:', error);
-        toast({
-          title: "Error al guardar PDF",
-          description: "Error durante la subida del PDF al servidor.",
-          variant: "destructive",
-        });
-      }
-
-      // Descargar PDF localmente
-      try {
-        const pdfUrl = URL.createObjectURL(pdfBlob);
-        const link = document.createElement('a');
-        link.href = pdfUrl;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
-        
-        console.log('PDF descargado localmente');
-      } catch (error) {
-        console.error('Error downloading PDF locally:', error);
-        toast({
-          title: "Error al descargar PDF",
-          description: "No se pudo descargar el PDF localmente.",
-          variant: "destructive",
-        });
-      }
-    } else {
-      console.error('PDF blob is empty or invalid');
-      toast({
-        title: "Error al generar PDF",
-        description: "El PDF generado está vacío o es inválido.",
-        variant: "destructive",
-      });
-    }
+  const handleGeneratePDF = useCallback(async () => {
+    await generatePDF({
+      photoSets,
+      auditoriaData,
+      userData,
+      selectedPlanta,
+      auditoriaId
+    });
   }, [photoSets, auditoriaData, userData, selectedPlanta, auditoriaId]);
 
-  const resetApp = useCallback(() => {
-    setAuditoriaData(null);
-    setSelectedPlanta(null);
-    setCurrentPhotos([]);
-    setCurrentArea('');
-    setCurrentLevantamiento('');
-    setCurrentResponsable('');
-    setPhotoSets([]);
-    setEditingSetId(null);
-    setEditingLevantamiento('');
-    setEditingResponsable('');
-    setEditingAreaId(null);
-    setEditingArea('');
-    setShowAreaInput(false);
-    setAuditoriaId(null);
+  const resetApp = useCallback(async () => {
+    resetState();
     stopCamera();
     toast({
       title: "Aplicación reiniciada",
       description: "Todos los datos han sido limpiados.",
     });
-  }, [stopCamera]);
+  }, [resetState, stopCamera]);
 
   if (!auditoriaData) {
     return (
@@ -635,8 +261,8 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
 
         <ActionButtons
           photoSetsLength={photoSets.length}
-          onCloseAuditoria={closeAuditoria}
-          onGeneratePDF={generatePDF}
+          onCloseAuditoria={handleCloseAuditoria}
+          onGeneratePDF={handleGeneratePDF}
           onResetApp={resetApp}
           isSavingToDatabase={isSavingToDatabase}
         />
