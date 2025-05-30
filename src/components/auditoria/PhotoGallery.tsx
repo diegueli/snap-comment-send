@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Trash2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -34,40 +33,62 @@ const PhotoGallery = ({
 }: PhotoGalleryProps) => {
   const [gerencias, setGerencias] = useState<Gerencia[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchGerencias = async () => {
       try {
-        console.log('Fetching gerencias...');
-        
-        // First, let's check if there's any data at all in the table
-        const { data: allGerencias, error: allError } = await supabase
+        console.log('🔍 Iniciando fetch de gerencias...');
+        setLoading(true);
+        setError(null);
+
+        // Test de conexión a Supabase
+        const { data: testConnection, error: connectionError } = await supabase
           .from('gerencias')
-          .select('id, nombre, iniciales, activo');
+          .select('count', { count: 'exact', head: true });
 
-        console.log('All gerencias in table:', { data: allGerencias, error: allError });
+        if (connectionError) {
+          console.error('❌ Error de conexión a Supabase:', connectionError);
+          throw new Error(`Error de conexión: ${connectionError.message}`);
+        }
 
-        // Now get only active ones
+        console.log('✅ Conexión a Supabase exitosa. Total registros:', testConnection);
+
+        // Consulta principal
         const { data, error } = await supabase
           .from('gerencias')
           .select('id, nombre, iniciales, activo')
           .eq('activo', true)
           .order('nombre');
 
-        console.log('Active gerencias query result:', { data, error });
+        console.log('📊 Resultado de la consulta:', { data, error });
 
         if (error) {
-          console.error('Error fetching gerencias:', error);
-          throw error;
+          console.error('❌ Error en la consulta de gerencias:', error);
+          throw new Error(`Error en consulta: ${error.message}`);
         }
-        
-        console.log('Setting gerencias:', data);
-        setGerencias(data || []);
-      } catch (error) {
-        console.error('Error in fetchGerencias:', error);
+
+        if (!data) {
+          console.warn('⚠️ La consulta no devolvió datos');
+          setGerencias([]);
+          setError('No se recibieron datos de la consulta');
+          return;
+        }
+
+        console.log('✅ Gerencias cargadas exitosamente:', data.length, 'registros');
+        setGerencias(data);
+
+        if (data.length === 0) {
+          setError('No hay gerencias activas disponibles');
+        }
+
+      } catch (error: any) {
+        console.error('💥 Error completo en fetchGerencias:', error);
+        setError(error.message || 'Error desconocido al cargar gerencias');
+        setGerencias([]);
         toast({
-          title: "Error",
-          description: "No se pudieron cargar las gerencias.",
+          title: "Error al cargar gerencias",
+          description: error.message || "No se pudieron cargar las gerencias.",
           variant: "destructive",
         });
       } finally {
@@ -78,8 +99,13 @@ const PhotoGallery = ({
     fetchGerencias();
   }, []);
 
-  console.log('Current gerencias state:', gerencias);
-  console.log('Loading state:', loading);
+  // Log del estado actual para debugging
+  console.log('🎯 Estado actual de PhotoGallery:', {
+    loading,
+    error,
+    gerenciasCount: gerencias.length,
+    gerencias: gerencias.map(g => ({ id: g.id, nombre: g.nombre }))
+  });
 
   return (
     <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
@@ -140,28 +166,52 @@ const PhotoGallery = ({
           <label htmlFor="responsable" className="block text-sm font-medium text-gray-700 mb-2">
             Responsable
           </label>
+          {error && (
+            <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+              Error: {error}
+            </div>
+          )}
           <Select onValueChange={setCurrentResponsable} value={currentResponsable}>
             <SelectTrigger className="border-gray-200 focus:border-red-500 bg-white">
               <SelectValue placeholder="Seleccione una gerencia responsable" />
             </SelectTrigger>
-            <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
+            <SelectContent className="bg-white border border-gray-200 shadow-lg z-50 max-h-60">
               {loading ? (
-                <SelectItem value="loading" disabled>Cargando gerencias...</SelectItem>
+                <SelectItem value="loading" disabled>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+                    Cargando gerencias...
+                  </div>
+                </SelectItem>
+              ) : error ? (
+                <SelectItem value="error-state" disabled>
+                  <div className="text-red-600">Error al cargar gerencias</div>
+                </SelectItem>
               ) : gerencias.length === 0 ? (
-                <SelectItem value="no-gerencias" disabled>No hay gerencias disponibles</SelectItem>
+                <SelectItem value="no-gerencias" disabled>
+                  <div className="text-gray-500">No hay gerencias disponibles</div>
+                </SelectItem>
               ) : (
                 gerencias.map((gerencia) => (
                   <SelectItem 
                     key={gerencia.id} 
                     value={gerencia.nombre}
-                    className="hover:bg-gray-100 cursor-pointer"
+                    className="hover:bg-gray-100 cursor-pointer px-3 py-2"
                   >
-                    {gerencia.nombre}
+                    <div className="flex items-center justify-between w-full">
+                      <span>{gerencia.nombre}</span>
+                      <span className="text-xs text-gray-400 ml-2">({gerencia.iniciales})</span>
+                    </div>
                   </SelectItem>
                 ))
               )}
             </SelectContent>
           </Select>
+          {!loading && !error && gerencias.length > 0 && (
+            <div className="mt-1 text-xs text-gray-500">
+              {gerencias.length} gerencia(s) disponible(s)
+            </div>
+          )}
         </div>
         
         <Button
