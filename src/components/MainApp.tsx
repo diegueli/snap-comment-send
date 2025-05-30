@@ -17,12 +17,10 @@ const MainApp = () => {
   // Show loading state while auth is initializing
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-red-50 flex items-center justify-center p-4">
-        <div className="text-center animate-fade-in">
-          <div className="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mb-4 mx-auto animate-pulse">
-            <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          </div>
-          <p className="text-gray-600 font-medium">Cargando...</p>
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-red-50 p-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando...</p>
         </div>
       </div>
     );
@@ -47,89 +45,62 @@ const MainApp = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-red-50">
-      {/* Header Pattern */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 gradient-bg rounded-full opacity-10 blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-red-500 rounded-full opacity-10 blur-3xl"></div>
-      </div>
-      
-      <div className="relative z-10 max-w-4xl mx-auto p-6">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-red-50 p-4">
+      <div className="max-w-4xl mx-auto">
         {/* Header with Logo */}
-        <Card className="mb-8 card-instagram animate-fade-in">
-          <CardHeader className="text-center py-8">
-            <div className="flex justify-center items-center mb-6">
-              <div className="relative">
-                <img 
-                  src="/lovable-uploads/9ad6adb6-f76a-4982-92e9-09618c309f7c.png" 
-                  alt="Quinta alimentos logo" 
-                  className="h-20 object-contain drop-shadow-lg"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/20 rounded"></div>
-              </div>
+        <Card className="mb-6 bg-white shadow-lg">
+          <CardHeader className="text-center">
+            <div className="flex justify-center items-center mb-4">
+              <img 
+                src="/lovable-uploads/9ad6adb6-f76a-4982-92e9-09618c309f7c.png" 
+                alt="Quinta alimentos logo" 
+                className="h-16 object-contain"
+              />
             </div>
-            <CardTitle className="text-4xl font-bold gradient-bg bg-clip-text text-transparent mb-2">
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-yellow-500 to-red-600 bg-clip-text text-transparent">
               Quinta Alimentos
             </CardTitle>
-            <p className="text-gray-600 text-lg font-medium">
+            <p className="text-gray-600">
               Sistema de Auditoría
             </p>
-            
-            {/* User Info Card */}
-            <div className="mt-6 mx-auto max-w-md">
-              <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 shadow-inner">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-500">Usuario:</span>
-                    <span className="text-sm font-semibold text-gray-800">{profile.name}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-500">Email:</span>
-                    <span className="text-sm font-semibold text-gray-800">{user.email}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-500">Cargo:</span>
-                    <span className="text-sm font-semibold text-gray-800">{profile.position}</span>
-                  </div>
-                  <div className="pt-2 border-t border-gray-200">
-                    <Button
-                      onClick={handleLogout}
-                      variant="outline"
-                      size="sm"
-                      className="w-full text-gray-600 border-gray-300 hover:bg-gray-100 rounded-xl"
-                    >
-                      Cerrar Sesión
-                    </Button>
-                  </div>
-                </div>
-              </div>
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-700">
+                <strong>Usuario:</strong> {profile.name}
+              </p>
+              <p className="text-sm text-gray-700">
+                <strong>Email:</strong> {user.email}
+              </p>
+              <p className="text-sm text-gray-700">
+                <strong>Cargo:</strong> {profile.position}
+              </p>
+              <Button
+                onClick={handleLogout}
+                variant="outline"
+                size="sm"
+                className="mt-2"
+              >
+                Cerrar Sesión
+              </Button>
             </div>
           </CardHeader>
         </Card>
 
         {/* Module Buttons */}
-        <div className="flex flex-col sm:flex-row gap-6 justify-center animate-slide-up">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
           {/* Auditoria Button */}
           <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
             <DialogTrigger asChild>
-              <div className="group cursor-pointer">
-                <div className="relative overflow-hidden rounded-2xl shadow-instagram hover:shadow-xl transition-all duration-300 group-hover:scale-105">
-                  <div className="gradient-bg p-8 text-white relative">
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
-                    <div className="relative z-10 text-center">
-                      <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
-                        <Camera className="w-8 h-8" />
-                      </div>
-                      <h3 className="text-xl font-bold mb-2">Auditoría</h3>
-                      <p className="text-white/90 text-sm">Sistema de captura fotográfica</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <Button 
+                className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white px-8 py-4 text-lg font-semibold shadow-lg"
+                size="lg"
+              >
+                <Camera className="w-6 h-6 mr-3" />
+                Auditoría
+              </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md mx-auto max-h-[90vh] overflow-y-auto p-0 border-0 shadow-2xl">
+            <DialogContent className="max-w-md mx-auto max-h-[90vh] overflow-y-auto p-0">
               <DialogHeader className="p-6 pb-0">
-                <DialogTitle className="text-center text-xl font-bold">Auditoría</DialogTitle>
+                <DialogTitle className="text-center">Auditoría</DialogTitle>
               </DialogHeader>
               <div className="p-0">
                 <CameraApp onClose={() => setIsCameraOpen(false)} userData={userData} />
@@ -140,22 +111,15 @@ const MainApp = () => {
           {/* Bloqueos Button */}
           <Dialog open={isBloqueosOpen} onOpenChange={setIsBloqueosOpen}>
             <DialogTrigger asChild>
-              <div className="group cursor-pointer">
-                <div className="relative overflow-hidden rounded-2xl shadow-instagram hover:shadow-xl transition-all duration-300 group-hover:scale-105">
-                  <div className="bg-gradient-to-br from-red-500 to-orange-600 p-8 text-white relative">
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
-                    <div className="relative z-10 text-center">
-                      <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
-                        <Shield className="w-8 h-8" />
-                      </div>
-                      <h3 className="text-xl font-bold mb-2">Bloqueos</h3>
-                      <p className="text-white/90 text-sm">Sistema de control de bloqueos</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <Button 
+                className="bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white px-8 py-4 text-lg font-semibold shadow-lg"
+                size="lg"
+              >
+                <Shield className="w-6 h-6 mr-3" />
+                Bloqueos
+              </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-6xl mx-auto max-h-[90vh] overflow-hidden p-0 border-0 shadow-2xl">
+            <DialogContent className="max-w-6xl mx-auto max-h-[90vh] overflow-hidden p-0">
               <div className="overflow-y-auto max-h-[90vh] p-6">
                 <BloqueosForm onClose={() => setIsBloqueosOpen(false)} />
               </div>

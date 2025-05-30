@@ -43,6 +43,7 @@ const PhotoGallery = ({
         setLoading(true);
         setError(null);
 
+        // Consulta simplificada para debugging
         const { data, error, count } = await supabase
           .from('gerencias')
           .select('*', { count: 'exact' });
@@ -68,6 +69,7 @@ const PhotoGallery = ({
 
         console.log('✅ Datos recibidos:', data);
         
+        // Filtrar solo las activas en el frontend para mejor debugging
         const gerenciasActivas = data.filter(g => g.activo === true);
         console.log('✅ Gerencias activas filtradas:', gerenciasActivas);
         
@@ -94,6 +96,7 @@ const PhotoGallery = ({
     fetchGerencias();
   }, []);
 
+  // Log del estado actual para debugging
   console.log('🎯 Estado actual de PhotoGallery:', {
     loading,
     error,
@@ -102,101 +105,85 @@ const PhotoGallery = ({
   });
 
   return (
-    <Card className="card-instagram animate-fade-in">
+    <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
       <CardHeader>
-        <CardTitle className="text-xl font-bold flex items-center gap-3">
-          <div className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center">
-            <span className="text-white text-sm">📷</span>
-          </div>
-          {currentArea} 
-          <span className="text-sm font-normal bg-gradient-to-r from-amber-100 to-red-100 text-gray-700 px-3 py-1 rounded-full">
-            {currentPhotos.length}/3
-          </span>
+        <CardTitle className="text-lg flex items-center gap-2">
+          📷 {currentArea} ({currentPhotos.length}/3)
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Photo Grid */}
-        <div className="grid grid-cols-3 gap-3">
+      <CardContent>
+        <div className="grid grid-cols-3 gap-2 mb-4">
           {currentPhotos.map((photo) => (
             <div key={photo.id} className="relative group">
-              <div className="aspect-square rounded-xl overflow-hidden shadow-lg">
-                <img
-                  src={photo.url || URL.createObjectURL(photo.file!)}
-                  alt={`Captured photo ${photo.id}`}
-                  className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-                />
-              </div>
+              <img
+                src={photo.url || URL.createObjectURL(photo.file!)}
+                alt={`Captured photo ${photo.id}`}
+                className="w-full aspect-square object-cover rounded-lg shadow-md"
+              />
               <Button
                 onClick={() => onDeletePhoto(photo.id)}
                 size="sm"
                 variant="destructive"
-                className="absolute -top-2 -right-2 w-8 h-8 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
+                className="absolute top-1 right-1 w-6 h-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-3 h-3" />
               </Button>
             </div>
           ))}
         </div>
 
-        {/* Add Photo Button */}
         {currentPhotos.length < 3 && (
-          <Button
-            onClick={onStartCamera}
-            variant="outline"
-            className="w-full border-2 border-dashed border-amber-300 text-amber-600 hover:border-amber-500 hover:text-amber-700 hover:bg-amber-50 py-6 rounded-xl font-semibold transition-all duration-200"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Agregar Foto ({currentPhotos.length}/3)
-          </Button>
+          <div className="mb-4">
+            <Button
+              onClick={onStartCamera}
+              variant="outline"
+              className="w-full border-2 border-dashed border-red-300 text-red-600 hover:border-red-500 hover:text-red-700 hover:bg-red-50"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Agregar Foto ({currentPhotos.length}/3)
+            </Button>
+          </div>
         )}
         
-        {/* Levantamiento Field */}
-        <div>
-          <label htmlFor="levantamiento" className="block text-sm font-semibold text-gray-700 mb-3">
+        <div className="mb-4">
+          <label htmlFor="levantamiento" className="block text-sm font-medium text-gray-700 mb-2">
             Levantamiento
           </label>
           <Textarea
             id="levantamiento"
-            placeholder="Descripción del levantamiento para este conjunto de fotos..."
+            placeholder="Agregar levantamiento para este conjunto de fotos..."
             value={currentLevantamiento}
             onChange={(e) => setCurrentLevantamiento(e.target.value)}
-            className="input-instagram resize-none min-h-[100px]"
-            rows={3}
+            className="resize-none border-gray-200 focus:border-red-500"
+            rows={2}
           />
         </div>
 
-        {/* Responsable Field */}
-        <div>
-          <label htmlFor="responsable" className="block text-sm font-semibold text-gray-700 mb-3">
-            Gerencia Responsable
+        <div className="mb-4">
+          <label htmlFor="responsable" className="block text-sm font-medium text-gray-700 mb-2">
+            Responsable
           </label>
           
-          {/* Debug info for development */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs">
-              <div className="font-medium text-blue-800 mb-1">Debug Info:</div>
-              <div className="text-blue-600">
-                Loading: {loading.toString()} | Error: {error || 'none'} | Count: {gerencias.length}
-              </div>
-            </div>
-          )}
+          {/* Debug info visible en desarrollo */}
+          <div className="mb-2 text-xs text-gray-500">
+            Debug: Loading={loading.toString()}, Error={error || 'none'}, Count={gerencias.length}
+          </div>
           
           {error && (
-            <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
-              <div className="font-medium">Error:</div>
-              <div>{error}</div>
+            <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+              Error: {error}
             </div>
           )}
           
           <Select onValueChange={setCurrentResponsable} value={currentResponsable}>
-            <SelectTrigger className="input-instagram">
+            <SelectTrigger className="border-gray-200 focus:border-red-500 bg-white">
               <SelectValue placeholder="Seleccione una gerencia responsable" />
             </SelectTrigger>
-            <SelectContent className="bg-white border border-gray-200 shadow-xl rounded-xl z-50 max-h-60">
+            <SelectContent className="bg-white border border-gray-200 shadow-lg z-50 max-h-60">
               {loading ? (
                 <SelectItem value="loading-state" disabled>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-gray-300 border-t-amber-500 rounded-full animate-spin"></div>
+                    <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
                     Cargando gerencias...
                   </div>
                 </SelectItem>
@@ -213,13 +200,11 @@ const PhotoGallery = ({
                   <SelectItem 
                     key={gerencia.id} 
                     value={gerencia.nombre}
-                    className="hover:bg-amber-50 cursor-pointer px-4 py-3 rounded-lg"
+                    className="hover:bg-gray-100 cursor-pointer px-3 py-2"
                   >
                     <div className="flex items-center justify-between w-full">
-                      <span className="font-medium">{gerencia.nombre}</span>
-                      <span className="text-xs text-gray-400 ml-2 bg-gray-100 px-2 py-1 rounded-full">
-                        {gerencia.iniciales}
-                      </span>
+                      <span>{gerencia.nombre}</span>
+                      <span className="text-xs text-gray-400 ml-2">({gerencia.iniciales})</span>
                     </div>
                   </SelectItem>
                 ))
@@ -228,18 +213,17 @@ const PhotoGallery = ({
           </Select>
           
           {!loading && !error && gerencias.length > 0 && (
-            <div className="mt-2 text-xs text-gray-500">
+            <div className="mt-1 text-xs text-gray-500">
               {gerencias.length} gerencia(s) disponible(s)
             </div>
           )}
         </div>
         
-        {/* Save Button */}
         <Button
           onClick={onSaveCurrentSet}
-          className="button-primary w-full py-4"
+          className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white"
         >
-          <Plus className="w-5 h-5 mr-2" />
+          <Plus className="w-4 h-4 mr-2" />
           Guardar Conjunto de Fotos
         </Button>
       </CardContent>
