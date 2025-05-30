@@ -121,15 +121,19 @@ const PhotoGallery = ({
             Responsable
           </label>
           <Select onValueChange={setCurrentResponsable} value={currentResponsable}>
-            <SelectTrigger className="border-gray-200 focus:border-red-500">
+            <SelectTrigger className="border-gray-200 focus:border-red-500 bg-white">
               <SelectValue placeholder="Seleccione una gerencia responsable" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
               {loading ? (
                 <SelectItem value="loading" disabled>Cargando gerencias...</SelectItem>
               ) : (
                 gerencias.map((gerencia) => (
-                  <SelectItem key={gerencia.id} value={gerencia.nombre}>
+                  <SelectItem 
+                    key={gerencia.id} 
+                    value={gerencia.nombre}
+                    className="hover:bg-gray-100 cursor-pointer"
+                  >
                     {gerencia.nombre}
                   </SelectItem>
                 ))
