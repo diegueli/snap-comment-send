@@ -16,6 +16,9 @@ interface CameraAppProps {
   onClose: () => void;
   userData: {
     auditoriaId: string;
+    name: string;
+    email: string;
+    position: string;
   };
 }
 
@@ -89,7 +92,10 @@ const CameraApp: React.FC<CameraAppProps> = ({ onClose, userData }) => {
   const takePhoto = useCallback(() => {
     if (camera.current) {
       const photo = camera.current.takePhoto();
-      setImage(photo);
+      // Asegurar que solo manejamos strings
+      if (typeof photo === 'string') {
+        setImage(photo);
+      }
     }
   }, []);
 
