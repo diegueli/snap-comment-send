@@ -38,16 +38,24 @@ const PhotoGallery = ({
   useEffect(() => {
     const fetchGerencias = async () => {
       try {
+        console.log('Fetching gerencias...');
         const { data, error } = await supabase
           .from('gerencias')
           .select('id, nombre, iniciales, activo')
           .eq('activo', true)
           .order('nombre');
 
-        if (error) throw error;
+        console.log('Gerencias query result:', { data, error });
+
+        if (error) {
+          console.error('Error fetching gerencias:', error);
+          throw error;
+        }
+        
+        console.log('Setting gerencias:', data);
         setGerencias(data || []);
       } catch (error) {
-        console.error('Error fetching gerencias:', error);
+        console.error('Error in fetchGerencias:', error);
         toast({
           title: "Error",
           description: "No se pudieron cargar las gerencias.",
@@ -60,6 +68,9 @@ const PhotoGallery = ({
 
     fetchGerencias();
   }, []);
+
+  console.log('Current gerencias state:', gerencias);
+  console.log('Loading state:', loading);
 
   return (
     <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
@@ -127,6 +138,8 @@ const PhotoGallery = ({
             <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
               {loading ? (
                 <SelectItem value="loading" disabled>Cargando gerencias...</SelectItem>
+              ) : gerencias.length === 0 ? (
+                <SelectItem value="no-data" disabled>No hay gerencias disponibles</SelectItem>
               ) : (
                 gerencias.map((gerencia) => (
                   <SelectItem 
