@@ -76,6 +76,8 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
 
   const loadDropdownData = async () => {
     try {
+      console.log('🔍 Cargando datos de dropdowns...');
+      
       const [plantasResult, areasResult, productosResult, turnosResult] = await Promise.all([
         supabase.from('plantas').select('*').order('nombre'),
         supabase.from('areas_planta').select('*').order('nombre'),
@@ -83,17 +85,46 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         supabase.from('turnos').select('*').order('nombre'),
       ]);
 
-      if (plantasResult.error) throw plantasResult.error;
-      if (areasResult.error) throw areasResult.error;
-      if (productosResult.error) throw productosResult.error;
-      if (turnosResult.error) throw turnosResult.error;
+      console.log('📊 Resultados de consultas:');
+      console.log('Plantas:', plantasResult);
+      console.log('Areas:', areasResult);
+      console.log('Productos:', productosResult);
+      console.log('Turnos:', turnosResult);
+
+      if (plantasResult.error) {
+        console.error('❌ Error en plantas:', plantasResult.error);
+        throw plantasResult.error;
+      }
+      if (areasResult.error) {
+        console.error('❌ Error en areas:', areasResult.error);
+        throw areasResult.error;
+      }
+      if (productosResult.error) {
+        console.error('❌ Error en productos:', productosResult.error);
+        throw productosResult.error;
+      }
+      if (turnosResult.error) {
+        console.error('❌ Error en turnos:', turnosResult.error);
+        throw turnosResult.error;
+      }
+
+      console.log('✅ Datos cargados exitosamente:');
+      console.log('Plantas encontradas:', plantasResult.data?.length || 0);
+      console.log('Areas encontradas:', areasResult.data?.length || 0);
+      console.log('Productos encontrados:', productosResult.data?.length || 0);
+      console.log('Turnos encontrados:', turnosResult.data?.length || 0);
 
       setPlantas(plantasResult.data || []);
       setAreas(areasResult.data || []);
       setProductos(productosResult.data || []);
       setTurnos(turnosResult.data || []);
+
+      // Log adicional para productos para debug
+      if (productosResult.data && productosResult.data.length > 0) {
+        console.log('🔍 Estructura del primer producto:', productosResult.data[0]);
+      }
     } catch (error) {
-      console.error('Error loading dropdown data:', error);
+      console.error('💥 Error loading dropdown data:', error);
       toast({
         title: "Error",
         description: "No se pudieron cargar las opciones del formulario",
@@ -118,6 +149,19 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
       const dateParts = data.fecha.split('/');
       const dbDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
 
+      console.log('💾 Enviando datos de bloqueo:', {
+        planta_id: parseInt(data.planta_id),
+        area_planta_id: parseInt(data.area_planta_id),
+        producto_id: parseInt(data.producto_id), // Cambio aquí: mantenemos parseInt para compatibilidad
+        cantidad: data.cantidad,
+        lote: data.lote,
+        turno_id: parseInt(data.turno_id),
+        motivo: data.motivo,
+        fecha: dbDate,
+        quien_bloqueo: data.usuario,
+        user_id: user.id,
+      });
+
       const { error } = await supabase.from('bloqueos').insert({
         planta_id: parseInt(data.planta_id),
         area_planta_id: parseInt(data.area_planta_id),
@@ -131,8 +175,12 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         user_id: user.id,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error al insertar bloqueo:', error);
+        throw error;
+      }
 
+      console.log('✅ Bloqueo creado exitosamente');
       toast({
         title: "Bloqueo creado",
         description: "El bloqueo se ha registrado exitosamente. Los valores se conservan para envío por correo.",
@@ -140,7 +188,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
 
       // Note: Form values are preserved after successful submission for potential email sending
     } catch (error: any) {
-      console.error('Error creating bloqueo:', error);
+      console.error('💥 Error creating bloqueo:', error);
       toast({
         title: "Error",
         description: error.message || "No se pudo crear el bloqueo",
@@ -304,15 +352,21 @@ Usuario: ${formData.usuario}
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="border-red-200 focus:border-red-400">
-                            <SelectValue placeholder="Selecciona un producto" />
+                            <SelectValue placeholder={productos.length > 0 ? "Selecciona un producto" : "Cargando productos..."} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {productos.map((producto) => (
-                            <SelectItem key={producto.id} value={producto.id.toString()}>
-                              {producto.nombre}
+                          {productos.length > 0 ? (
+                            productos.map((producto) => (
+                              <SelectItem key={producto.id} value={producto.id.toString()}>
+                                {producto.nombre || `Producto ${producto.id}`}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="" disabled>
+                              No hay productos disponibles
                             </SelectItem>
-                          ))}
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
