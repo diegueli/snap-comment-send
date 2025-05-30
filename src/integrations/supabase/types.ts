@@ -34,6 +34,7 @@ export type Database = {
           gerencia_id: number | null
           id: string
           levantamiento: string | null
+          responsable: string | null
           updated_at: string
         }
         Insert: {
@@ -45,6 +46,7 @@ export type Database = {
           gerencia_id?: number | null
           id?: string
           levantamiento?: string | null
+          responsable?: string | null
           updated_at?: string
         }
         Update: {
@@ -56,6 +58,7 @@ export type Database = {
           gerencia_id?: number | null
           id?: string
           levantamiento?: string | null
+          responsable?: string | null
           updated_at?: string
         }
         Relationships: [

@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,8 @@ import {
   PhotoSet, 
   UserData, 
   AuditoriaFormData,
-  AuditoriaData 
+  AuditoriaData,
+  Planta 
 } from '@/types/auditoria';
 
 interface CameraAppProps {
@@ -29,6 +29,7 @@ interface CameraAppProps {
 
 const CameraApp = ({ onClose, userData }: CameraAppProps) => {
   const [auditoriaData, setAuditoriaData] = useState<AuditoriaData | null>(null);
+  const [selectedPlanta, setSelectedPlanta] = useState<Planta | null>(null);
   const [currentPhotos, setCurrentPhotos] = useState<CapturedPhoto[]>([]);
   const [currentArea, setCurrentArea] = useState('');
   const [currentLevantamiento, setCurrentLevantamiento] = useState('');
@@ -53,6 +54,53 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
 
   const { canvasRef, capturePhoto } = usePhotoCapture();
 
+  const handleAuditoriaSubmit = useCallback(async (formData: AuditoriaFormData) => {
+    try {
+      const { data: planta, error } = await supabase
+        .from('plantas')
+        .select('id, nombre, iniciales')
+        .eq('id', formData.plantaId)
+        .single();
+
+      if (error) throw error;
+      
+      setSelectedPlanta(planta);
+      setAuditoriaData(formData);
+    } catch (error) {
+      console.error('Error fetching planta:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo cargar la información de la planta.",
+        variant: "destructive",
+      });
+    }
+  }, []);
+
+  const uploadPhotoToStorage = useCallback(async (photo: CapturedPhoto): Promise<string | null> => {
+    if (!photo.file || !auditoriaId) return null;
+
+    try {
+      const fileName = `${auditoriaId}/${Date.now()}_${photo.id}.jpg`;
+      
+      const { data, error } = await supabase.storage
+        .from('bucket_auditorias')
+        .upload(fileName, photo.file, {
+          contentType: 'image/jpeg',
+        });
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('bucket_auditorias')
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      return null;
+    }
+  }, [auditoriaId]);
+
   const handleStartCamera = useCallback(async () => {
     const success = await startCamera(currentArea);
     if (success) {
@@ -62,8 +110,8 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     }
   }, [startCamera, currentArea]);
 
-  const handleCapturePhoto = useCallback(() => {
-    const newPhoto = capturePhoto(videoRef, currentPhotos);
+  const handleCapturePhoto = useCallback(async () => {
+    const newPhoto = await capturePhoto(videoRef, currentPhotos);
     if (newPhoto) {
       setCurrentPhotos(prev => [...prev, newPhoto]);
       
@@ -189,6 +237,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
           titulo_documento: auditoriaData.tituloDocumento,
           fecha: isoDate,
           auditor: auditoriaData.auditor,
+          planta_id: auditoriaData.plantaId,
           status: 'Activo'
         })
         .select()
@@ -199,11 +248,15 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       setAuditoriaId(auditoria.id);
 
       for (const set of photoSets) {
-        const fotosJson = set.photos.map(photo => ({
-          id: photo.id,
-          dataUrl: photo.dataUrl,
-          timestamp: photo.timestamp.toISOString()
-        }));
+        const photoUrls: string[] = [];
+        
+        // Upload photos and collect URLs
+        for (const photo of set.photos) {
+          const url = await uploadPhotoToStorage(photo);
+          if (url) {
+            photoUrls.push(url);
+          }
+        }
 
         const { error: setError } = await supabase
           .from('auditoria_sets')
@@ -212,7 +265,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
             area: set.area,
             levantamiento: set.levantamiento || null,
             responsable: set.responsable || null,
-            fotos: fotosJson
+            foto_urls: photoUrls
           });
 
         if (setError) throw setError;
@@ -233,7 +286,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     } finally {
       setIsSavingToDatabase(false);
     }
-  }, [auditoriaData, userData, photoSets]);
+  }, [auditoriaData, userData, photoSets, uploadPhotoToStorage]);
 
   const generatePDF = useCallback(async () => {
     if (photoSets.length === 0) {
@@ -280,12 +333,14 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     pdf.text(`Generado el: ${new Date().toLocaleDateString('es-ES')} a las ${new Date().toLocaleTimeString('es-ES')}`, pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 20;
 
-    if (auditoriaData && userData) {
+    if (auditoriaData && userData && selectedPlanta) {
       pdf.setFontSize(12);
       pdf.setTextColor(0, 0, 0);
-      pdf.text('AUDITOR:', 20, yPosition);
+      pdf.text('INFORMACIÓN DE LA AUDITORÍA:', 20, yPosition);
       yPosition += 8;
-      pdf.text(`Nombre: ${auditoriaData.auditor}`, 20, yPosition);
+      pdf.text(`Planta: ${selectedPlanta.nombre}`, 20, yPosition);
+      yPosition += 6;
+      pdf.text(`Auditor: ${auditoriaData.auditor}`, 20, yPosition);
       yPosition += 6;
       pdf.text(`Cargo: ${userData.position}`, 20, yPosition);
       yPosition += 6;
@@ -319,7 +374,8 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
         try {
           const imgWidth = 60;
           const imgHeight = 60;
-          pdf.addImage(photo.dataUrl, 'JPEG', 20 + (j * 65), yPosition, imgWidth, imgHeight);
+          const imgSrc = photo.url || URL.createObjectURL(photo.file!);
+          pdf.addImage(imgSrc, 'JPEG', 20 + (j * 65), yPosition, imgWidth, imgHeight);
         } catch (error) {
           console.error('Error adding image to PDF:', error);
         }
@@ -376,7 +432,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     
     const link = document.createElement('a');
     link.href = pdfUrl;
-    link.download = `${auditoriaData?.tituloDocumento || 'Auditoria'}_${auditoriaData?.fecha.replace(/\//g, '-') || new Date().toISOString().split('T')[0]}.pdf`;
+    link.download = `${auditoriaData?.tituloDocumento || 'Auditoria'}_${selectedPlanta?.nombre || 'Planta'}_${auditoriaData?.fecha.replace(/\//g, '-') || new Date().toISOString().split('T')[0]}.pdf`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -387,10 +443,11 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       title: "PDF descargado",
       description: "Documento descargado exitosamente.",
     });
-  }, [photoSets, auditoriaData, userData]);
+  }, [photoSets, auditoriaData, userData, selectedPlanta]);
 
   const resetApp = useCallback(() => {
     setAuditoriaData(null);
+    setSelectedPlanta(null);
     setCurrentPhotos([]);
     setCurrentArea('');
     setCurrentLevantamiento('');
@@ -427,7 +484,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
             </div>
           )}
           <AuditoriaForm 
-            onSubmit={setAuditoriaData}
+            onSubmit={handleAuditoriaSubmit}
             userData={userData}
           />
         </div>

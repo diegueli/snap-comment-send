@@ -1,7 +1,8 @@
 
 export interface CapturedPhoto {
   id: string;
-  dataUrl: string;
+  file?: File;
+  url?: string;
   timestamp: Date;
 }
 
@@ -18,14 +19,29 @@ export interface UserData {
   name: string;
   email: string;
   position: string;
+  gerencia_id?: number;
 }
 
 export interface AuditoriaFormData {
   tituloDocumento: string;
   fecha: string;
   auditor: string;
+  plantaId: number;
 }
 
 export interface AuditoriaData extends AuditoriaFormData {
   id?: string;
+}
+
+export interface Planta {
+  id: number;
+  nombre: string;
+  iniciales?: string;
+}
+
+export interface Gerencia {
+  id: number;
+  nombre: string;
+  iniciales: string;
+  activo?: boolean;
 }

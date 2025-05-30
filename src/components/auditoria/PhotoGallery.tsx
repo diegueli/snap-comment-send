@@ -1,11 +1,13 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trash2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CapturedPhoto } from '@/types/auditoria';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { CapturedPhoto, Gerencia } from '@/types/auditoria';
 
 interface PhotoGalleryProps {
   currentPhotos: CapturedPhoto[];
@@ -30,6 +32,35 @@ const PhotoGallery = ({
   onStartCamera,
   onSaveCurrentSet
 }: PhotoGalleryProps) => {
+  const [gerencias, setGerencias] = useState<Gerencia[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchGerencias = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('gerencias')
+          .select('id, nombre, iniciales, activo')
+          .eq('activo', true)
+          .order('nombre');
+
+        if (error) throw error;
+        setGerencias(data || []);
+      } catch (error) {
+        console.error('Error fetching gerencias:', error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar las gerencias.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGerencias();
+  }, []);
+
   return (
     <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
       <CardHeader>
@@ -42,7 +73,7 @@ const PhotoGallery = ({
           {currentPhotos.map((photo) => (
             <div key={photo.id} className="relative group">
               <img
-                src={photo.dataUrl}
+                src={photo.url || URL.createObjectURL(photo.file!)}
                 alt={`Captured photo ${photo.id}`}
                 className="w-full aspect-square object-cover rounded-lg shadow-md"
               />
@@ -89,13 +120,22 @@ const PhotoGallery = ({
           <label htmlFor="responsable" className="block text-sm font-medium text-gray-700 mb-2">
             Responsable
           </label>
-          <Input
-            id="responsable"
-            placeholder="Nombre del responsable"
-            value={currentResponsable}
-            onChange={(e) => setCurrentResponsable(e.target.value)}
-            className="border-gray-200 focus:border-red-500"
-          />
+          <Select onValueChange={setCurrentResponsable} value={currentResponsable}>
+            <SelectTrigger className="border-gray-200 focus:border-red-500">
+              <SelectValue placeholder="Seleccione una gerencia responsable" />
+            </SelectTrigger>
+            <SelectContent>
+              {loading ? (
+                <SelectItem value="loading" disabled>Cargando gerencias...</SelectItem>
+              ) : (
+                gerencias.map((gerencia) => (
+                  <SelectItem key={gerencia.id} value={gerencia.nombre}>
+                    {gerencia.nombre}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
         </div>
         
         <Button

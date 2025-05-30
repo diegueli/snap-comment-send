@@ -1,37 +1,61 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-interface AuditoriaFormData {
-  tituloDocumento: string;
-  fecha: string;
-  auditor: string;
-}
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { AuditoriaFormData, UserData, Planta } from '@/types/auditoria';
 
 interface AuditoriaFormProps {
   onSubmit: (data: AuditoriaFormData) => void;
-  userData: {
-    name: string;
-    email: string;
-    position: string;
-  } | null;
+  userData: UserData | null;
 }
 
 const AuditoriaForm = ({ onSubmit, userData }: AuditoriaFormProps) => {
   const [tituloDocumento, setTituloDocumento] = useState('');
+  const [plantaId, setPlantaId] = useState<number | null>(null);
+  const [plantas, setPlantas] = useState<Planta[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const today = new Date();
   const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
   const auditor = userData?.name || '';
 
+  useEffect(() => {
+    const fetchPlantas = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('plantas')
+          .select('id, nombre, iniciales')
+          .order('nombre');
+
+        if (error) throw error;
+        setPlantas(data || []);
+      } catch (error) {
+        console.error('Error fetching plantas:', error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar las plantas.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPlantas();
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (tituloDocumento.trim()) {
+    if (tituloDocumento.trim() && plantaId) {
       onSubmit({
         tituloDocumento: tituloDocumento.trim(),
         fecha: formattedDate,
-        auditor
+        auditor,
+        plantaId
       });
     }
   };
@@ -63,6 +87,28 @@ const AuditoriaForm = ({ onSubmit, userData }: AuditoriaFormProps) => {
           </div>
 
           <div>
+            <label htmlFor="planta" className="block text-sm font-medium text-gray-700 mb-2">
+              Planta
+            </label>
+            <Select onValueChange={(value) => setPlantaId(Number(value))} required>
+              <SelectTrigger className="border-gray-200 focus:border-red-500">
+                <SelectValue placeholder="Seleccione una planta" />
+              </SelectTrigger>
+              <SelectContent>
+                {loading ? (
+                  <SelectItem value="loading" disabled>Cargando plantas...</SelectItem>
+                ) : (
+                  plantas.map((planta) => (
+                    <SelectItem key={planta.id} value={planta.id.toString()}>
+                      {planta.nombre}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
             <label htmlFor="fecha" className="block text-sm font-medium text-gray-700 mb-2">
               Fecha
             </label>
@@ -83,7 +129,7 @@ const AuditoriaForm = ({ onSubmit, userData }: AuditoriaFormProps) => {
           <Button
             type="submit"
             className="w-full bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white"
-            disabled={!tituloDocumento.trim()}
+            disabled={!tituloDocumento.trim() || !plantaId || loading}
           >
             Continuar
           </Button>
