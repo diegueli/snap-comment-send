@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +8,7 @@ interface Profile {
   name: string;
   position: string;
   gerencia: string | null;
+  gerencia_id: number | null;
 }
 
 interface AuthContextType {
@@ -51,7 +51,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             try {
               const { data: profileData, error } = await supabase
                 .from('profiles')
-                .select('*')
+                .select(`
+                  *,
+                  gerencias!profiles_gerencia_id_fkey(nombre)
+                `)
                 .eq('id', session.user.id)
                 .single();
               
@@ -59,7 +62,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 console.error('Error fetching profile:', error);
                 setProfile(null);
               } else {
-                setProfile(profileData);
+                // Transform the data to match our Profile interface
+                const transformedProfile: Profile = {
+                  id: profileData.id,
+                  name: profileData.name,
+                  position: profileData.position,
+                  gerencia_id: profileData.gerencia_id,
+                  gerencia: profileData.gerencias?.nombre || null
+                };
+                setProfile(transformedProfile);
               }
             } catch (error) {
               console.error('Error in profile fetch:', error);

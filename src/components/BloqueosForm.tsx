@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { X, Mail } from 'lucide-react';
+import ProductCombobox from './ProductCombobox';
 
 const bloqueosSchema = z.object({
   planta_id: z.string().min(1, 'Selecciona una planta'),
@@ -35,7 +37,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   const { user, profile } = useAuth();
   const [plantas, setPlantas] = useState<Array<{ id: number; nombre: string }>>([]);
   const [areas, setAreas] = useState<Array<{ id: number; nombre: string }>>([]);
-  const [productos, setProductos] = useState<Array<{ id: number; nombre: string }>>([]);
   const [turnos, setTurnos] = useState<Array<{ id: number; nombre: string }>>([]);
   const [loading, setLoading] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -76,21 +77,18 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
 
   const loadDropdownData = async () => {
     try {
-      const [plantasResult, areasResult, productosResult, turnosResult] = await Promise.all([
+      const [plantasResult, areasResult, turnosResult] = await Promise.all([
         supabase.from('plantas').select('*').order('nombre'),
         supabase.from('areas_planta').select('*').order('nombre'),
-        supabase.from('productos').select('*').order('nombre'),
         supabase.from('turnos').select('*').order('nombre'),
       ]);
 
       if (plantasResult.error) throw plantasResult.error;
       if (areasResult.error) throw areasResult.error;
-      if (productosResult.error) throw productosResult.error;
       if (turnosResult.error) throw turnosResult.error;
 
       setPlantas(plantasResult.data || []);
       setAreas(areasResult.data || []);
-      setProductos(productosResult.data || []);
       setTurnos(turnosResult.data || []);
     } catch (error) {
       console.error('Error loading dropdown data:', error);
@@ -157,8 +155,25 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
     // Get names for display
     const plantaName = plantas.find(p => p.id.toString() === formData.planta_id)?.nombre || 'No seleccionada';
     const areaName = areas.find(a => a.id.toString() === formData.area_planta_id)?.nombre || 'No seleccionada';
-    const productoName = productos.find(p => p.id.toString() === formData.producto_id)?.nombre || 'No seleccionado';
     const turnoName = turnos.find(t => t.id.toString() === formData.turno_id)?.nombre || 'No seleccionado';
+
+    // Get product name
+    let productoName = 'No seleccionado';
+    if (formData.producto_id) {
+      try {
+        const { data: producto } = await supabase
+          .from('productos')
+          .select('nombre')
+          .eq('id', parseInt(formData.producto_id))
+          .single();
+        
+        if (producto?.nombre) {
+          productoName = producto.nombre;
+        }
+      } catch (error) {
+        console.error('Error fetching product name:', error);
+      }
+    }
 
     const emailBody = `
 Datos del Bloqueo:
@@ -301,20 +316,13 @@ Usuario: ${formData.usuario}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-red-800">Producto</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="border-red-200 focus:border-red-400">
-                            <SelectValue placeholder="Selecciona un producto" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {productos.map((producto) => (
-                            <SelectItem key={producto.id} value={producto.id.toString()}>
-                              {producto.nombre}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <ProductCombobox
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          placeholder="Buscar y seleccionar producto..."
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
