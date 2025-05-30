@@ -46,8 +46,9 @@ interface AuditoriaFormData {
   plantaNombre: string;
 }
 
-interface Profile {
-  gerencia: string | null;
+interface Gerencia {
+  id: number;
+  nombre: string;
 }
 
 const CameraApp = ({ onClose, userData }: CameraAppProps) => {
@@ -68,12 +69,34 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
   const [showAreaInput, setShowAreaInput] = useState(false);
   const [auditoriaId, setAuditoriaId] = useState<string | null>(null);
   const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
-  const [userProfile, setUserProfile] = useState<Profile | null>(null);
-  const [gerenciasOptions, setGerenciasOptions] = useState<string[]>(['Calidad', 'Mantenimiento', 'Inocuidad']);
+  const [gerencias, setGerencias] = useState<Gerencia[]>([]);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { uploadPhoto, deletePhoto: deletePhotoFromStorage, uploading } = usePhotoUpload();
+
+  // Fetch gerencias on component mount
+  useEffect(() => {
+    const fetchGerencias = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('gerencias')
+          .select('id, nombre')
+          .eq('activo', true)
+          .order('nombre');
+        
+        if (error) {
+          console.error('Error fetching gerencias:', error);
+        } else {
+          setGerencias(data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching gerencias:', error);
+      }
+    };
+
+    fetchGerencias();
+  }, []);
 
   // Fetch user profile on component mount
   useEffect(() => {
@@ -374,6 +397,10 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
           }
         }
 
+        // Find gerencia_id based on responsable name
+        const gerencia = gerencias.find(g => g.nombre === set.responsable);
+        const gerenciaId = gerencia ? gerencia.id : null;
+
         const { error: setError } = await supabase
           .from('auditoria_sets')
           .insert({
@@ -381,6 +408,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
             area: set.area,
             levantamiento: set.levantamiento || null,
             responsable: set.responsable || null,
+            gerencia_id: gerenciaId,
             foto_urls: photoUrls
           });
 
@@ -402,7 +430,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     } finally {
       setIsSavingToDatabase(false);
     }
-  }, [auditoriaData, userData, photoSets, uploadPhoto]);
+  }, [auditoriaData, userData, photoSets, uploadPhoto, gerencias]);
 
   const generatePDF = useCallback(async () => {
     if (photoSets.length === 0) {
@@ -791,9 +819,9 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
                     <SelectValue placeholder="Seleccione la gerencia responsable" />
                   </SelectTrigger>
                   <SelectContent>
-                    {gerenciasOptions.map((gerencia) => (
-                      <SelectItem key={gerencia} value={gerencia}>
-                        {gerencia}
+                    {gerencias.map((gerencia) => (
+                      <SelectItem key={gerencia.id} value={gerencia.nombre}>
+                        {gerencia.nombre}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -922,9 +950,9 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
                             <SelectValue placeholder="Seleccione responsable..." />
                           </SelectTrigger>
                           <SelectContent>
-                            {gerenciasOptions.map((gerencia) => (
-                              <SelectItem key={gerencia} value={gerencia}>
-                                {gerencia}
+                            {gerencias.map((gerencia) => (
+                              <SelectItem key={gerencia.id} value={gerencia.nombre}>
+                                {gerencia.nombre}
                               </SelectItem>
                             ))}
                           </SelectContent>
