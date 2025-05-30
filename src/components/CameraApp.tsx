@@ -1,3 +1,4 @@
+
 import React, { useCallback } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -109,7 +110,12 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       if (error) throw error;
       
       setSelectedPlanta(planta);
-      setAuditoriaData(formData);
+      // Create AuditoriaData with required codigoAuditoria
+      const auditoriaDataWithCode = {
+        ...formData,
+        codigoAuditoria: formData.codigoAuditoria
+      };
+      setAuditoriaData(auditoriaDataWithCode);
       setCodigoAuditoria(formData.codigoAuditoria);
     } catch (error) {
       console.error('Error fetching planta:', error);
@@ -261,13 +267,11 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
           editingSetId={editingSetId}
           editingLevantamiento={editingLevantamiento}
           editingResponsable={editingResponsable}
-          editingResponsableId={editingResponsableId}
           editingAreaId={editingAreaId}
           editingArea={editingArea}
           setEditingSetId={setEditingSetId}
           setEditingLevantamiento={setEditingLevantamiento}
           setEditingResponsable={setEditingResponsable}
-          setEditingResponsableId={setEditingResponsableId}
           setEditingAreaId={setEditingAreaId}
           setEditingArea={setEditingArea}
           onUpdatePhotoSet={updatePhotoSet}

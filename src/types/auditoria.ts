@@ -32,7 +32,7 @@ export interface AuditoriaFormData {
 
 export interface AuditoriaData extends AuditoriaFormData {
   id?: string;
-  codigoAuditoria?: string;
+  codigoAuditoria: string; // Make this required instead of optional
 }
 
 export interface Planta {

@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { CapturedPhoto, PhotoSet, AuditoriaFormData, UserData } from '@/types/auditoria';
+import { CapturedPhoto, PhotoSet, AuditoriaFormData, UserData, AuditoriaData } from '@/types/auditoria';
 
 export const uploadPhotoToStorage = async (photo: CapturedPhoto, area: string, codigoAuditoria: string): Promise<string | null> => {
   if (!photo.file || !codigoAuditoria) return null;
@@ -31,7 +31,7 @@ export const uploadPhotoToStorage = async (photo: CapturedPhoto, area: string, c
 };
 
 export const closeAuditoria = async (
-  auditoriaData: AuditoriaFormData & { codigoAuditoria: string },
+  auditoriaData: AuditoriaData,
   userData: UserData,
   photoSets: PhotoSet[],
   setAuditoriaId: (id: string) => void
