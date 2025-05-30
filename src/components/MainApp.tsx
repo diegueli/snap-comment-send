@@ -37,8 +37,9 @@ const MainApp = () => {
     setIsBloqueosOpen(false);
   };
 
-  // Convert profile to userData format for compatibility with CameraApp
+  // Generar un ID temporal para la auditoría
   const userData = {
+    auditoriaId: `temp_${Date.now()}`, // ID temporal hasta que se implemente la creación de auditorías
     name: profile.name,
     email: user.email || '',
     position: profile.position,
