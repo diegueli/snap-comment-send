@@ -137,7 +137,7 @@ const SavedPhotoSets = ({
               {set.photos.map((photo) => (
                 <div key={photo.id} className="relative group">
                   <img
-                    src={photo.dataUrl}
+                    src={photo.url || URL.createObjectURL(photo.file!)}
                     alt="Set photo"
                     className="w-full aspect-square object-cover rounded"
                   />
