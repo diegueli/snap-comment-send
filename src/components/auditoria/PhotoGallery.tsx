@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Trash2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -147,7 +148,7 @@ const PhotoGallery = ({
               {loading ? (
                 <SelectItem value="loading" disabled>Cargando gerencias...</SelectItem>
               ) : gerencias.length === 0 ? (
-                <SelectItem value="no-data" disabled>No hay gerencias disponibles</SelectItem>
+                <SelectItem value="no-gerencias" disabled>No hay gerencias disponibles</SelectItem>
               ) : (
                 gerencias.map((gerencia) => (
                   <SelectItem 
