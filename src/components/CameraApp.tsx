@@ -76,11 +76,13 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     }
   }, []);
 
-  const uploadPhotoToStorage = useCallback(async (photo: CapturedPhoto): Promise<string | null> => {
+  const uploadPhotoToStorage = useCallback(async (photo: CapturedPhoto, area: string): Promise<string | null> => {
     if (!photo.file || !auditoriaId) return null;
 
     try {
-      const fileName = `${auditoriaId}/${Date.now()}_${photo.id}.jpg`;
+      // Limpiar el nombre del área para usarlo en el nombre del archivo
+      const cleanAreaName = area.replace(/[^a-zA-Z0-9]/g, '_');
+      const fileName = `${auditoriaId}/${cleanAreaName}_${Date.now()}_${photo.id}.jpg`;
       
       const { data, error } = await supabase.storage
         .from('bucket_auditorias')
@@ -250,9 +252,9 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       for (const set of photoSets) {
         const photoUrls: string[] = [];
         
-        // Upload photos and collect URLs
+        // Upload photos and collect URLs, now including area in filename
         for (const photo of set.photos) {
-          const url = await uploadPhotoToStorage(photo);
+          const url = await uploadPhotoToStorage(photo, set.area);
           if (url) {
             photoUrls.push(url);
           }
@@ -298,182 +300,222 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       return;
     }
 
-    const pdf = new jsPDF();
-    const pageHeight = pdf.internal.pageSize.height;
-    const pageWidth = pdf.internal.pageSize.width;
-    let yPosition = 20;
+    let pdf: jsPDF;
+    let pdfBlob: Blob;
 
     try {
-      const logoResponse = await fetch('/lovable-uploads/9ad6adb6-f76a-4982-92e9-09618c309f7c.png');
-      const logoBlob = await logoResponse.blob();
-      const logoBase64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(logoBlob);
-      });
+      pdf = new jsPDF();
+      const pageHeight = pdf.internal.pageSize.height;
+      const pageWidth = pdf.internal.pageSize.width;
+      let yPosition = 20;
 
-      pdf.addImage(logoBase64, 'PNG', 20, yPosition, 40, 20);
-      yPosition += 25;
-    } catch (error) {
-      console.log('Could not load logo, continuing without it');
-    }
+      try {
+        const logoResponse = await fetch('/lovable-uploads/9ad6adb6-f76a-4982-92e9-09618c309f7c.png');
+        const logoBlob = await logoResponse.blob();
+        const logoBase64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(logoBlob);
+        });
 
-    pdf.setFontSize(20);
-    pdf.setTextColor(196, 47, 47);
-    pdf.text('QUINTA ALIMENTOS', pageWidth / 2, yPosition, { align: 'center' });
-    yPosition += 10;
-
-    pdf.setFontSize(16);
-    pdf.setTextColor(0, 0, 0);
-    const title = auditoriaData?.tituloDocumento || 'Reporte de Auditoría';
-    pdf.text(title, pageWidth / 2, yPosition, { align: 'center' });
-    yPosition += 15;
-
-    pdf.setFontSize(12);
-    pdf.text(`Generado el: ${new Date().toLocaleDateString('es-ES')} a las ${new Date().toLocaleTimeString('es-ES')}`, pageWidth / 2, yPosition, { align: 'center' });
-    yPosition += 20;
-
-    if (auditoriaData && userData && selectedPlanta) {
-      pdf.setFontSize(12);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text('INFORMACIÓN DE LA AUDITORÍA:', 20, yPosition);
-      yPosition += 8;
-      pdf.text(`Planta: ${selectedPlanta.nombre}`, 20, yPosition);
-      yPosition += 6;
-      pdf.text(`Auditor: ${auditoriaData.auditor}`, 20, yPosition);
-      yPosition += 6;
-      pdf.text(`Cargo: ${userData.position}`, 20, yPosition);
-      yPosition += 6;
-      pdf.text(`Email: ${userData.email}`, 20, yPosition);
-      yPosition += 6;
-      pdf.text(`Fecha: ${auditoriaData.fecha}`, 20, yPosition);
-      yPosition += 15;
-    }
-
-    for (let i = 0; i < photoSets.length; i++) {
-      const set = photoSets[i];
-      
-      if (yPosition > pageHeight - 100) {
-        pdf.addPage();
-        yPosition = 20;
+        pdf.addImage(logoBase64, 'PNG', 20, yPosition, 40, 20);
+        yPosition += 25;
+      } catch (error) {
+        console.log('Could not load logo, continuing without it');
       }
 
-      pdf.setFontSize(16);
+      pdf.setFontSize(20);
       pdf.setTextColor(196, 47, 47);
-      pdf.text(`ÁREA: ${set.area}`, 20, yPosition);
+      pdf.text('QUINTA ALIMENTOS', pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 10;
+
+      pdf.setFontSize(16);
+      pdf.setTextColor(0, 0, 0);
+      const title = auditoriaData?.tituloDocumento || 'Reporte de Auditoría';
+      pdf.text(title, pageWidth / 2, yPosition, { align: 'center' });
       yPosition += 15;
 
-      for (let j = 0; j < set.photos.length; j++) {
-        const photo = set.photos[j];
+      pdf.setFontSize(12);
+      pdf.text(`Generado el: ${new Date().toLocaleDateString('es-ES')} a las ${new Date().toLocaleTimeString('es-ES')}`, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 20;
+
+      if (auditoriaData && userData && selectedPlanta) {
+        pdf.setFontSize(12);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text('INFORMACIÓN DE LA AUDITORÍA:', 20, yPosition);
+        yPosition += 8;
+        pdf.text(`Planta: ${selectedPlanta.nombre}`, 20, yPosition);
+        yPosition += 6;
+        pdf.text(`Auditor: ${auditoriaData.auditor}`, 20, yPosition);
+        yPosition += 6;
+        pdf.text(`Cargo: ${userData.position}`, 20, yPosition);
+        yPosition += 6;
+        pdf.text(`Email: ${userData.email}`, 20, yPosition);
+        yPosition += 6;
+        pdf.text(`Fecha: ${auditoriaData.fecha}`, 20, yPosition);
+        yPosition += 15;
+      }
+
+      for (let i = 0; i < photoSets.length; i++) {
+        const set = photoSets[i];
         
-        if (yPosition > pageHeight - 80) {
+        if (yPosition > pageHeight - 100) {
           pdf.addPage();
           yPosition = 20;
         }
 
-        try {
-          const imgWidth = 60;
-          const imgHeight = 60;
-          const imgSrc = photo.url || URL.createObjectURL(photo.file!);
-          pdf.addImage(imgSrc, 'JPEG', 20 + (j * 65), yPosition, imgWidth, imgHeight);
-        } catch (error) {
-          console.error('Error adding image to PDF:', error);
+        pdf.setFontSize(16);
+        pdf.setTextColor(196, 47, 47);
+        pdf.text(`ÁREA: ${set.area}`, 20, yPosition);
+        yPosition += 15;
+
+        for (let j = 0; j < set.photos.length; j++) {
+          const photo = set.photos[j];
+          
+          if (yPosition > pageHeight - 80) {
+            pdf.addPage();
+            yPosition = 20;
+          }
+
+          try {
+            const imgWidth = 60;
+            const imgHeight = 60;
+            const imgSrc = photo.url || URL.createObjectURL(photo.file!);
+            pdf.addImage(imgSrc, 'JPEG', 20 + (j * 65), yPosition, imgWidth, imgHeight);
+          } catch (error) {
+            console.error('Error adding image to PDF:', error);
+          }
         }
-      }
-      
-      yPosition += 70;
-
-      if (set.levantamiento) {
-        pdf.setFontSize(12);
-        pdf.setTextColor(0, 0, 0);
-        pdf.text('Levantamiento:', 20, yPosition);
-        yPosition += 10;
         
-        const splitLevantamiento = pdf.splitTextToSize(set.levantamiento, pageWidth - 40);
-        pdf.text(splitLevantamiento, 20, yPosition);
-        yPosition += splitLevantamiento.length * 5 + 10;
-      }
+        yPosition += 70;
 
-      if (set.responsable) {
-        pdf.setFontSize(12);
-        pdf.setTextColor(0, 0, 0);
-        pdf.text(`Responsable: ${set.responsable}`, 20, yPosition);
+        if (set.levantamiento) {
+          pdf.setFontSize(12);
+          pdf.setTextColor(0, 0, 0);
+          pdf.text('Levantamiento:', 20, yPosition);
+          yPosition += 10;
+          
+          const splitLevantamiento = pdf.splitTextToSize(set.levantamiento, pageWidth - 40);
+          pdf.text(splitLevantamiento, 20, yPosition);
+          yPosition += splitLevantamiento.length * 5 + 10;
+        }
+
+        if (set.responsable) {
+          pdf.setFontSize(12);
+          pdf.setTextColor(0, 0, 0);
+          pdf.text(`Responsable: ${set.responsable}`, 20, yPosition);
+          yPosition += 10;
+        }
+
         yPosition += 10;
       }
 
-      yPosition += 10;
-    }
+      if (auditoriaData && userData) {
+        if (yPosition > pageHeight - 60) {
+          pdf.addPage();
+          yPosition = 20;
+        }
 
-    if (auditoriaData && userData) {
-      if (yPosition > pageHeight - 60) {
-        pdf.addPage();
-        yPosition = 20;
+        yPosition += 20;
+        pdf.setFontSize(12);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text('FIRMA DEL AUDITOR:', 20, yPosition);
+        yPosition += 20;
+
+        pdf.line(20, yPosition, 120, yPosition);
+        yPosition += 10;
+
+        pdf.setFontSize(10);
+        pdf.text(`${auditoriaData.auditor}`, 20, yPosition);
+        yPosition += 5;
+        pdf.text(`${userData.position}`, 20, yPosition);
+        yPosition += 5;
+        pdf.text(`Fecha: ${auditoriaData.fecha}`, 20, yPosition);
       }
 
-      yPosition += 20;
-      pdf.setFontSize(12);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text('FIRMA DEL AUDITOR:', 20, yPosition);
-      yPosition += 20;
-
-      pdf.line(20, yPosition, 120, yPosition);
-      yPosition += 10;
-
-      pdf.setFontSize(10);
-      pdf.text(`${auditoriaData.auditor}`, 20, yPosition);
-      yPosition += 5;
-      pdf.text(`${userData.position}`, 20, yPosition);
-      yPosition += 5;
-      pdf.text(`Fecha: ${auditoriaData.fecha}`, 20, yPosition);
+      // Generar el blob del PDF
+      pdfBlob = pdf.output('blob');
+      
+      console.log('PDF generado exitosamente, tamaño:', pdfBlob.size, 'bytes');
+      
+    } catch (error) {
+      console.error('Error generando PDF:', error);
+      toast({
+        title: "Error al generar PDF",
+        description: "No se pudo generar el PDF. Verifique los datos e intente nuevamente.",
+        variant: "destructive",
+      });
+      return;
     }
-
-    const pdfBlob = pdf.output('blob');
     
     // Crear nombre del archivo
     const fileName = `${auditoriaData?.tituloDocumento || 'Auditoria'}_${selectedPlanta?.nombre || 'Planta'}_${auditoriaData?.fecha.replace(/\//g, '-') || new Date().toISOString().split('T')[0]}.pdf`;
     
-    try {
-      // Subir PDF a Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('bucket_auditorias')
-        .upload(`pdfs/${auditoriaId || Date.now()}/${fileName}`, pdfBlob, {
-          contentType: 'application/pdf',
-          upsert: true
-        });
+    // Solo intentar subir si el PDF se generó correctamente
+    if (pdfBlob && pdfBlob.size > 0) {
+      try {
+        console.log('Intentando subir PDF a Supabase Storage...');
+        
+        // Subir PDF a Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('bucket_auditorias')
+          .upload(`pdfs/${auditoriaId || Date.now()}/${fileName}`, pdfBlob, {
+            contentType: 'application/pdf',
+            upsert: true
+          });
 
-      if (uploadError) {
-        console.error('Error uploading PDF to Supabase:', uploadError);
+        if (uploadError) {
+          console.error('Error uploading PDF to Supabase:', uploadError);
+          toast({
+            title: "Error al guardar PDF",
+            description: "No se pudo guardar el PDF en el servidor, pero se descargará localmente.",
+            variant: "destructive",
+          });
+        } else {
+          console.log('PDF uploaded successfully:', uploadData);
+          toast({
+            title: "PDF guardado",
+            description: "PDF guardado en el servidor y descargado localmente.",
+          });
+        }
+      } catch (error) {
+        console.error('Error during PDF upload:', error);
         toast({
           title: "Error al guardar PDF",
-          description: "No se pudo guardar el PDF en el servidor, pero se descargará localmente.",
+          description: "Error durante la subida del PDF al servidor.",
           variant: "destructive",
         });
-      } else {
-        console.log('PDF uploaded successfully:', uploadData);
+      }
+
+      // Descargar PDF localmente
+      try {
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        const link = document.createElement('a');
+        link.href = pdfUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
+        
+        console.log('PDF descargado localmente');
+      } catch (error) {
+        console.error('Error downloading PDF locally:', error);
         toast({
-          title: "PDF guardado",
-          description: "PDF guardado en el servidor y descargado localmente.",
+          title: "Error al descargar PDF",
+          description: "No se pudo descargar el PDF localmente.",
+          variant: "destructive",
         });
       }
-    } catch (error) {
-      console.error('Error during PDF upload:', error);
+    } else {
+      console.error('PDF blob is empty or invalid');
       toast({
-        title: "Error al guardar PDF",
-        description: "Error durante la subida del PDF al servidor.",
+        title: "Error al generar PDF",
+        description: "El PDF generado está vacío o es inválido.",
         variant: "destructive",
       });
     }
-
-    // Descargar PDF localmente
-    const pdfUrl = URL.createObjectURL(pdfBlob);
-    const link = document.createElement('a');
-    link.href = pdfUrl;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
   }, [photoSets, auditoriaData, userData, selectedPlanta, auditoriaId]);
 
   const resetApp = useCallback(() => {

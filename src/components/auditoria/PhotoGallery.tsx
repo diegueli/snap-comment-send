@@ -197,10 +197,7 @@ const PhotoGallery = ({
                     value={gerencia.nombre}
                     className="hover:bg-gray-100 cursor-pointer px-3 py-2"
                   >
-                    <div className="flex items-center justify-between w-full">
-                      <span>{gerencia.nombre}</span>
-                      <span className="text-xs text-gray-400 ml-2">({gerencia.iniciales})</span>
-                    </div>
+                    {gerencia.nombre}
                   </SelectItem>
                 ))
               )}
