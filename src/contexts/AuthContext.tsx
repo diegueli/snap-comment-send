@@ -8,7 +8,7 @@ interface Profile {
   id: string;
   name: string;
   position: string;
-  gerencia_id: number | null;
+  gerencia: string | null;
 }
 
 interface AuthContextType {

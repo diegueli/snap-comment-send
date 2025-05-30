@@ -31,9 +31,9 @@ export type Database = {
           created_at: string
           evidencia: string | null
           foto_urls: string[] | null
-          gerencia_id: number | null
           id: string
           levantamiento: string | null
+          responsable: string | null
           updated_at: string
         }
         Insert: {
@@ -42,9 +42,9 @@ export type Database = {
           created_at?: string
           evidencia?: string | null
           foto_urls?: string[] | null
-          gerencia_id?: number | null
           id?: string
           levantamiento?: string | null
+          responsable?: string | null
           updated_at?: string
         }
         Update: {
@@ -53,9 +53,9 @@ export type Database = {
           created_at?: string
           evidencia?: string | null
           foto_urls?: string[] | null
-          gerencia_id?: number | null
           id?: string
           levantamiento?: string | null
+          responsable?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -66,19 +66,11 @@ export type Database = {
             referencedRelation: "auditorias"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "auditoria_sets_gerencia_id_fkey"
-            columns: ["gerencia_id"]
-            isOneToOne: false
-            referencedRelation: "gerencias"
-            referencedColumns: ["id"]
-          },
         ]
       }
       auditorias: {
         Row: {
           auditor: string
-          codigo_auditoria: string | null
           created_at: string
           fecha: string
           fecha_compromiso: string | null
@@ -91,7 +83,6 @@ export type Database = {
         }
         Insert: {
           auditor: string
-          codigo_auditoria?: string | null
           created_at?: string
           fecha: string
           fecha_compromiso?: string | null
@@ -104,7 +95,6 @@ export type Database = {
         }
         Update: {
           auditor?: string
-          codigo_auditoria?: string | null
           created_at?: string
           fecha?: string
           fecha_compromiso?: string | null
@@ -202,41 +192,17 @@ export type Database = {
           },
         ]
       }
-      gerencias: {
-        Row: {
-          activo: boolean | null
-          id: number
-          iniciales: string
-          nombre: string
-        }
-        Insert: {
-          activo?: boolean | null
-          id?: number
-          iniciales: string
-          nombre: string
-        }
-        Update: {
-          activo?: boolean | null
-          id?: number
-          iniciales?: string
-          nombre?: string
-        }
-        Relationships: []
-      }
       plantas: {
         Row: {
           id: number
-          iniciales: string | null
           nombre: string
         }
         Insert: {
           id?: number
-          iniciales?: string | null
           nombre: string
         }
         Update: {
           id?: number
-          iniciales?: string | null
           nombre?: string
         }
         Relationships: []
@@ -259,7 +225,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
-          gerencia_id: number | null
+          gerencia: string | null
           id: string
           name: string
           position: string
@@ -267,7 +233,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          gerencia_id?: number | null
+          gerencia?: string | null
           id: string
           name: string
           position: string
@@ -275,21 +241,13 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          gerencia_id?: number | null
+          gerencia?: string | null
           id?: string
           name?: string
           position?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_gerencia_id_fkey"
-            columns: ["gerencia_id"]
-            isOneToOne: false
-            referencedRelation: "gerencias"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       turnos: {
         Row: {
@@ -311,10 +269,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      generate_auditoria_code: {
-        Args: { p_planta_id: number }
-        Returns: string
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
