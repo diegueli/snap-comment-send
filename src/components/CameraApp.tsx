@@ -73,7 +73,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { uploadPhoto, deletePhoto, uploading } = usePhotoUpload();
+  const { uploadPhoto, deletePhoto: deletePhotoFromStorage, uploading } = usePhotoUpload();
 
   // Fetch user profile on component mount
   useEffect(() => {
@@ -241,7 +241,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     }
   }, [currentPhotos.length, stopCamera]);
 
-  const deletePhoto = useCallback((photoId: string) => {
+  const deleteCurrentPhoto = useCallback((photoId: string) => {
     setCurrentPhotos(prev => prev.filter(photo => photo.id !== photoId));
     toast({
       title: "Foto eliminada",
@@ -742,7 +742,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
                       className="w-full aspect-square object-cover rounded-lg shadow-md"
                     />
                     <Button
-                      onClick={() => deletePhoto(photo.id)}
+                      onClick={() => deleteCurrentPhoto(photo.id)}
                       size="sm"
                       variant="destructive"
                       className="absolute top-1 right-1 w-6 h-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
