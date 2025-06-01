@@ -43,6 +43,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   const [loading, setLoading] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [productoOpen, setProductoOpen] = useState(false);
+  const [productoSearchValue, setProductoSearchValue] = useState('');
 
   // Format current date as dd/mm/yyyy
   const getCurrentDateFormatted = () => {
@@ -77,6 +78,29 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
       form.setValue('usuario', profile.name);
     }
   }, [profile, form]);
+
+  // Function to highlight matching text
+  const highlightMatch = (text: string, search: string) => {
+    if (!search.trim()) return text;
+    
+    const regex = new RegExp(`(${search})`, 'gi');
+    const parts = text.split(regex);
+    
+    return parts.map((part, index) => 
+      regex.test(part) ? (
+        <span key={index} className="bg-yellow-200 font-semibold">
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
+  };
+
+  // Filter products based on search
+  const filteredProductos = productos.filter(producto =>
+    producto.nombre?.toLowerCase().includes(productoSearchValue.toLowerCase())
+  );
 
   const loadDropdownData = async () => {
     try {
@@ -381,7 +405,7 @@ Usuario: ${formData.usuario}
                                 ? productos.find(
                                     (producto) => producto.id.toString() === field.value
                                   )?.nombre || "Producto no encontrado"
-                                : "Buscar producto..."}
+                                : productoSearchValue || "Buscar producto..."}
                               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                           </FormControl>
@@ -391,6 +415,8 @@ Usuario: ${formData.usuario}
                             <CommandInput 
                               placeholder="Buscar producto..." 
                               className="h-9"
+                              value={productoSearchValue}
+                              onValueChange={setProductoSearchValue}
                             />
                             <CommandList>
                               <CommandEmpty>
@@ -399,12 +425,13 @@ Usuario: ${formData.usuario}
                                   : "No se encontraron productos"}
                               </CommandEmpty>
                               <CommandGroup>
-                                {productos.map((producto) => (
+                                {filteredProductos.map((producto) => (
                                   <CommandItem
                                     key={producto.id}
                                     value={producto.nombre || `Producto ${producto.id}`}
                                     onSelect={() => {
                                       field.onChange(producto.id.toString());
+                                      setProductoSearchValue('');
                                       setProductoOpen(false);
                                     }}
                                     className="cursor-pointer"
@@ -417,7 +444,12 @@ Usuario: ${formData.usuario}
                                           : "opacity-0"
                                       )}
                                     />
-                                    {producto.nombre || `Producto ${producto.id}`}
+                                    <span>
+                                      {highlightMatch(
+                                        producto.nombre || `Producto ${producto.id}`,
+                                        productoSearchValue
+                                      )}
+                                    </span>
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
