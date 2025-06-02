@@ -34,7 +34,10 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
 
   const { canvasRef, capturePhoto } = usePhotoCapture();
 
-  const handleStartCamera = async () => {
+  const handleStartCamera = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent form submission
+    e.stopPropagation();
+    
     const success = await startCamera(currentArea);
     if (!success) {
       toast({
@@ -45,7 +48,10 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
     }
   };
 
-  const handleCapturePhoto = async () => {
+  const handleCapturePhoto = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent form submission
+    e.stopPropagation();
+    
     const newPhoto = await capturePhoto(videoRef, currentPhotos.map(p => ({
       id: p.id,
       file: p.file,
@@ -78,7 +84,18 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
     }
   };
 
-  const deletePhoto = (photoId: string) => {
+  const handleStopCamera = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent form submission
+    e.stopPropagation();
+    stopCamera();
+  };
+
+  const deletePhoto = (photoId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
     const updatedPhotos = currentPhotos.filter(photo => {
       if (photo.id === photoId) {
         URL.revokeObjectURL(photo.url);
@@ -107,9 +124,10 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
                   className="w-full h-48 object-cover rounded-lg border-2 border-red-200"
                 />
                 <Button
+                  type="button"
                   variant="destructive"
                   size="sm"
-                  onClick={() => deletePhoto(photo.id)}
+                  onClick={(e) => deletePhoto(photo.id, e)}
                   className="absolute top-2 right-2 h-8 w-8 p-0"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -121,6 +139,7 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
             ))}
           </div>
           <Button 
+            type="button"
             onClick={handleStartCamera}
             variant="outline"
             className="w-full border-red-200 text-red-600 hover:bg-red-50"
@@ -156,9 +175,10 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
                       className="w-full h-48 object-cover rounded-lg border-2 border-red-200"
                     />
                     <Button
+                      type="button"
                       variant="destructive"
                       size="sm"
-                      onClick={() => deletePhoto(photo.id)}
+                      onClick={(e) => deletePhoto(photo.id, e)}
                       className="absolute top-2 right-2 h-8 w-8 p-0"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -171,6 +191,7 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
               </div>
             )}
             <Button 
+              type="button"
               onClick={handleStartCamera}
               disabled={cameraPermission === 'denied'}
               className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700"
@@ -186,10 +207,11 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="relative">
+            <div className="relative w-full flex justify-center">
               <video
                 ref={videoRef}
-                className="w-full max-w-md mx-auto rounded-lg border-2 border-red-200"
+                className="w-full max-w-sm rounded-lg border-2 border-red-200"
+                style={{ maxHeight: '400px' }}
                 playsInline
                 muted
                 autoPlay
@@ -200,6 +222,7 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
             </div>
             <div className="flex gap-2 justify-center">
               <Button
+                type="button"
                 onClick={handleCapturePhoto}
                 disabled={currentPhotos.length >= 3}
                 className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700"
@@ -208,7 +231,8 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
                 Capturar Foto
               </Button>
               <Button
-                onClick={stopCamera}
+                type="button"
+                onClick={handleStopCamera}
                 variant="outline"
                 className="border-red-200 text-red-600 hover:bg-red-50"
               >
