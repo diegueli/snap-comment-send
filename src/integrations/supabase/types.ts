@@ -78,7 +78,7 @@ export type Database = {
       auditorias: {
         Row: {
           auditor: string
-          codigo_auditoria: string
+          codigo_auditoria: string | null
           created_at: string
           fecha: string
           fecha_compromiso: string | null
@@ -91,7 +91,7 @@ export type Database = {
         }
         Insert: {
           auditor: string
-          codigo_auditoria: string
+          codigo_auditoria?: string | null
           created_at?: string
           fecha: string
           fecha_compromiso?: string | null
@@ -104,7 +104,7 @@ export type Database = {
         }
         Update: {
           auditor?: string
-          codigo_auditoria?: string
+          codigo_auditoria?: string | null
           created_at?: string
           fecha?: string
           fecha_compromiso?: string | null
@@ -129,7 +129,7 @@ export type Database = {
         Row: {
           area_planta_id: number
           cantidad: number
-          codigo_bloqueo: string
+          codigo_bloqueo: string | null
           created_at: string
           fecha: string
           foto_urls: string[] | null
@@ -146,7 +146,7 @@ export type Database = {
         Insert: {
           area_planta_id: number
           cantidad: number
-          codigo_bloqueo: string
+          codigo_bloqueo?: string | null
           created_at?: string
           fecha: string
           foto_urls?: string[] | null
@@ -163,7 +163,7 @@ export type Database = {
         Update: {
           area_planta_id?: number
           cantidad?: number
-          codigo_bloqueo?: string
+          codigo_bloqueo?: string | null
           created_at?: string
           fecha?: string
           foto_urls?: string[] | null
