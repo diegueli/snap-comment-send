@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -194,6 +193,22 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('🛑 Form submit triggered');
+    
+    // Prevent default form submission
+    const formData = form.getValues();
+    const validationResult = form.trigger();
+    
+    if (!await validationResult) {
+      console.log('❌ Form validation failed');
+      return;
+    }
+
+    await onSubmit(formData);
   };
 
   const onSubmit = async (data: BloqueosFormData) => {
@@ -404,7 +419,7 @@ Se han adjuntado ${photos.length} foto(s) como evidencia del bloqueo.`;
         </CardHeader>
         <CardContent className="p-6">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}

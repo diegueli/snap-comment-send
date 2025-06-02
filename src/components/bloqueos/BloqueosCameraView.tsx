@@ -1,10 +1,11 @@
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Camera, X, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { useCamera } from '@/hooks/useCamera';
+import { usePhotoCapture } from '@/hooks/usePhotoCapture';
 
 interface Photo {
   id: string;
@@ -21,78 +22,44 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
   onPhotosChange, 
   currentPhotos 
 }) => {
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [currentArea] = useState('Evidencia Bloqueo');
+  
+  const { 
+    isCapturing, 
+    cameraPermission, 
+    videoRef, 
+    startCamera, 
+    stopCamera 
+  } = useCamera();
 
-  const startCamera = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          width: { ideal: 800 },
-          height: { ideal: 600 },
-          facingMode: 'environment' 
-        }
-      });
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-        setIsCapturing(true);
-        setCameraPermission('granted');
-      }
-    } catch (error) {
-      console.error('Error accessing camera:', error);
-      setCameraPermission('denied');
+  const { canvasRef, capturePhoto } = usePhotoCapture();
+
+  const handleStartCamera = async () => {
+    const success = await startCamera(currentArea);
+    if (!success) {
       toast({
         title: "Error de cámara",
         description: "No se pudo acceder a la cámara. Verifica los permisos.",
         variant: "destructive",
       });
     }
-  }, []);
+  };
 
-  const stopCamera = useCallback(() => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-      videoRef.current.srcObject = null;
-    }
-    setIsCapturing(false);
-  }, []);
-
-  const capturePhoto = useCallback(async () => {
-    if (!videoRef.current || !canvasRef.current) return;
-
-    const canvas = canvasRef.current;
-    const video = videoRef.current;
-    const context = canvas.getContext('2d');
-
-    if (!context) return;
-
-    // Set canvas size to 800x600
-    canvas.width = 800;
-    canvas.height = 600;
-
-    // Draw and resize the video frame
-    context.drawImage(video, 0, 0, 800, 600);
-
-    // Convert to blob with specific quality
-    canvas.toBlob(async (blob) => {
-      if (!blob) return;
-
-      const file = new File([blob], `bloqueo-${Date.now()}.jpg`, { 
-        type: 'image/jpeg' 
-      });
-
-      const newPhoto: Photo = {
-        id: `photo-${Date.now()}`,
-        url: URL.createObjectURL(blob),
-        file: file
+  const handleCapturePhoto = async () => {
+    const newPhoto = await capturePhoto(videoRef, currentPhotos.map(p => ({
+      id: p.id,
+      file: p.file,
+      timestamp: new Date()
+    })));
+    
+    if (newPhoto) {
+      const photoWithUrl: Photo = {
+        id: newPhoto.id,
+        url: URL.createObjectURL(newPhoto.file),
+        file: newPhoto.file
       };
 
-      const updatedPhotos = [...currentPhotos, newPhoto];
+      const updatedPhotos = [...currentPhotos, photoWithUrl];
       onPhotosChange(updatedPhotos);
 
       toast({
@@ -108,10 +75,10 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
           description: "Se han capturado las 3 fotos requeridas para el bloqueo.",
         });
       }
-    }, 'image/jpeg', 0.8);
-  }, [currentPhotos, onPhotosChange, stopCamera]);
+    }
+  };
 
-  const deletePhoto = useCallback((photoId: string) => {
+  const deletePhoto = (photoId: string) => {
     const updatedPhotos = currentPhotos.filter(photo => {
       if (photo.id === photoId) {
         URL.revokeObjectURL(photo.url);
@@ -120,7 +87,7 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
       return true;
     });
     onPhotosChange(updatedPhotos);
-  }, [currentPhotos, onPhotosChange]);
+  };
 
   if (currentPhotos.length >= 3) {
     return (
@@ -154,7 +121,7 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
             ))}
           </div>
           <Button 
-            onClick={startCamera}
+            onClick={handleStartCamera}
             variant="outline"
             className="w-full border-red-200 text-red-600 hover:bg-red-50"
           >
@@ -204,7 +171,7 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
               </div>
             )}
             <Button 
-              onClick={startCamera}
+              onClick={handleStartCamera}
               disabled={cameraPermission === 'denied'}
               className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700"
             >
@@ -225,6 +192,7 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
                 className="w-full max-w-md mx-auto rounded-lg border-2 border-red-200"
                 playsInline
                 muted
+                autoPlay
               />
               <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-sm font-medium">
                 Fotos: {currentPhotos.length}/3
@@ -232,7 +200,7 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
             </div>
             <div className="flex gap-2 justify-center">
               <Button
-                onClick={capturePhoto}
+                onClick={handleCapturePhoto}
                 disabled={currentPhotos.length >= 3}
                 className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700"
               >
