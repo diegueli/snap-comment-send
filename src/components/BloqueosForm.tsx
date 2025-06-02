@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -54,6 +55,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   const [productoSearchValue, setProductoSearchValue] = useState('');
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [codigoBloqueo, setCodigoBloqueo] = useState<string>('');
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
 
   // Format current date as dd/mm/yyyy
   const getCurrentDateFormatted = () => {
@@ -242,7 +244,26 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         foto_urls: [], // Will be updated after photo upload
       });
 
-      // First create the bloqueo record
+      // Upload photos first if any
+      let uploadedPhotoUrls: string[] = [];
+      if (photos.length > 0) {
+        try {
+          console.log('📸 Subiendo fotos al bucket...');
+          uploadedPhotoUrls = await uploadBloqueosPhotos(photos, codigoBloqueo);
+          setPhotoUrls(uploadedPhotoUrls);
+          console.log('✅ Fotos subidas:', uploadedPhotoUrls);
+        } catch (photoError) {
+          console.error('❌ Error al subir fotos:', photoError);
+          toast({
+            title: "Error",
+            description: "Error al subir las fotos. Por favor intenta de nuevo.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      // Create the bloqueo record with photo URLs
       const { data: bloqueosData, error } = await supabase.from('bloqueos').insert({
         planta_id: parseInt(data.planta_id),
         area_planta_id: parseInt(data.area_planta_id),
@@ -255,7 +276,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         quien_bloqueo: data.usuario,
         user_id: user.id,
         codigo_bloqueo: codigoBloqueo,
-        foto_urls: [],
+        foto_urls: uploadedPhotoUrls,
       }).select().single();
 
       if (error) {
@@ -264,35 +285,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
       }
 
       console.log('✅ Bloqueo creado exitosamente:', bloqueosData);
-
-      // Upload photos if any
-      let photoUrls: string[] = [];
-      if (photos.length > 0) {
-        try {
-          console.log('📸 Subiendo fotos al bucket...');
-          photoUrls = await uploadBloqueosPhotos(photos, codigoBloqueo);
-          
-          // Update the bloqueo record with photo URLs
-          const { error: updateError } = await supabase
-            .from('bloqueos')
-            .update({ foto_urls: photoUrls })
-            .eq('id', bloqueosData.id);
-
-          if (updateError) {
-            console.error('❌ Error actualizando URLs de fotos:', updateError);
-            throw updateError;
-          }
-
-          console.log('✅ Fotos subidas y URLs actualizadas:', photoUrls);
-        } catch (photoError) {
-          console.error('❌ Error al subir fotos:', photoError);
-          toast({
-            title: "Advertencia",
-            description: "El bloqueo se creó pero hubo un error al subir las fotos",
-            variant: "destructive",
-          });
-        }
-      }
 
       toast({
         title: "Bloqueo creado",
@@ -339,11 +331,21 @@ Fecha: ${formData.fecha}
 Usuario: ${formData.usuario}`;
 
     // Add photo URLs if available
-    if (photos.length > 0) {
+    if (photoUrls.length > 0) {
       emailBody += `
 
 Evidencia Fotográfica:
-Se han adjuntado ${photos.length} foto(s) como evidencia del bloqueo.`;
+`;
+      photoUrls.forEach((url, index) => {
+        emailBody += `Foto ${index + 1}: ${url}
+`;
+      });
+    } else if (photos.length > 0) {
+      emailBody += `
+
+Evidencia Fotográfica:
+Se han adjuntado ${photos.length} foto(s) como evidencia del bloqueo.
+Nota: Las URLs de las fotos estarán disponibles después de registrar el bloqueo.`;
     }
 
     setSendingEmail(true);

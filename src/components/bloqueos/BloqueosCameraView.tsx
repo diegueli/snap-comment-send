@@ -220,7 +220,7 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
                 Fotos: {currentPhotos.length}/3
               </div>
             </div>
-            <div className="flex gap-2 justify-center">
+            <div className="flex flex-col gap-2 justify-center">
               <Button
                 type="button"
                 onClick={handleCapturePhoto}
