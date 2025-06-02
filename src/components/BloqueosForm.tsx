@@ -15,6 +15,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { X, Mail, Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import BloqueosCameraView from './bloqueos/BloqueosCameraView';
+import { uploadBloqueosPhotos } from '@/utils/bloqueosPhotoUpload';
 
 const bloqueosSchema = z.object({
   planta_id: z.string().min(1, 'Selecciona una planta'),
@@ -34,6 +36,12 @@ interface BloqueosFormProps {
   onClose: () => void;
 }
 
+interface Photo {
+  id: string;
+  url: string;
+  file: File;
+}
+
 const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   const { user, profile } = useAuth();
   const [plantas, setPlantas] = useState<Array<{ id: number; nombre: string }>>([]);
@@ -44,6 +52,8 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [productoOpen, setProductoOpen] = useState(false);
   const [productoSearchValue, setProductoSearchValue] = useState('');
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [showCamera, setShowCamera] = useState(false);
 
   // Format current date as dd/mm/yyyy
   const getCurrentDateFormatted = () => {
@@ -180,7 +190,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
       console.log('💾 Enviando datos de bloqueo:', {
         planta_id: parseInt(data.planta_id),
         area_planta_id: parseInt(data.area_planta_id),
-        producto_id: parseInt(data.producto_id), // Cambio aquí: mantenemos parseInt para compatibilidad
+        producto_id: parseInt(data.producto_id),
         cantidad: data.cantidad,
         lote: data.lote,
         turno_id: parseInt(data.turno_id),
@@ -188,9 +198,11 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         fecha: dbDate,
         quien_bloqueo: data.usuario,
         user_id: user.id,
+        foto_urls: [], // Will be updated after photo upload
       });
 
-      const { error } = await supabase.from('bloqueos').insert({
+      // First create the bloqueo record
+      const { data: bloqueosData, error } = await supabase.from('bloqueos').insert({
         planta_id: parseInt(data.planta_id),
         area_planta_id: parseInt(data.area_planta_id),
         producto_id: parseInt(data.producto_id),
@@ -201,20 +213,55 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         fecha: dbDate,
         quien_bloqueo: data.usuario,
         user_id: user.id,
-      });
+        foto_urls: [],
+      }).select().single();
 
       if (error) {
         console.error('❌ Error al insertar bloqueo:', error);
         throw error;
       }
 
-      console.log('✅ Bloqueo creado exitosamente');
+      console.log('✅ Bloqueo creado exitosamente:', bloqueosData);
+
+      // Upload photos if any
+      let photoUrls: string[] = [];
+      if (photos.length > 0) {
+        try {
+          console.log('📸 Subiendo fotos al bucket...');
+          photoUrls = await uploadBloqueosPhotos(photos, bloqueosData.id);
+          
+          // Update the bloqueo record with photo URLs
+          const { error: updateError } = await supabase
+            .from('bloqueos')
+            .update({ foto_urls: photoUrls })
+            .eq('id', bloqueosData.id);
+
+          if (updateError) {
+            console.error('❌ Error actualizando URLs de fotos:', updateError);
+            throw updateError;
+          }
+
+          console.log('✅ Fotos subidas y URLs actualizadas:', photoUrls);
+        } catch (photoError) {
+          console.error('❌ Error al subir fotos:', photoError);
+          toast({
+            title: "Advertencia",
+            description: "El bloqueo se creó pero hubo un error al subir las fotos",
+            variant: "destructive",
+          });
+        }
+      }
+
       toast({
         title: "Bloqueo creado",
-        description: "El bloqueo se ha registrado exitosamente. Los valores se conservan para envío por correo.",
+        description: `El bloqueo se ha registrado exitosamente${photos.length > 0 ? ' con evidencia fotográfica' : ''}. Los valores se conservan para envío por correo.`,
       });
 
-      // Note: Form values are preserved after successful submission for potential email sending
+      // Clear photos after successful submission
+      photos.forEach(photo => URL.revokeObjectURL(photo.url));
+      setPhotos([]);
+      setShowCamera(false);
+
     } catch (error: any) {
       console.error('💥 Error creating bloqueo:', error);
       toast({
@@ -236,7 +283,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
     const productoName = productos.find(p => p.id.toString() === formData.producto_id)?.nombre || 'No seleccionado';
     const turnoName = turnos.find(t => t.id.toString() === formData.turno_id)?.nombre || 'No seleccionado';
 
-    const emailBody = `
+    let emailBody = `
 Datos del Bloqueo:
 
 Planta: ${plantaName}
@@ -247,8 +294,15 @@ Lote: ${formData.lote}
 Turno: ${turnoName}
 Motivo: ${formData.motivo}
 Fecha: ${formData.fecha}
-Usuario: ${formData.usuario}
-    `;
+Usuario: ${formData.usuario}`;
+
+    // Add photo URLs if available
+    if (photos.length > 0) {
+      emailBody += `
+
+Evidencia Fotográfica:
+Se han adjuntado ${photos.length} foto(s) como evidencia del bloqueo.`;
+    }
 
     setSendingEmail(true);
     try {
@@ -265,7 +319,6 @@ Usuario: ${formData.usuario}
         description: "Se ha abierto tu cliente de correo predeterminado con los datos del bloqueo",
       });
 
-      // Note: Form values are preserved after sending email for potential re-sending
     } catch (error) {
       console.error('Error opening email client:', error);
       toast({
@@ -584,6 +637,13 @@ Usuario: ${formData.usuario}
                         className="resize-none border-red-200 focus:border-red-400"
                         maxLength={150}
                         {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          // Show camera after completing motivo
+                          if (e.target.value.trim().length > 0 && !showCamera) {
+                            setShowCamera(true);
+                          }
+                        }}
                       />
                     </FormControl>
                     <div className="text-sm text-gray-500 text-right">
@@ -593,6 +653,16 @@ Usuario: ${formData.usuario}
                   </FormItem>
                 )}
               />
+
+              {/* Camera Section */}
+              {showCamera && (
+                <div className="mt-6">
+                  <BloqueosCameraView
+                    currentPhotos={photos}
+                    onPhotosChange={setPhotos}
+                  />
+                </div>
+              )}
 
               <div className="flex flex-col sm:flex-row gap-3 pt-6">
                 <Button 

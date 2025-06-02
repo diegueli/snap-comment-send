@@ -131,6 +131,7 @@ export type Database = {
           cantidad: number
           created_at: string
           fecha: string
+          foto_urls: string[] | null
           id: string
           lote: number
           motivo: string
@@ -146,6 +147,7 @@ export type Database = {
           cantidad: number
           created_at?: string
           fecha: string
+          foto_urls?: string[] | null
           id?: string
           lote: number
           motivo: string
@@ -161,6 +163,7 @@ export type Database = {
           cantidad?: number
           created_at?: string
           fecha?: string
+          foto_urls?: string[] | null
           id?: string
           lote?: number
           motivo?: string
