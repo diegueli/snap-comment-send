@@ -9,13 +9,13 @@ interface Photo {
 
 export const uploadBloqueosPhotos = async (
   photos: Photo[],
-  bloqueosId: string
+  codigoBloqueo: string
 ): Promise<string[]> => {
   const uploadedUrls: string[] = [];
 
   for (let i = 0; i < photos.length; i++) {
     const photo = photos[i];
-    const fileName = `bloqueo_${bloqueosId}_foto_${i + 1}_${Date.now()}.jpg`;
+    const fileName = `${codigoBloqueo}/foto_${i + 1}_${Date.now()}.jpg`;
     
     try {
       const { data, error } = await supabase.storage

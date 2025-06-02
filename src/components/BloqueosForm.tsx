@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -53,7 +54,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   const [productoOpen, setProductoOpen] = useState(false);
   const [productoSearchValue, setProductoSearchValue] = useState('');
   const [photos, setPhotos] = useState<Photo[]>([]);
-  const [showCamera, setShowCamera] = useState(false);
+  const [codigoBloqueo, setCodigoBloqueo] = useState<string>('');
 
   // Format current date as dd/mm/yyyy
   const getCurrentDateFormatted = () => {
@@ -88,6 +89,30 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
       form.setValue('usuario', profile.name);
     }
   }, [profile, form]);
+
+  // Generate codigo bloqueo when planta changes
+  useEffect(() => {
+    const generateCodigoBloqueo = async () => {
+      const plantaId = form.watch('planta_id');
+      if (plantaId) {
+        try {
+          const { data, error } = await supabase.rpc('generate_bloqueo_code', {
+            p_planta_id: parseInt(plantaId)
+          });
+          
+          if (error) {
+            console.error('Error generating bloqueo code:', error);
+          } else {
+            setCodigoBloqueo(data);
+          }
+        } catch (error) {
+          console.error('Error generating bloqueo code:', error);
+        }
+      }
+    };
+
+    generateCodigoBloqueo();
+  }, [form.watch('planta_id')]);
 
   // Function to highlight matching text
   const highlightMatch = (text: string, search: string) => {
@@ -198,6 +223,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         fecha: dbDate,
         quien_bloqueo: data.usuario,
         user_id: user.id,
+        codigo_bloqueo: codigoBloqueo,
         foto_urls: [], // Will be updated after photo upload
       });
 
@@ -213,6 +239,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         fecha: dbDate,
         quien_bloqueo: data.usuario,
         user_id: user.id,
+        codigo_bloqueo: codigoBloqueo,
         foto_urls: [],
       }).select().single();
 
@@ -228,7 +255,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
       if (photos.length > 0) {
         try {
           console.log('📸 Subiendo fotos al bucket...');
-          photoUrls = await uploadBloqueosPhotos(photos, bloqueosData.id);
+          photoUrls = await uploadBloqueosPhotos(photos, codigoBloqueo);
           
           // Update the bloqueo record with photo URLs
           const { error: updateError } = await supabase
@@ -254,13 +281,12 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
 
       toast({
         title: "Bloqueo creado",
-        description: `El bloqueo se ha registrado exitosamente${photos.length > 0 ? ' con evidencia fotográfica' : ''}. Los valores se conservan para envío por correo.`,
+        description: `El bloqueo ${codigoBloqueo} se ha registrado exitosamente${photos.length > 0 ? ' con evidencia fotográfica' : ''}. Los valores se conservan para envío por correo.`,
       });
 
       // Clear photos after successful submission
       photos.forEach(photo => URL.revokeObjectURL(photo.url));
       setPhotos([]);
-      setShowCamera(false);
 
     } catch (error: any) {
       console.error('💥 Error creating bloqueo:', error);
@@ -286,6 +312,7 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
     let emailBody = `
 Datos del Bloqueo:
 
+Código de Bloqueo: ${codigoBloqueo}
 Planta: ${plantaName}
 Area de Planta: ${areaName}
 Producto: ${productoName}
@@ -306,8 +333,8 @@ Se han adjuntado ${photos.length} foto(s) como evidencia del bloqueo.`;
 
     setSendingEmail(true);
     try {
-      // Create mailto link with enhanced subject
-      const subject = encodeURIComponent(`Registro de Bloqueo - ${plantaName} - ${productoName} - ${formData.fecha}`);
+      // Create mailto link with enhanced subject including codigo_bloqueo
+      const subject = encodeURIComponent(`Registro de Bloqueo ${codigoBloqueo} - ${plantaName} - ${productoName} - ${formData.fecha}`);
       const body = encodeURIComponent(emailBody.trim());
       const mailtoLink = `mailto:?subject=${subject}&body=${body}`;
       
@@ -316,7 +343,7 @@ Se han adjuntado ${photos.length} foto(s) como evidencia del bloqueo.`;
       
       toast({
         title: "Cliente de correo abierto",
-        description: "Se ha abierto tu cliente de correo predeterminado con los datos del bloqueo",
+        description: `Se ha abierto tu cliente de correo predeterminado con los datos del bloqueo ${codigoBloqueo}`,
       });
 
     } catch (error) {
@@ -345,6 +372,11 @@ Se han adjuntado ${photos.length} foto(s) como evidencia del bloqueo.`;
           </div>
           <CardTitle className="text-2xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent mb-2">
             Módulo de Bloqueos
+            {codigoBloqueo && (
+              <span className="block text-lg font-semibold text-red-700 mt-2">
+                Código: {codigoBloqueo}
+              </span>
+            )}
           </CardTitle>
           <p className="text-gray-700 text-sm leading-relaxed max-w-2xl mx-auto">
             Este módulo permite registrar y gestionar bloqueos de productos en el sistema. 
@@ -637,13 +669,6 @@ Se han adjuntado ${photos.length} foto(s) como evidencia del bloqueo.`;
                         className="resize-none border-red-200 focus:border-red-400"
                         maxLength={150}
                         {...field}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          // Show camera after completing motivo
-                          if (e.target.value.trim().length > 0 && !showCamera) {
-                            setShowCamera(true);
-                          }
-                        }}
                       />
                     </FormControl>
                     <div className="text-sm text-gray-500 text-right">
@@ -654,15 +679,13 @@ Se han adjuntado ${photos.length} foto(s) como evidencia del bloqueo.`;
                 )}
               />
 
-              {/* Camera Section */}
-              {showCamera && (
-                <div className="mt-6">
-                  <BloqueosCameraView
-                    currentPhotos={photos}
-                    onPhotosChange={setPhotos}
-                  />
-                </div>
-              )}
+              {/* Camera Section - Always visible */}
+              <div className="mt-6">
+                <BloqueosCameraView
+                  currentPhotos={photos}
+                  onPhotosChange={setPhotos}
+                />
+              </div>
 
               <div className="flex flex-col sm:flex-row gap-3 pt-6">
                 <Button 

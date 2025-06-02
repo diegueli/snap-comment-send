@@ -129,6 +129,7 @@ export type Database = {
         Row: {
           area_planta_id: number
           cantidad: number
+          codigo_bloqueo: string | null
           created_at: string
           fecha: string
           foto_urls: string[] | null
@@ -145,6 +146,7 @@ export type Database = {
         Insert: {
           area_planta_id: number
           cantidad: number
+          codigo_bloqueo?: string | null
           created_at?: string
           fecha: string
           foto_urls?: string[] | null
@@ -161,6 +163,7 @@ export type Database = {
         Update: {
           area_planta_id?: number
           cantidad?: number
+          codigo_bloqueo?: string | null
           created_at?: string
           fecha?: string
           foto_urls?: string[] | null
@@ -329,6 +332,10 @@ export type Database = {
     }
     Functions: {
       generate_auditoria_code: {
+        Args: { p_planta_id: number }
+        Returns: string
+      }
+      generate_bloqueo_code: {
         Args: { p_planta_id: number }
         Returns: string
       }
