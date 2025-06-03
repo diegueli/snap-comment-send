@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { X, FileDown, RotateCcw } from 'lucide-react';
+import { ArrowLeft, FileDown, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -253,7 +252,8 @@ const ResumenAuditoriasForm = ({ onClose }: ResumenAuditoriasFormProps) => {
               size="sm"
               className="bg-white/80 backdrop-blur-sm border-white"
             >
-              <X className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Volver
             </Button>
           </div>
 
@@ -279,7 +279,8 @@ const ResumenAuditoriasForm = ({ onClose }: ResumenAuditoriasFormProps) => {
             size="sm"
             className="bg-white/80 backdrop-blur-sm border-white"
           >
-            <X className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Volver
           </Button>
         </div>
 

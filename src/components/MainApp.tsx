@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,11 +57,11 @@ const MainApp: React.FC = () => {
     return (
       <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-screen flex items-center justify-center p-4">
         <div className="max-w-md mx-auto">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-end mb-6">
             <Button
               onClick={handleCloseModule}
               variant="outline"
-              className="border-white/30 text-white hover:bg-white/10 backdrop-blur-sm"
+              className="border-white/30 text-black hover:bg-white/10 backdrop-blur-sm"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Volver
@@ -110,7 +111,7 @@ const MainApp: React.FC = () => {
   if (showAuditoriaMenu) {
     return (
       <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <div className="flex justify-end mb-4">
             <Button
               onClick={handleCloseModule}
@@ -190,7 +191,7 @@ const MainApp: React.FC = () => {
                 </Card>
               </div>
 
-              <div className="flex justify-center mt-8 space-x-4">
+              <div className="flex justify-center mt-8">
                 <Button
                   onClick={handleCloseModule}
                   variant="outline"
@@ -198,14 +199,6 @@ const MainApp: React.FC = () => {
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Volver al Menú Principal
-                </Button>
-                <Button
-                  onClick={handleReinicio}
-                  variant="outline"
-                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                >
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  Reiniciar
                 </Button>
               </div>
             </CardContent>
@@ -220,15 +213,16 @@ const MainApp: React.FC = () => {
       <div className="max-w-4xl mx-auto">
         <Card className="bg-white/95 backdrop-blur-sm shadow-2xl">
           <CardHeader>
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex-1 text-center">
-                <CardTitle className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-red-600 bg-clip-text text-transparent mb-2">
-                  Quinta Alimentos
-                </CardTitle>
-                <p className="text-gray-600">
-                  Sistema de Gestión de Calidad
-                </p>
-              </div>
+            <div className="text-center mb-6">
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-red-600 bg-clip-text text-transparent mb-2">
+                Quinta Alimentos
+              </CardTitle>
+              <p className="text-gray-600 text-lg">
+                Sistema de Gestión de Calidad
+              </p>
+            </div>
+            
+            <div className="flex justify-center mb-6">
               <Button
                 onClick={handleSignOut}
                 variant="outline"

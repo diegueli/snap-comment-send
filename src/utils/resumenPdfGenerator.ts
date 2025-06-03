@@ -93,7 +93,7 @@ export const generateResumenPDF = async (auditoriaInfo: AuditoriaInfo, sets: Aud
   // Sets de auditoría con fotografías y gestión
   pdf.setFontSize(14);
   pdf.setTextColor(196, 47, 47);
-  pdf.text('SETS DE AUDITORÍA CON GESTIÓN', margin, yPosition);
+  pdf.text('SETS DE AUDITORÍA', margin, yPosition);
   yPosition += 15;
 
   for (let i = 0; i < sets.length; i++) {
@@ -202,38 +202,6 @@ export const generateResumenPDF = async (auditoriaInfo: AuditoriaInfo, sets: Aud
     pdf.line(margin + 5, yPosition, pageWidth - margin - 5, yPosition);
     yPosition += 15;
   }
-
-  // Resumen de gestión
-  if (yPosition > pageHeight - 80) {
-    pdf.addPage();
-    yPosition = margin;
-  }
-
-  pdf.setFontSize(12);
-  pdf.setTextColor(196, 47, 47);
-  pdf.text('RESUMEN DE GESTIÓN', margin, yPosition);
-  yPosition += 15;
-
-  const totalSets = sets.length;
-  const setsConEvidencia = sets.filter(set => set.evidencia_foto_url).length;
-  const setsConFechaCompromiso = sets.filter(set => set.fecha_compromiso).length;
-  const setsPendientes = totalSets - setsConEvidencia - setsConFechaCompromiso;
-
-  pdf.setFontSize(10);
-  pdf.setTextColor(0, 0, 0);
-  
-  const resumenLines = [
-    `Total de Sets: ${totalSets}`,
-    `Sets con Evidencia Fotográfica: ${setsConEvidencia}`,
-    `Sets con Fecha de Compromiso: ${setsConFechaCompromiso}`,
-    `Sets Pendientes: ${setsPendientes}`,
-    `Porcentaje de Gestión: ${totalSets > 0 ? Math.round(((setsConEvidencia + setsConFechaCompromiso) / totalSets) * 100) : 0}%`
-  ];
-
-  resumenLines.forEach(line => {
-    pdf.text(line, margin, yPosition);
-    yPosition += 8;
-  });
 
   // Firma del auditor
   yPosition += 20;

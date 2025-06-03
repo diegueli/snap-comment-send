@@ -1,28 +1,18 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Camera, X, Send, RotateCcw, ArrowLeft } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { ArrowLeft, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { cn } from '@/lib/utils';
 import GestionCameraView from './gestion/GestionCameraView';
-
-interface AuditoriaInfo {
-  codigo_auditoria: string;
-  titulo_documento: string;
-  fecha: string;
-  auditor: string;
-  planta_nombre: string;
-  status: string;
-}
 
 interface AuditoriaSet {
   id: string;
@@ -40,80 +30,30 @@ interface GestionAuditoriaFormProps {
 
 const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
   const { user, profile } = useAuth();
-  const [auditoriasDisponibles, setAuditoriasDisponibles] = useState<AuditoriaInfo[]>([]);
+  const [auditoriasDisponibles, setAuditoriasDisponibles] = useState<string[]>([]);
   const [auditoriaSeleccionada, setAuditoriaSeleccionada] = useState<string>('');
-  const [auditoriaInfo, setAuditoriaInfo] = useState<AuditoriaInfo | null>(null);
   const [auditoriaSets, setAuditoriaSets] = useState<AuditoriaSet[]>([]);
-  const [selectedSetId, setSelectedSetId] = useState<string | null>(null);
+  const [respuestasSet, setRespuestasSet] = useState<{ [key: string]: { tipo: 'evidencia' | 'fecha'; fechaCompromiso?: string } }>({});
   const [showCamera, setShowCamera] = useState(false);
-  const [fechaCompromiso, setFechaCompromiso] = useState<Date | undefined>(undefined);
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [gerenciaNombre, setGerenciaNombre] = useState<string>('');
-  const [gerenciaId, setGerenciaId] = useState<number | null>(null);
-  const [currentArea, setCurrentArea] = useState<string>('');
+  const [currentSetId, setCurrentSetId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
-  const [selectedSetForDate, setSelectedSetForDate] = useState<string | null>(null);
-
-  // Cargar información de la gerencia del usuario desde la tabla profiles
-  useEffect(() => {
-    const loadUserProfile = async () => {
-      if (!user?.id) return;
-
-      try {
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select(`
-            gerencia_id,
-            gerencias:gerencia_id (
-              id,
-              nombre
-            )
-          `)
-          .eq('id', user.id)
-          .single();
-
-        if (profileError) throw profileError;
-
-        if (profileData?.gerencias) {
-          setGerenciaId(profileData.gerencia_id);
-          setGerenciaNombre(profileData.gerencias.nombre);
-        }
-      } catch (error) {
-        console.error('Error loading user profile:', error);
-      }
-    };
-
-    loadUserProfile();
-  }, [user?.id]);
 
   // Cargar auditorías disponibles
   useEffect(() => {
     const loadAuditorias = async () => {
+      if (!user?.id) return;
+
       try {
-        const { data, error } = await supabase
-          .from('auditorias')
-          .select(`
-            codigo_auditoria,
-            titulo_documento,
-            fecha,
-            auditor,
-            status,
-            plantas:planta_id (nombre)
-          `)
-          .eq('status', 'Activo');
+        // Obtener auditorías donde el usuario esté involucrado como responsable en algún set
+        const { data: setsData, error: setsError } = await supabase
+          .from('auditoria_sets')
+          .select('auditoria_codigo')
+          .eq('gerencia_resp_id', profile?.gerencia_id);
 
-        if (error) throw error;
+        if (setsError) throw setsError;
 
-        const auditoriasFormatted = data.map(item => ({
-          codigo_auditoria: item.codigo_auditoria,
-          titulo_documento: item.titulo_documento,
-          fecha: item.fecha,
-          auditor: item.auditor,
-          planta_nombre: item.plantas?.nombre || 'Sin planta',
-          status: item.status || 'Activo'
-        }));
-
-        setAuditoriasDisponibles(auditoriasFormatted);
+        const codigosUnicos = [...new Set(setsData?.map(set => set.auditoria_codigo) || [])];
+        setAuditoriasDisponibles(codigosUnicos);
       } catch (error) {
         console.error('Error loading auditorías:', error);
         toast({
@@ -125,43 +65,33 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
     };
 
     loadAuditorias();
-  }, []);
-
-  // Verificar si el set puede responder (ambos campos son null)
-  const canRespondSet = (set: AuditoriaSet) => {
-    return set.evidencia_foto_url === null && set.fecha_compromiso === null;
-  };
-
-  // Verificar si el set ya fue procesado (tiene respuesta en BD)
-  const isSetProcessed = (set: AuditoriaSet) => {
-    return set.evidencia_foto_url !== null || set.fecha_compromiso !== null;
-  };
+  }, [user?.id, profile?.gerencia_id]);
 
   // Cargar sets de la auditoría seleccionada
   const loadAuditoriaSets = useCallback(async (codigoAuditoria: string) => {
-    if (!gerenciaNombre) return;
-
     try {
       const { data, error } = await supabase
         .from('auditoria_sets')
         .select('*')
         .eq('auditoria_codigo', codigoAuditoria)
-        .eq('responsable', gerenciaNombre);
+        .eq('gerencia_resp_id', profile?.gerencia_id);
 
       if (error) throw error;
 
-      // Convertir los datos para el formato esperado
-      const setsFormatted = (data || []).map(set => ({
-        id: set.id,
-        area: set.area,
-        levantamiento: set.levantamiento || '',
-        responsable: set.responsable || '',
-        foto_urls: set.foto_urls || [],
-        evidencia_foto_url: set.evidencia_foto_url,
-        fecha_compromiso: set.fecha_compromiso
-      }));
+      // Ordenar alfabéticamente por área
+      const setsOrdenados = (data || [])
+        .map(set => ({
+          id: set.id,
+          area: set.area,
+          levantamiento: set.levantamiento || '',
+          responsable: set.responsable || '',
+          foto_urls: set.foto_urls || [],
+          evidencia_foto_url: set.evidencia_foto_url,
+          fecha_compromiso: set.fecha_compromiso
+        }))
+        .sort((a, b) => a.area.localeCompare(b.area));
 
-      setAuditoriaSets(setsFormatted);
+      setAuditoriaSets(setsOrdenados);
     } catch (error) {
       console.error('Error loading auditoria sets:', error);
       toast({
@@ -170,63 +100,64 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
         variant: "destructive",
       });
     }
-  }, [gerenciaNombre]);
+  }, [profile?.gerencia_id]);
 
   // Manejar selección de auditoría
   const handleAuditoriaSelection = useCallback(async (codigoAuditoria: string) => {
     setAuditoriaSeleccionada(codigoAuditoria);
-    
-    const auditoria = auditoriasDisponibles.find(a => a.codigo_auditoria === codigoAuditoria);
-    setAuditoriaInfo(auditoria || null);
-    
     await loadAuditoriaSets(codigoAuditoria);
-  }, [auditoriasDisponibles, loadAuditoriaSets]);
+  }, [loadAuditoriaSets]);
 
-  // Manejar captura de evidencia fotográfica
-  const handleCaptureEvidence = (setId: string, area: string) => {
-    setSelectedSetId(setId);
-    setCurrentArea(area);
-    setShowCamera(true);
+  // Manejar respuesta del set
+  const handleRespuestaChange = (setId: string, tipo: 'evidencia' | 'fecha', fechaCompromiso?: string) => {
+    setRespuestasSet(prev => ({
+      ...prev,
+      [setId]: { tipo, fechaCompromiso }
+    }));
   };
 
   // Manejar foto capturada
-  const handlePhotoTaken = async (photoFile: File) => {
-    if (!selectedSetId || !auditoriaSeleccionada || !currentArea) return;
+  const handlePhotoCapture = async (file: File) => {
+    if (!currentSetId || !auditoriaSeleccionada) return;
 
     try {
-      // Subir foto a storage en subcarpeta de gestión
-      const cleanAreaName = currentArea.replace(/[^a-zA-Z0-9]/g, '_');
-      const fileName = `${auditoriaSeleccionada}_Gestion_Auditoria/${cleanAreaName}_${Date.now()}.jpg`;
-      
-      const { data, error } = await supabase.storage
-        .from('bucket_auditorias')
-        .upload(fileName, photoFile, {
-          contentType: 'image/jpeg',
-        });
+      const fileName = `${Date.now()}_evidencia.jpg`;
+      const filePath = `${auditoriaSeleccionada}_Gestion_Auditoria/${fileName}`;
 
-      if (error) throw error;
+      const { error: uploadError } = await supabase.storage
+        .from('bucket_auditorias')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
         .from('bucket_auditorias')
-        .getPublicUrl(fileName);
+        .getPublicUrl(filePath);
 
-      // Actualizar estado local con la nueva evidencia fotográfica
+      const { error: updateError } = await supabase
+        .from('auditoria_sets')
+        .update({ evidencia_foto_url: publicUrl })
+        .eq('id', currentSetId);
+
+      if (updateError) throw updateError;
+
+      // Actualizar estado local
       setAuditoriaSets(prev => prev.map(set => 
-        set.id === selectedSetId 
+        set.id === currentSetId 
           ? { ...set, evidencia_foto_url: publicUrl }
           : set
       ));
 
       setShowCamera(false);
-      setSelectedSetId(null);
-      setCurrentArea('');
-
+      setCurrentSetId(null);
+      
       toast({
         title: "Evidencia guardada",
         description: "La evidencia fotográfica ha sido guardada exitosamente.",
       });
+
     } catch (error) {
-      console.error('Error saving evidence:', error);
+      console.error('Error saving evidence photo:', error);
       toast({
         title: "Error",
         description: "No se pudo guardar la evidencia fotográfica.",
@@ -235,44 +166,42 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
     }
   };
 
-  // Responder Set con foto
-  const handleResponderSetConFoto = async (setId: string) => {
-    const currentSet = auditoriaSets.find(set => set.id === setId);
-    if (!currentSet || !canRespondSet(currentSet)) return;
-
-    if (!currentSet.evidencia_foto_url) {
-      toast({
-        title: "Sin evidencia",
-        description: "Debe capturar una evidencia fotográfica primero.",
-        variant: "destructive",
-      });
-      return;
-    }
+  // Contestar levantamiento
+  const handleContestarLevantamiento = async (setId: string) => {
+    const respuesta = respuestasSet[setId];
+    if (!respuesta) return;
 
     setIsSubmitting(setId);
-    
+
     try {
-      const { error } = await supabase
-        .from('auditoria_sets')
-        .update({ evidencia_foto_url: currentSet.evidencia_foto_url })
-        .eq('id', setId);
+      if (respuesta.tipo === 'evidencia') {
+        setCurrentSetId(setId);
+        setShowCamera(true);
+      } else if (respuesta.tipo === 'fecha' && respuesta.fechaCompromiso) {
+        const { error } = await supabase
+          .from('auditoria_sets')
+          .update({ fecha_compromiso: respuesta.fechaCompromiso })
+          .eq('id', setId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Set respondido",
-        description: "La respuesta fotográfica ha sido enviada exitosamente.",
-      });
+        // Actualizar estado local
+        setAuditoriaSets(prev => prev.map(set => 
+          set.id === setId 
+            ? { ...set, fecha_compromiso: respuesta.fechaCompromiso }
+            : set
+        ));
 
-      if (auditoriaSeleccionada) {
-        await loadAuditoriaSets(auditoriaSeleccionada);
+        toast({
+          title: "Fecha de compromiso guardada",
+          description: "La fecha de compromiso ha sido guardada exitosamente.",
+        });
       }
-
     } catch (error) {
-      console.error('Error responding set:', error);
+      console.error('Error contestando levantamiento:', error);
       toast({
         title: "Error",
-        description: "No se pudo enviar la respuesta.",
+        description: "No se pudo guardar la respuesta del levantamiento.",
         variant: "destructive",
       });
     } finally {
@@ -280,113 +209,27 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
     }
   };
 
-  // Responder Set con fecha
-  const handleResponderSetConFecha = async (setId: string) => {
-    if (!fechaCompromiso) {
-      toast({
-        title: "Fecha requerida",
-        description: "Por favor seleccione una fecha de compromiso.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const currentSet = auditoriaSets.find(set => set.id === setId);
-    if (!currentSet || !canRespondSet(currentSet)) return;
-
-    setIsSubmitting(setId);
-    
-    try {
-      const fechaFormatted = format(fechaCompromiso, 'yyyy-MM-dd');
-      
-      const { error } = await supabase
-        .from('auditoria_sets')
-        .update({ fecha_compromiso: fechaFormatted })
-        .eq('id', setId);
-
-      if (error) throw error;
-
-      setFechaCompromiso(undefined);
-      setShowCalendar(false);
-      setSelectedSetForDate(null);
-
-      toast({
-        title: "Set respondido",
-        description: "La fecha de compromiso ha sido enviada exitosamente.",
-      });
-
-      if (auditoriaSeleccionada) {
-        await loadAuditoriaSets(auditoriaSeleccionada);
-      }
-
-    } catch (error) {
-      console.error('Error responding set:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo enviar la respuesta.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(null);
-    }
+  // Verificar si se puede contestar un set
+  const canAnswerSet = (set: AuditoriaSet) => {
+    return !set.evidencia_foto_url && !set.fecha_compromiso;
   };
 
-  // Reiniciar formulario
-  const handleReinicio = () => {
-    setAuditoriaSeleccionada('');
-    setAuditoriaInfo(null);
-    setAuditoriaSets([]);
-    setSelectedSetId(null);
-    setShowCamera(false);
-    setFechaCompromiso(undefined);
-    setShowCalendar(false);
-    setSelectedSetForDate(null);
-    setCurrentArea('');
-    setIsSubmitting(null);
-    
-    toast({
-      title: "Formulario reiniciado",
-      description: "Todos los datos han sido limpiados.",
-    });
-  };
-
-  if (showCamera && selectedSetId) {
+  if (showCamera && currentSetId) {
     return (
-      <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-[80vh] p-4">
-        <div className="max-w-md mx-auto">
-          <div className="flex justify-end mb-4">
-            <Button
-              onClick={() => {
-                setShowCamera(false);
-                setSelectedSetId(null);
-                setCurrentArea('');
-              }}
-              variant="outline"
-              size="sm"
-              className="bg-white/80 backdrop-blur-sm border-white"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver
-            </Button>
-          </div>
-          <GestionCameraView
-            onPhotoTaken={handlePhotoTaken}
-            onCancel={() => {
-              setShowCamera(false);
-              setSelectedSetId(null);
-              setCurrentArea('');
-            }}
-          />
-        </div>
-      </div>
+      <GestionCameraView
+        onPhotoCapture={handlePhotoCapture}
+        onClose={() => {
+          setShowCamera(false);
+          setCurrentSetId(null);
+        }}
+        setArea={auditoriaSets.find(s => s.id === currentSetId)?.area || ''}
+      />
     );
   }
 
   return (
-    <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-[80vh] p-4">
-      <div className="max-w-4xl mx-auto space-y-6">
-        
-        {/* Botón Volver en esquina superior derecha */}
+    <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-screen p-4">
+      <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex justify-end mb-4">
           <Button
             onClick={onClose}
@@ -418,9 +261,9 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                 />
               </div>
               <div>
-                <Label className="text-sm font-medium text-gray-700">Gerencia</Label>
+                <Label className="text-sm font-medium text-gray-700">Cargo</Label>
                 <Input 
-                  value={gerenciaNombre} 
+                  value={profile?.position || ''} 
                   disabled 
                   className="bg-gray-50"
                 />
@@ -435,42 +278,29 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                   <SelectValue placeholder="Seleccione una auditoría" />
                 </SelectTrigger>
                 <SelectContent>
-                  {auditoriasDisponibles.map((auditoria) => (
-                    <SelectItem key={auditoria.codigo_auditoria} value={auditoria.codigo_auditoria}>
-                      {auditoria.codigo_auditoria} - {auditoria.titulo_documento}
+                  {auditoriasDisponibles.map((codigo) => (
+                    <SelectItem key={codigo} value={codigo}>
+                      {codigo}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Información de la auditoría seleccionada */}
-            {auditoriaInfo && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Planta</Label>
-                  <Input value={auditoriaInfo.planta_nombre} disabled className="bg-white" />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Status</Label>
-                  <Input value={auditoriaInfo.status} disabled className="bg-white" />
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 
         {/* Sets de la auditoría */}
         {auditoriaSets.length > 0 && (
           <div className="space-y-4">
-            {auditoriaSets.map((set) => (
+            {auditoriaSets.map((set, index) => (
               <Card key={set.id} className="bg-white/95 backdrop-blur-sm shadow-xl">
+                <CardHeader>
+                  <CardTitle className="text-lg text-gray-800">
+                    Set {index + 1}: {set.area}
+                  </CardTitle>
+                </CardHeader>
                 <CardContent className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">Área</Label>
-                      <Input value={set.area} disabled className="bg-gray-50" />
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                       <Label className="text-sm font-medium text-gray-700">Levantamiento</Label>
                       <Input value={set.levantamiento || 'Sin levantamiento'} disabled className="bg-gray-50" />
@@ -481,133 +311,110 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                     </div>
                   </div>
 
-                  {/* Fotografías originales del área */}
+                  {/* Fotografías del área */}
                   {set.foto_urls && set.foto_urls.length > 0 && (
                     <div className="mb-4">
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Fotografías del Área</Label>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {set.foto_urls.map((url, index) => (
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                        Fotografías del Área
+                      </Label>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {set.foto_urls.map((url, photoIndex) => (
                           <img
-                            key={index}
+                            key={photoIndex}
                             src={url}
-                            alt={`Foto ${index + 1} del área ${set.area}`}
-                            className="w-full h-24 object-cover rounded border"
+                            alt={`Foto ${photoIndex + 1} del área ${set.area}`}
+                            className="w-full h-24 object-cover rounded border border-gray-200"
                           />
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {/* Evidencia fotográfica de gestión */}
+                  {/* Estado actual de respuesta */}
                   {set.evidencia_foto_url && (
                     <div className="mb-4">
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Evidencia Fotográfica de Gestión</Label>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        <img
-                          src={set.evidencia_foto_url}
-                          alt={`Evidencia de gestión ${set.area}`}
-                          className="w-full h-24 object-cover rounded border"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Mostrar fecha de compromiso si existe */}
-                  {set.fecha_compromiso && (
-                    <div className="mb-4">
-                      <Label className="text-sm font-medium text-gray-700">Fecha de Compromiso</Label>
-                      <Input 
-                        value={format(new Date(set.fecha_compromiso), 'dd/MM/yyyy', { locale: es })} 
-                        disabled 
-                        className="bg-gray-50" 
+                      <Label className="text-sm font-medium text-green-700 mb-2 block">
+                        ✅ Evidencia Fotográfica Proporcionada
+                      </Label>
+                      <img
+                        src={set.evidencia_foto_url}
+                        alt={`Evidencia ${set.area}`}
+                        className="w-32 h-24 object-cover rounded border border-green-300"
                       />
                     </div>
                   )}
 
-                  {/* Acciones para responder set */}
-                  <div className="border-t pt-4 space-y-4">
-                    {canRespondSet(set) ? (
-                      <>
-                        {/* Opción 1: Evidencia Fotográfica */}
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-700">Opción 1: Evidencia Fotográfica</Label>
-                          <div className="flex gap-2">
-                            <Button
-                              onClick={() => handleCaptureEvidence(set.id, set.area)}
-                              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
-                            >
-                              <Camera className="w-4 h-4 mr-2" />
-                              Tomar Evidencia
-                            </Button>
-                            {set.evidencia_foto_url && (
-                              <Button
-                                onClick={() => handleResponderSetConFoto(set.id)}
-                                disabled={isSubmitting === set.id}
-                                className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white"
-                              >
-                                <Send className="w-4 h-4 mr-2" />
-                                {isSubmitting === set.id ? 'Enviando...' : 'Responder Set'}
-                              </Button>
-                            )}
-                          </div>
+                  {set.fecha_compromiso && (
+                    <div className="mb-4">
+                      <Label className="text-sm font-medium text-blue-700 mb-2 block">
+                        📅 Fecha de Compromiso
+                      </Label>
+                      <Input 
+                        value={format(new Date(set.fecha_compromiso), 'dd/MM/yyyy', { locale: es })} 
+                        disabled 
+                        className="bg-blue-50 border-blue-200 max-w-xs" 
+                      />
+                    </div>
+                  )}
+
+                  {/* Sección de respuesta (solo si puede contestar) */}
+                  {canAnswerSet(set) && (
+                    <div className="border-t pt-4">
+                      <Label className="text-lg font-medium text-gray-700 mb-3 block">
+                        Responder Set
+                      </Label>
+
+                      <RadioGroup
+                        value={respuestasSet[set.id]?.tipo || ''}
+                        onValueChange={(value: 'evidencia' | 'fecha') => 
+                          handleRespuestaChange(set.id, value)
+                        }
+                        className="mb-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="evidencia" id={`evidencia-${set.id}`} />
+                          <Label htmlFor={`evidencia-${set.id}`}>Opción 1: Evidencia Fotográfica</Label>
                         </div>
-                        
-                        {/* Opción 2: Fecha de Compromiso */}
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-700">Opción 2: Fecha de Compromiso</Label>
-                          <div className="flex gap-2">
-                            <Popover open={showCalendar && selectedSetForDate === set.id} onOpenChange={(open) => {
-                              setShowCalendar(open);
-                              if (open) setSelectedSetForDate(set.id);
-                              else setSelectedSetForDate(null);
-                            }}>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  className={cn(
-                                    "justify-start text-left font-normal",
-                                    !fechaCompromiso && "text-muted-foreground"
-                                  )}
-                                  onClick={() => setSelectedSetForDate(set.id)}
-                                >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {fechaCompromiso && selectedSetForDate === set.id 
-                                    ? format(fechaCompromiso, "dd/MM/yyyy", { locale: es }) 
-                                    : "Seleccionar fecha"}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={fechaCompromiso}
-                                  onSelect={setFechaCompromiso}
-                                  disabled={(date) => date < new Date()}
-                                  initialFocus
-                                  locale={es}
-                                />
-                              </PopoverContent>
-                            </Popover>
-                            {fechaCompromiso && selectedSetForDate === set.id && (
-                              <Button
-                                onClick={() => handleResponderSetConFecha(set.id)}
-                                disabled={isSubmitting === set.id}
-                                className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white"
-                              >
-                                <Send className="w-4 h-4 mr-2" />
-                                {isSubmitting === set.id ? 'Enviando...' : 'Responder Set'}
-                              </Button>
-                            )}
-                          </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="fecha" id={`fecha-${set.id}`} />
+                          <Label htmlFor={`fecha-${set.id}`}>Opción 2: Fecha de Compromiso</Label>
                         </div>
-                      </>
-                    ) : (
-                      <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                        <p className="text-green-700 text-sm font-medium">
-                          ✅ Set ya respondido
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                      </RadioGroup>
+
+                      {respuestasSet[set.id]?.tipo === 'fecha' && (
+                        <div className="mb-4">
+                          <Label className="text-sm font-medium text-gray-700">Fecha de Compromiso</Label>
+                          <Input
+                            type="date"
+                            value={respuestasSet[set.id]?.fechaCompromiso || ''}
+                            onChange={(e) => handleRespuestaChange(set.id, 'fecha', e.target.value)}
+                            className="max-w-xs"
+                          />
+                        </div>
+                      )}
+
+                      {respuestasSet[set.id] && (
+                        respuestasSet[set.id].tipo === 'evidencia' || 
+                        (respuestasSet[set.id].tipo === 'fecha' && respuestasSet[set.id].fechaCompromiso)
+                      ) && (
+                        <Button
+                          onClick={() => handleContestarLevantamiento(set.id)}
+                          disabled={isSubmitting === set.id}
+                          className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white"
+                        >
+                          {isSubmitting === set.id ? 'Guardando...' : 'Contestar Levantamiento'}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
+                  {!canAnswerSet(set) && (
+                    <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                      <Label className="text-sm font-medium text-green-700">
+                        ✅ Set ya respondido
+                      </Label>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -623,18 +430,6 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
             </CardContent>
           </Card>
         )}
-
-        {/* Botón Reiniciar al final */}
-        <div className="flex justify-center pt-4">
-          <Button
-            onClick={handleReinicio}
-            variant="outline"
-            className="bg-white/80 backdrop-blur-sm border-gray-300 text-gray-700 hover:bg-gray-50"
-          >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Reiniciar
-          </Button>
-        </div>
       </div>
     </div>
   );
