@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ArrowLeft, Calendar, Camera, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Calendar, Camera } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,10 +26,9 @@ interface AuditoriaSet {
 
 interface GestionAuditoriaFormProps {
   onClose: () => void;
-  onReset?: () => void;
 }
 
-const GestionAuditoriaForm = ({ onClose, onReset }: GestionAuditoriaFormProps) => {
+const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
   const { user, profile } = useAuth();
   const [auditoriasDisponibles, setAuditoriasDisponibles] = useState<string[]>([]);
   const [auditoriaSeleccionada, setAuditoriaSeleccionada] = useState<string>('');
@@ -37,19 +37,6 @@ const GestionAuditoriaForm = ({ onClose, onReset }: GestionAuditoriaFormProps) =
   const [showCamera, setShowCamera] = useState(false);
   const [currentSetId, setCurrentSetId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
-
-  // Resetear campos editables
-  const handleReset = () => {
-    setAuditoriaSeleccionada('');
-    setAuditoriaSets([]);
-    setRespuestasSet({});
-    setShowCamera(false);
-    setCurrentSetId(null);
-    setIsSubmitting(null);
-    if (onReset) {
-      onReset();
-    }
-  };
 
   // Cargar auditorías disponibles
   useEffect(() => {
@@ -235,7 +222,7 @@ const GestionAuditoriaForm = ({ onClose, onReset }: GestionAuditoriaFormProps) =
   return (
     <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-screen p-4">
       <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex justify-between mb-4">
+        <div className="flex justify-end mb-4">
           <Button
             onClick={onClose}
             variant="outline"
@@ -244,15 +231,6 @@ const GestionAuditoriaForm = ({ onClose, onReset }: GestionAuditoriaFormProps) =
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Volver
-          </Button>
-          <Button
-            onClick={handleReset}
-            variant="outline"
-            size="sm"
-            className="bg-white/80 backdrop-blur-sm border-white text-black hover:bg-white/90"
-          >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Reiniciar
           </Button>
         </div>
 
