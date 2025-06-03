@@ -20,6 +20,12 @@ import {
 } from "@/components/ui/alert-dialog"
 
 interface CameraAppProps {
+  onClose?: () => void;
+  userData?: {
+    name: string;
+    email: string;
+    position: string;
+  };
   currentPhotos: CapturedPhoto[];
   setCurrentPhotos: (photos: CapturedPhoto[]) => void;
   setPhotoSets: (sets: PhotoSet[] | ((prev: PhotoSet[]) => PhotoSet[])) => void;
@@ -38,6 +44,8 @@ interface CameraAppProps {
 }
 
 const CameraApp: React.FC<CameraAppProps> = ({
+  onClose,
+  userData,
   currentPhotos,
   setCurrentPhotos,
   setPhotoSets,
