@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,12 +6,15 @@ import AuditoriaForm from './AuditoriaForm';
 import BloqueosForm from './BloqueosForm';
 import GestionAuditoriaForm from './GestionAuditoriaForm';
 import ResumenAuditoriasForm from './resumen/ResumenAuditoriasForm';
+import CameraApp from './CameraApp';
 import { Camera, FileText, ClipboardCheck, BarChart3, Settings, LogOut } from 'lucide-react';
+import { AuditoriaFormData } from '@/types/auditoria';
 
 const MainApp: React.FC = () => {
   const { user, profile, signOut } = useAuth();
   const [activeModule, setActiveModule] = useState<string | null>(null);
   const [showAuditoriaMenu, setShowAuditoriaMenu] = useState(false);
+  const [auditoriaData, setAuditoriaData] = useState<(AuditoriaFormData & { codigoAuditoria: string }) | null>(null);
 
   const handleSignOut = async () => {
     await signOut();
@@ -36,10 +38,43 @@ const MainApp: React.FC = () => {
   const handleCloseModule = () => {
     setActiveModule(null);
     setShowAuditoriaMenu(false);
+    setAuditoriaData(null);
+  };
+
+  const handleAuditoriaFormSubmit = (data: AuditoriaFormData & { codigoAuditoria: string }) => {
+    setAuditoriaData(data);
+    setActiveModule('camera-capture');
   };
 
   if (activeModule === 'ingresar-auditoria') {
-    return <AuditoriaForm onClose={handleCloseModule} />;
+    return (
+      <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-screen flex items-center justify-center p-4">
+        <div className="max-w-md mx-auto">
+          <div className="flex justify-between items-center mb-6">
+            <Button
+              onClick={handleCloseModule}
+              variant="outline"
+              className="border-white/30 text-white hover:bg-white/10 backdrop-blur-sm"
+            >
+              ← Volver
+            </Button>
+          </div>
+          <AuditoriaForm 
+            onSubmit={handleAuditoriaFormSubmit}
+            userData={profile}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (activeModule === 'camera-capture' && auditoriaData) {
+    return (
+      <CameraApp 
+        auditoriaData={auditoriaData}
+        onClose={handleCloseModule}
+      />
+    );
   }
 
   if (activeModule === 'gestion-auditoria') {
@@ -57,7 +92,7 @@ const MainApp: React.FC = () => {
   if (showAuditoriaMenu) {
     return (
       <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <Card className="bg-white/95 backdrop-blur-sm shadow-2xl">
             <CardHeader className="text-center">
               <CardTitle className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-red-600 bg-clip-text text-transparent">
@@ -70,11 +105,11 @@ const MainApp: React.FC = () => {
             <CardContent className="p-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card 
-                  className="cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-lg border-2 border-transparent hover:border-yellow-300"
+                  className="cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-lg border-2 border-transparent hover:border-yellow-300 group"
                   onClick={() => handleAuditoriaSubmodule('ingresar-auditoria')}
                 >
                   <CardContent className="p-6 text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-yellow-500 to-red-600 rounded-full flex items-center justify-center">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-yellow-500 to-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
                       <Camera className="w-8 h-8 text-white" />
                     </div>
                     <h3 className="text-xl font-semibold text-gray-800 mb-2">
@@ -87,11 +122,11 @@ const MainApp: React.FC = () => {
                 </Card>
 
                 <Card 
-                  className="cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-lg border-2 border-transparent hover:border-yellow-300"
+                  className="cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-lg border-2 border-transparent hover:border-yellow-300 group"
                   onClick={() => handleAuditoriaSubmodule('gestion-auditoria')}
                 >
                   <CardContent className="p-6 text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-yellow-500 to-red-600 rounded-full flex items-center justify-center">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-yellow-500 to-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
                       <ClipboardCheck className="w-8 h-8 text-white" />
                     </div>
                     <h3 className="text-xl font-semibold text-gray-800 mb-2">
@@ -104,11 +139,11 @@ const MainApp: React.FC = () => {
                 </Card>
 
                 <Card 
-                  className="cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-lg border-2 border-transparent hover:border-yellow-300"
+                  className="cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-lg border-2 border-transparent hover:border-yellow-300 group"
                   onClick={() => handleAuditoriaSubmodule('resumen-auditorias')}
                 >
                   <CardContent className="p-6 text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-yellow-500 to-red-600 rounded-full flex items-center justify-center">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-yellow-500 to-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
                       <BarChart3 className="w-8 h-8 text-white" />
                     </div>
                     <h3 className="text-xl font-semibold text-gray-800 mb-2">
@@ -186,11 +221,11 @@ const MainApp: React.FC = () => {
           <CardContent className="p-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card 
-                className="cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-lg border-2 border-transparent hover:border-yellow-300"
+                className="cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-lg border-2 border-transparent hover:border-yellow-300 group"
                 onClick={() => handleModuleClick('auditorias')}
               >
                 <CardContent className="p-6 text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-yellow-500 to-red-600 rounded-full flex items-center justify-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-yellow-500 to-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
                     <FileText className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-800 mb-2">
@@ -203,11 +238,11 @@ const MainApp: React.FC = () => {
               </Card>
 
               <Card 
-                className="cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-lg border-2 border-transparent hover:border-yellow-300"
+                className="cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-lg border-2 border-transparent hover:border-yellow-300 group"
                 onClick={() => handleModuleClick('bloqueos')}
               >
                 <CardContent className="p-6 text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-yellow-500 to-red-600 rounded-full flex items-center justify-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-yellow-500 to-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
                     <Settings className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-800 mb-2">
