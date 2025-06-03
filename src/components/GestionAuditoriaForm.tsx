@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -217,12 +216,11 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
   if (showCamera && currentSetId) {
     return (
       <GestionCameraView
-        onPhotoCapture={handlePhotoCapture}
-        onClose={() => {
+        onPhotoTaken={handlePhotoCapture}
+        onCancel={() => {
           setShowCamera(false);
           setCurrentSetId(null);
         }}
-        setArea={auditoriaSets.find(s => s.id === currentSetId)?.area || ''}
       />
     );
   }
