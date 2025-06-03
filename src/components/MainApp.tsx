@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,9 +36,24 @@ const MainApp: React.FC = () => {
   };
 
   const handleCloseModule = () => {
-    setActiveModule(null);
-    setShowAuditoriaMenu(false);
-    setAuditoriaData(null);
+    if (activeModule === 'camera-capture') {
+      // Desde cámara vuelve al formulario de auditoría
+      setActiveModule('ingresar-auditoria');
+      setAuditoriaData(null);
+    } else if (activeModule && activeModule !== 'ingresar-auditoria') {
+      // Desde otros módulos vuelve al menú principal
+      setActiveModule(null);
+      setShowAuditoriaMenu(false);
+      setAuditoriaData(null);
+    } else if (activeModule === 'ingresar-auditoria') {
+      // Desde formulario de auditoría vuelve al menú de auditorías
+      setActiveModule(null);
+      setShowAuditoriaMenu(true);
+      setAuditoriaData(null);
+    } else if (showAuditoriaMenu) {
+      // Desde menú de auditorías vuelve al menú principal
+      setShowAuditoriaMenu(false);
+    }
   };
 
   const handleAuditoriaFormSubmit = (data: AuditoriaFormData & { codigoAuditoria: string }) => {
@@ -48,6 +62,7 @@ const MainApp: React.FC = () => {
   };
 
   const handleReinicio = () => {
+    // Resetear todos los estados editables
     setActiveModule(null);
     setShowAuditoriaMenu(false);
     setAuditoriaData(null);
@@ -75,7 +90,7 @@ const MainApp: React.FC = () => {
             <Button
               onClick={handleReinicio}
               variant="outline"
-              className="border-white/30 text-white hover:bg-white/10 backdrop-blur-sm"
+              className="border-white/30 text-black hover:bg-white/10 backdrop-blur-sm"
             >
               <RotateCcw className="w-4 h-4 mr-2" />
               Reiniciar
@@ -97,15 +112,15 @@ const MainApp: React.FC = () => {
   }
 
   if (activeModule === 'gestion-auditoria') {
-    return <GestionAuditoriaForm onClose={handleCloseModule} />;
+    return <GestionAuditoriaForm onClose={handleCloseModule} onReset={handleReinicio} />;
   }
 
   if (activeModule === 'resumen-auditorias') {
-    return <ResumenAuditoriasForm onClose={handleCloseModule} />;
+    return <ResumenAuditoriasForm onClose={handleCloseModule} onReset={handleReinicio} />;
   }
 
   if (activeModule === 'bloqueos') {
-    return <BloqueosForm onClose={handleCloseModule} />;
+    return <BloqueosForm onClose={handleCloseModule} onReset={handleReinicio} />;
   }
 
   if (showAuditoriaMenu) {
@@ -116,7 +131,7 @@ const MainApp: React.FC = () => {
             <Button
               onClick={handleCloseModule}
               variant="outline"
-              className="bg-white/80 backdrop-blur-sm border-white"
+              className="bg-white/80 backdrop-blur-sm border-white text-black hover:bg-white/90"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Volver
@@ -191,14 +206,22 @@ const MainApp: React.FC = () => {
                 </Card>
               </div>
 
-              <div className="flex justify-center mt-8">
+              <div className="flex justify-center gap-4 mt-8">
                 <Button
                   onClick={handleCloseModule}
                   variant="outline"
-                  className="border-yellow-300 text-yellow-700 hover:bg-yellow-50"
+                  className="border-yellow-300 text-black hover:bg-yellow-50"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Volver al Menú Principal
+                </Button>
+                <Button
+                  onClick={handleReinicio}
+                  variant="outline"
+                  className="border-yellow-300 text-black hover:bg-yellow-50"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Reiniciar
                 </Button>
               </div>
             </CardContent>
@@ -227,7 +250,7 @@ const MainApp: React.FC = () => {
                 onClick={handleSignOut}
                 variant="outline"
                 size="sm"
-                className="border-red-200 text-red-600 hover:bg-red-50"
+                className="border-red-200 text-black hover:bg-red-50"
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 Cerrar Sesión
