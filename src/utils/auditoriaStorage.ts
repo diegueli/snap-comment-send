@@ -33,8 +33,7 @@ export const uploadPhotoToStorage = async (photo: CapturedPhoto, area: string, c
 export const closeAuditoria = async (
   auditoriaData: AuditoriaData,
   userData: UserData,
-  photoSets: PhotoSet[],
-  setAuditoriaId: (id: string) => void
+  photoSets: PhotoSet[]
 ): Promise<boolean> => {
   if (!auditoriaData || !userData || photoSets.length === 0) {
     toast({
@@ -54,23 +53,20 @@ export const closeAuditoria = async (
     const [day, month, year] = auditoriaData.fecha.split('/');
     const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 
-    const { data: auditoria, error: auditoriaError } = await supabase
+    // Insertar auditoría usando codigo_auditoria como PK
+    const { error: auditoriaError } = await supabase
       .from('auditorias')
       .insert({
+        codigo_auditoria: auditoriaData.codigoAuditoria,
         user_id: user.user.id,
         titulo_documento: auditoriaData.tituloDocumento,
         fecha: isoDate,
         auditor: auditoriaData.auditor,
         planta_id: auditoriaData.plantaId,
-        codigo_auditoria: auditoriaData.codigoAuditoria,
         status: 'Activo'
-      })
-      .select()
-      .single();
+      });
 
     if (auditoriaError) throw auditoriaError;
-
-    setAuditoriaId(auditoria.id);
 
     for (const set of photoSets) {
       const photoUrls: string[] = [];
@@ -86,7 +82,7 @@ export const closeAuditoria = async (
       const { error: setError } = await supabase
         .from('auditoria_sets')
         .insert({
-          auditoria_id: auditoria.id,
+          auditoria_codigo: auditoriaData.codigoAuditoria,
           area: set.area,
           levantamiento: set.levantamiento || null,
           responsable: set.responsable || null,

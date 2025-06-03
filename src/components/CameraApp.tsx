@@ -44,7 +44,6 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     editingAreaId,
     editingArea,
     showAreaInput,
-    auditoriaId,
     codigoAuditoria,
     isSavingToDatabase,
     setAuditoriaData,
@@ -62,9 +61,9 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     setEditingAreaId,
     setEditingArea,
     setShowAreaInput,
-    setAuditoriaId,
     setCodigoAuditoria,
     setIsSavingToDatabase,
+    generateNumberedArea,
     resetState
   } = useAuditoriaState();
 
@@ -83,7 +82,8 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     saveCurrentSet,
     deletePhotoSet,
     deletePhotoFromSet,
-    updatePhotoSet
+    updatePhotoSet,
+    handleStopCameraWithFewPhotos
   } = usePhotoActions({
     currentPhotos,
     setCurrentPhotos,
@@ -96,7 +96,9 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     setCurrentLevantamiento,
     setCurrentResponsable,
     setCurrentResponsableId,
-    setShowAreaInput
+    setShowAreaInput,
+    generateNumberedArea,
+    stopCamera
   });
 
   const handleAuditoriaSubmit = useCallback(async (formData: AuditoriaFormData & { codigoAuditoria: string }) => {
@@ -110,7 +112,6 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       if (error) throw error;
       
       setSelectedPlanta(planta);
-      // Create AuditoriaData with required codigoAuditoria
       const auditoriaDataWithCode = {
         ...formData,
         codigoAuditoria: formData.codigoAuditoria
@@ -156,15 +157,21 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     }
   }, [capturePhoto, videoRef, currentPhotos, setCurrentPhotos, stopCamera]);
 
+  // Nueva función para detener cámara manualmente
+  const handleStopCamera = useCallback(() => {
+    stopCamera();
+    handleStopCameraWithFewPhotos();
+  }, [stopCamera, handleStopCameraWithFewPhotos]);
+
   const handleCloseAuditoria = useCallback(async () => {
     if (!auditoriaData || !userData) return;
     
     setIsSavingToDatabase(true);
     
-    const success = await closeAuditoria(auditoriaData, userData, photoSets, setAuditoriaId);
+    const success = await closeAuditoria(auditoriaData, userData, photoSets);
     
     setIsSavingToDatabase(false);
-  }, [auditoriaData, userData, photoSets, setAuditoriaId, setIsSavingToDatabase]);
+  }, [auditoriaData, userData, photoSets, setIsSavingToDatabase]);
 
   const handleGeneratePDF = useCallback(async () => {
     await generatePDF({
@@ -172,10 +179,10 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       auditoriaData,
       userData,
       selectedPlanta,
-      auditoriaId,
+      auditoriaId: codigoAuditoria, // Usar codigo_auditoria como ID
       codigoAuditoria
     });
-  }, [photoSets, auditoriaData, userData, selectedPlanta, auditoriaId, codigoAuditoria]);
+  }, [photoSets, auditoriaData, userData, selectedPlanta, codigoAuditoria]);
 
   const resetApp = useCallback(async () => {
     resetState();
@@ -244,7 +251,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
             currentPhotos={currentPhotos}
             currentArea={currentArea}
             onCapturePhoto={handleCapturePhoto}
-            onStopCamera={stopCamera}
+            onStopCamera={handleStopCamera}
           />
         )}
 

@@ -18,9 +18,14 @@ export const useAuditoriaState = () => {
   const [editingAreaId, setEditingAreaId] = useState<string | null>(null);
   const [editingArea, setEditingArea] = useState('');
   const [showAreaInput, setShowAreaInput] = useState(false);
-  const [auditoriaId, setAuditoriaId] = useState<string | null>(null);
   const [codigoAuditoria, setCodigoAuditoria] = useState<string | null>(null);
   const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
+
+  // Función para generar el área numerada
+  const generateNumberedArea = useCallback((areaName: string, existingSets: PhotoSet[]) => {
+    const areaNumber = existingSets.length + 1;
+    return `${areaNumber}-${areaName}`;
+  }, []);
 
   const resetState = useCallback(() => {
     setAuditoriaData(null);
@@ -38,7 +43,6 @@ export const useAuditoriaState = () => {
     setEditingAreaId(null);
     setEditingArea('');
     setShowAreaInput(false);
-    setAuditoriaId(null);
     setCodigoAuditoria(null);
     setIsSavingToDatabase(false);
   }, []);
@@ -60,7 +64,6 @@ export const useAuditoriaState = () => {
     editingAreaId,
     editingArea,
     showAreaInput,
-    auditoriaId,
     codigoAuditoria,
     isSavingToDatabase,
     // Setters
@@ -79,10 +82,10 @@ export const useAuditoriaState = () => {
     setEditingAreaId,
     setEditingArea,
     setShowAreaInput,
-    setAuditoriaId,
     setCodigoAuditoria,
     setIsSavingToDatabase,
     // Actions
+    generateNumberedArea,
     resetState
   };
 };

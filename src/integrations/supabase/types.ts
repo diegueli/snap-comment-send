@@ -27,7 +27,7 @@ export type Database = {
       auditoria_sets: {
         Row: {
           area: string
-          auditoria_id: string
+          auditoria_codigo: string
           created_at: string
           foto_urls: string[] | null
           gerencia_resp_id: number | null
@@ -38,7 +38,7 @@ export type Database = {
         }
         Insert: {
           area: string
-          auditoria_id: string
+          auditoria_codigo: string
           created_at?: string
           foto_urls?: string[] | null
           gerencia_resp_id?: number | null
@@ -49,7 +49,7 @@ export type Database = {
         }
         Update: {
           area?: string
-          auditoria_id?: string
+          auditoria_codigo?: string
           created_at?: string
           foto_urls?: string[] | null
           gerencia_resp_id?: number | null
@@ -60,11 +60,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "auditoria_sets_auditoria_id_fkey"
-            columns: ["auditoria_id"]
+            foreignKeyName: "auditoria_sets_auditoria_codigo_fkey"
+            columns: ["auditoria_codigo"]
             isOneToOne: false
             referencedRelation: "auditorias"
-            referencedColumns: ["id"]
+            referencedColumns: ["codigo_auditoria"]
           },
           {
             foreignKeyName: "auditoria_sets_gerencia_resp_id_fkey"
@@ -82,7 +82,6 @@ export type Database = {
           created_at: string
           fecha: string
           fecha_compromiso: string | null
-          id: string
           planta_id: number | null
           status: string | null
           titulo_documento: string
@@ -95,7 +94,6 @@ export type Database = {
           created_at?: string
           fecha: string
           fecha_compromiso?: string | null
-          id?: string
           planta_id?: number | null
           status?: string | null
           titulo_documento: string
@@ -108,7 +106,6 @@ export type Database = {
           created_at?: string
           fecha?: string
           fecha_compromiso?: string | null
-          id?: string
           planta_id?: number | null
           status?: string | null
           titulo_documento?: string
