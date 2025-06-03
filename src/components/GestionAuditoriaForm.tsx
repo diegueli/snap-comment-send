@@ -126,6 +126,22 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
     loadAuditorias();
   }, []);
 
+  // Verificar si el botón "Contestar Levantamiento" puede ejecutarse
+  const canContestarLevantamiento = (set: AuditoriaSet) => {
+    // Solo se puede ejecutar si AMBOS campos son null/undefined
+    return set.evidencia_foto_url === null && set.fecha_compromiso === null;
+  };
+
+  // Verificar si el set tiene respuesta completa (para mostrar el botón)
+  const hasResponse = (set: AuditoriaSet) => {
+    return set.evidencia_foto_url || set.fecha_compromiso;
+  };
+
+  // Verificar si el set ya fue procesado (tiene respuesta en BD)
+  const isSetProcessed = (set: AuditoriaSet) => {
+    return set.evidencia_foto_url !== null || set.fecha_compromiso !== null;
+  };
+
   // Cargar sets de la auditoría seleccionada
   const loadAuditoriaSets = useCallback(async (codigoAuditoria: string) => {
     if (!gerenciaNombre) return;
@@ -262,37 +278,37 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
     }
   };
 
-  // Verificar si el set tiene respuesta completa
-  const hasResponse = (set: AuditoriaSet) => {
-    return set.evidencia_foto_url || set.fecha_compromiso;
-  };
-
-  // Verificar si el botón "Contestar Levantamiento" puede ejecutarse
-  const canContestarLevantamiento = (set: AuditoriaSet) => {
-    return hasResponse(set);
-  };
-
   // Contestar levantamiento - enviar respuesta a base de datos (solo una vez)
   const handleContestarLevantamiento = async (setId: string) => {
+    const currentSet = auditoriaSets.find(set => set.id === setId);
+    if (!currentSet) return;
+
+    // Verificar que los campos estén null en la base de datos antes de proceder
+    if (!canContestarLevantamiento(currentSet)) {
+      toast({
+        title: "Set ya procesado",
+        description: "Este set ya ha sido contestado anteriormente.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Verificar que tenga al menos una respuesta local
+    const tieneEvidencia = currentSet.evidencia_foto_url;
+    const tieneFechaCompromiso = currentSet.fecha_compromiso;
+
+    if (!tieneEvidencia && !tieneFechaCompromiso) {
+      toast({
+        title: "Respuesta requerida",
+        description: "Debe proporcionar evidencia fotográfica o fecha de compromiso.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(setId);
     
     try {
-      const currentSet = auditoriaSets.find(set => set.id === setId);
-      if (!currentSet) return;
-
-      // Verificar que tenga al menos una respuesta
-      const tieneEvidencia = currentSet.evidencia_foto_url;
-      const tieneFechaCompromiso = currentSet.fecha_compromiso;
-
-      if (!tieneEvidencia && !tieneFechaCompromiso) {
-        toast({
-          title: "Respuesta requerida",
-          description: "Debe proporcionar evidencia fotográfica o fecha de compromiso.",
-          variant: "destructive",
-        });
-        return;
-      }
-
       // Preparar datos para actualizar
       const updateData: any = {};
       
@@ -437,6 +453,18 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                 </div>
               </div>
             )}
+
+            {/* Botón cerrar en la esquina superior derecha */}
+            <div className="flex justify-end">
+              <Button
+                onClick={onClose}
+                variant="outline"
+                size="sm"
+                className="bg-white/80 backdrop-blur-sm border-white"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -506,7 +534,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
 
                   {/* Acciones para evidencia o fecha de compromiso */}
                   <div className="border-t pt-4 space-y-4">
-                    {!hasResponse(set) && (
+                    {!isSetProcessed(set) && (
                       <>
                         <div className="flex gap-2">
                           <Button
@@ -560,8 +588,8 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                       </>
                     )}
 
-                    {/* Botón Contestar Levantamiento - Solo disponible si hay respuesta y no se ha ejecutado antes */}
-                    {canContestarLevantamiento(set) && (
+                    {/* Botón Contestar Levantamiento - Solo disponible si hay respuesta local y no está procesado */}
+                    {hasResponse(set) && canContestarLevantamiento(set) && (
                       <div className="border-t pt-4">
                         <Button
                           onClick={() => handleContestarLevantamiento(set.id)}
@@ -571,6 +599,17 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                           <Send className="w-4 h-4 mr-2" />
                           {isSubmitting === set.id ? 'Enviando...' : 'Contestar Levantamiento'}
                         </Button>
+                      </div>
+                    )}
+
+                    {/* Mostrar mensaje si el set ya fue procesado */}
+                    {isSetProcessed(set) && (
+                      <div className="border-t pt-4">
+                        <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                          <p className="text-green-700 text-sm font-medium">
+                            ✅ Set contestado exitosamente
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>

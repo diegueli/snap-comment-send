@@ -271,7 +271,7 @@ const ResumenAuditoriasForm = ({ onClose }: ResumenAuditoriasFormProps) => {
 
   return (
     <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-[80vh] p-4">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex justify-end mb-4">
           <Button
             onClick={onClose}
@@ -341,7 +341,7 @@ const ResumenAuditoriasForm = ({ onClose }: ResumenAuditoriasFormProps) => {
                   <Button
                     onClick={handleGeneratePDF}
                     disabled={isGeneratingPDF}
-                    className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white"
+                    className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white px-6 py-2"
                   >
                     <FileDown className="w-4 h-4 mr-2" />
                     {isGeneratingPDF ? 'Generando PDF...' : 'Generar PDF Resumen'}
@@ -355,57 +355,102 @@ const ResumenAuditoriasForm = ({ onClose }: ResumenAuditoriasFormProps) => {
         {/* Sets de la auditoría */}
         {auditoriaSets.length > 0 && (
           <div className="space-y-4">
-            {auditoriaSets.map((set) => (
+            {auditoriaSets.map((set, index) => (
               <Card key={set.id} className="bg-white/95 backdrop-blur-sm shadow-xl">
+                <CardHeader>
+                  <CardTitle className="text-lg text-gray-800">
+                    Set {index + 1}: {set.area}
+                  </CardTitle>
+                </CardHeader>
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">Área</Label>
-                      <Input value={set.area} disabled className="bg-gray-50" />
-                    </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-700">Levantamiento</Label>
                       <Input value={set.levantamiento || 'Sin levantamiento'} disabled className="bg-gray-50" />
                     </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Responsable</Label>
+                      <Input value={set.responsable || 'Sin responsable'} disabled className="bg-gray-50" />
+                    </div>
                   </div>
 
-                  {/* Evidencia fotográfica o fecha de compromiso */}
-                  {set.evidencia_foto_url && (
+                  {/* Fotografías originales del área */}
+                  {set.foto_urls && set.foto_urls.length > 0 && (
                     <div className="mb-4">
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Evidencia Fotográfica</Label>
-                      <img
-                        src={set.evidencia_foto_url}
-                        alt={`Evidencia ${set.area}`}
-                        className="w-32 h-24 object-cover rounded border"
-                      />
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                        Fotografías del Levantamiento
+                      </Label>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {set.foto_urls.map((url, photoIndex) => (
+                          <img
+                            key={photoIndex}
+                            src={url}
+                            alt={`Foto ${photoIndex + 1} del área ${set.area}`}
+                            className="w-full h-24 object-cover rounded border border-gray-200"
+                          />
+                        ))}
+                      </div>
                     </div>
                   )}
 
-                  {set.fecha_compromiso && (
-                    <div className="mb-4">
-                      <Label className="text-sm font-medium text-gray-700">Fecha de Compromiso</Label>
-                      <Input 
-                        value={format(new Date(set.fecha_compromiso), 'dd/MM/yyyy', { locale: es })} 
-                        disabled 
-                        className="bg-gray-50" 
-                      />
-                    </div>
-                  )}
+                  {/* Sección de Gestión */}
+                  <div className="border-t pt-4">
+                    <Label className="text-lg font-medium text-gray-700 mb-3 block">
+                      Gestión de Respuesta
+                    </Label>
 
-                  {/* Botón Reset Observación */}
-                  {(set.evidencia_foto_url || set.fecha_compromiso) && (
-                    <div className="border-t pt-4">
-                      <Button
-                        onClick={() => handleResetObservacion(set.id, set.evidencia_foto_url)}
-                        disabled={isResetting === set.id}
-                        variant="outline"
-                        className="border-red-200 text-red-600 hover:bg-red-50"
-                      >
-                        <RotateCcw className="w-4 h-4 mr-2" />
-                        {isResetting === set.id ? 'Reseteando...' : 'Reset Observación'}
-                      </Button>
-                    </div>
-                  )}
+                    {/* Evidencia fotográfica o fecha de compromiso */}
+                    {set.evidencia_foto_url && (
+                      <div className="mb-4">
+                        <Label className="text-sm font-medium text-green-700 mb-2 block">
+                          ✅ Evidencia Fotográfica Proporcionada
+                        </Label>
+                        <img
+                          src={set.evidencia_foto_url}
+                          alt={`Evidencia ${set.area}`}
+                          className="w-32 h-24 object-cover rounded border border-green-300"
+                        />
+                      </div>
+                    )}
+
+                    {set.fecha_compromiso && (
+                      <div className="mb-4">
+                        <Label className="text-sm font-medium text-blue-700 mb-2 block">
+                          📅 Fecha de Compromiso
+                        </Label>
+                        <Input 
+                          value={format(new Date(set.fecha_compromiso), 'dd/MM/yyyy', { locale: es })} 
+                          disabled 
+                          className="bg-blue-50 border-blue-200 max-w-xs" 
+                        />
+                      </div>
+                    )}
+
+                    {!set.evidencia_foto_url && !set.fecha_compromiso && (
+                      <div className="mb-4">
+                        <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
+                          <Label className="text-sm font-medium text-orange-700">
+                            ⏳ Pendiente de Respuesta
+                          </Label>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Botón Reset Observación */}
+                    {(set.evidencia_foto_url || set.fecha_compromiso) && (
+                      <div className="border-t pt-4">
+                        <Button
+                          onClick={() => handleResetObservacion(set.id, set.evidencia_foto_url)}
+                          disabled={isResetting === set.id}
+                          variant="outline"
+                          className="border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
+                        >
+                          <RotateCcw className="w-4 h-4 mr-2" />
+                          {isResetting === set.id ? 'Reseteando...' : 'Reset Observación'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}
