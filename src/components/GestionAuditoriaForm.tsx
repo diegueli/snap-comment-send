@@ -33,6 +33,7 @@ interface AuditoriaSet {
   foto_urls: string[];
   evidencia_foto_url?: string;
   fecha_compromiso?: string;
+  foto_urls_ga?: string[];
 }
 
 interface GestionAuditoriaFormProps {
@@ -50,6 +51,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
   const [fechaCompromiso, setFechaCompromiso] = useState<Date | undefined>(undefined);
   const [showCalendar, setShowCalendar] = useState(false);
   const [gerenciaNombre, setGerenciaNombre] = useState<string>('');
+  const [currentArea, setCurrentArea] = useState<string>('');
 
   // Cargar información de la gerencia del usuario
   useEffect(() => {
@@ -149,18 +151,21 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
   }, [auditoriasDisponibles, loadAuditoriaSets]);
 
   // Manejar captura de evidencia fotográfica
-  const handleCaptureEvidence = (setId: string) => {
+  const handleCaptureEvidence = (setId: string, area: string) => {
     setSelectedSetId(setId);
+    setCurrentArea(area);
     setShowCamera(true);
   };
 
   // Manejar foto capturada
   const handlePhotoTaken = async (photoFile: File) => {
-    if (!selectedSetId) return;
+    if (!selectedSetId || !auditoriaSeleccionada || !currentArea) return;
 
     try {
-      // Subir foto a storage
-      const fileName = `evidencia_${selectedSetId}_${Date.now()}.jpg`;
+      // Subir foto a storage en subcarpeta de gestión
+      const cleanAreaName = currentArea.replace(/[^a-zA-Z0-9]/g, '_');
+      const fileName = `${auditoriaSeleccionada}_Gestion_Auditoria/${cleanAreaName}_${Date.now()}.jpg`;
+      
       const { data, error } = await supabase.storage
         .from('bucket_auditorias')
         .upload(fileName, photoFile, {
@@ -173,10 +178,15 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
         .from('bucket_auditorias')
         .getPublicUrl(fileName);
 
-      // Actualizar el set con la evidencia fotográfica
+      // Obtener URLs existentes de gestión auditoría
+      const currentSet = auditoriaSets.find(set => set.id === selectedSetId);
+      const existingUrls = currentSet?.foto_urls_ga || [];
+      const updatedUrls = [...existingUrls, publicUrl];
+
+      // Actualizar el set con la nueva foto de gestión
       const { error: updateError } = await supabase
         .from('auditoria_sets')
-        .update({ evidencia_foto_url: publicUrl })
+        .update({ foto_urls_ga: updatedUrls })
         .eq('id', selectedSetId);
 
       if (updateError) throw updateError;
@@ -184,12 +194,13 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
       // Actualizar estado local
       setAuditoriaSets(prev => prev.map(set => 
         set.id === selectedSetId 
-          ? { ...set, evidencia_foto_url: publicUrl }
+          ? { ...set, foto_urls_ga: updatedUrls }
           : set
       ));
 
       setShowCamera(false);
       setSelectedSetId(null);
+      setCurrentArea('');
 
       toast({
         title: "Evidencia guardada",
@@ -259,6 +270,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
               onClick={() => {
                 setShowCamera(false);
                 setSelectedSetId(null);
+                setCurrentArea('');
               }}
               variant="outline"
               size="sm"
@@ -272,6 +284,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
             onCancel={() => {
               setShowCamera(false);
               setSelectedSetId(null);
+              setCurrentArea('');
             }}
           />
         </div>
@@ -375,7 +388,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                     </div>
                   </div>
 
-                  {/* Fotografías del área */}
+                  {/* Fotografías originales del área */}
                   {set.foto_urls && set.foto_urls.length > 0 && (
                     <div className="mb-4">
                       <Label className="text-sm font-medium text-gray-700 mb-2 block">Fotografías del Área</Label>
@@ -392,18 +405,26 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                     </div>
                   )}
 
-                  {/* Evidencia fotográfica o fecha de compromiso */}
-                  <div className="border-t pt-4">
-                    {set.evidencia_foto_url ? (
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700 mb-2 block">Evidencia Fotográfica</Label>
-                        <img
-                          src={set.evidencia_foto_url}
-                          alt="Evidencia fotográfica"
-                          className="w-32 h-24 object-cover rounded border"
-                        />
+                  {/* Fotografías de gestión de auditoría */}
+                  {set.foto_urls_ga && set.foto_urls_ga.length > 0 && (
+                    <div className="mb-4">
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Evidencia Fotográfica de Gestión</Label>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {set.foto_urls_ga.map((url, index) => (
+                          <img
+                            key={index}
+                            src={url}
+                            alt={`Evidencia ${index + 1} de gestión ${set.area}`}
+                            className="w-full h-24 object-cover rounded border"
+                          />
+                        ))}
                       </div>
-                    ) : set.fecha_compromiso ? (
+                    </div>
+                  )}
+
+                  {/* Acciones para evidencia o fecha de compromiso */}
+                  <div className="border-t pt-4">
+                    {set.fecha_compromiso ? (
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Fecha de Compromiso</Label>
                         <Input 
@@ -416,7 +437,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                       <div className="space-y-4">
                         <div className="flex gap-2">
                           <Button
-                            onClick={() => handleCaptureEvidence(set.id)}
+                            onClick={() => handleCaptureEvidence(set.id, set.area)}
                             className="bg-blue-600 hover:bg-blue-700 text-white"
                           >
                             <Camera className="w-4 h-4 mr-2" />

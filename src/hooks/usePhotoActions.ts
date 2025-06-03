@@ -17,7 +17,7 @@ interface UsePhotoActionsProps {
   setCurrentResponsableId: (id: number | null) => void;
   setShowAreaInput: (show: boolean) => void;
   getNumberedArea: (area: string) => string;
-  stopCamera: () => void; // Agregar función para cerrar cámara
+  stopCamera: () => void;
 }
 
 export const usePhotoActions = ({
