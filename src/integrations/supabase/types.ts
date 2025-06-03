@@ -30,10 +30,8 @@ export type Database = {
           auditoria_codigo: string
           created_at: string
           evidencia_foto_url: string | null
-          fecha_comp: string | null
           fecha_compromiso: string | null
           foto_urls: string[] | null
-          foto_urls_ga: string | null
           gerencia_resp_id: number | null
           id: string
           levantamiento: string | null
@@ -45,10 +43,8 @@ export type Database = {
           auditoria_codigo: string
           created_at?: string
           evidencia_foto_url?: string | null
-          fecha_comp?: string | null
           fecha_compromiso?: string | null
           foto_urls?: string[] | null
-          foto_urls_ga?: string | null
           gerencia_resp_id?: number | null
           id?: string
           levantamiento?: string | null
@@ -60,10 +56,8 @@ export type Database = {
           auditoria_codigo?: string
           created_at?: string
           evidencia_foto_url?: string | null
-          fecha_comp?: string | null
           fecha_compromiso?: string | null
           foto_urls?: string[] | null
-          foto_urls_ga?: string | null
           gerencia_resp_id?: number | null
           id?: string
           levantamiento?: string | null

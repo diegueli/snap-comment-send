@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Camera, X } from 'lucide-react';
+import { CalendarIcon, Camera, X, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,6 +53,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
   const [gerenciaNombre, setGerenciaNombre] = useState<string>('');
   const [gerenciaId, setGerenciaId] = useState<number | null>(null);
   const [currentArea, setCurrentArea] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
 
   // Cargar información de la gerencia del usuario desde la tabla profiles
   useEffect(() => {
@@ -206,14 +208,6 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
       const existingUrls = currentSet?.foto_urls_ga || [];
       const updatedUrls = [...existingUrls, publicUrl];
 
-      // Actualizar el set con la nueva foto de gestión
-      const { error: updateError } = await supabase
-        .from('auditoria_sets')
-        .update({ foto_urls_ga: updatedUrls })
-        .eq('id', selectedSetId);
-
-      if (updateError) throw updateError;
-
       // Actualizar estado local
       setAuditoriaSets(prev => prev.map(set => 
         set.id === selectedSetId 
@@ -253,13 +247,6 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
     try {
       const fechaFormatted = format(fechaCompromiso, 'yyyy-MM-dd');
       
-      const { error } = await supabase
-        .from('auditoria_sets')
-        .update({ fecha_compromiso: fechaFormatted })
-        .eq('id', setId);
-
-      if (error) throw error;
-
       // Actualizar estado local
       setAuditoriaSets(prev => prev.map(set => 
         set.id === setId 
@@ -282,6 +269,74 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
         variant: "destructive",
       });
     }
+  };
+
+  // Contestar levantamiento - enviar respuesta a base de datos
+  const handleContestarLevantamiento = async (setId: string) => {
+    setIsSubmitting(setId);
+    
+    try {
+      const currentSet = auditoriaSets.find(set => set.id === setId);
+      if (!currentSet) return;
+
+      // Verificar que tenga al menos una respuesta (fecha de compromiso o evidencia fotográfica)
+      const tieneEvidencia = currentSet.foto_urls_ga && currentSet.foto_urls_ga.length > 0;
+      const tieneFechaCompromiso = currentSet.fecha_compromiso;
+
+      if (!tieneEvidencia && !tieneFechaCompromiso) {
+        toast({
+          title: "Respuesta requerida",
+          description: "Debe proporcionar evidencia fotográfica o fecha de compromiso.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Actualizar en la base de datos
+      const updateData: any = {};
+      
+      if (tieneEvidencia) {
+        updateData.foto_urls_ga = currentSet.foto_urls_ga;
+      }
+      
+      if (tieneFechaCompromiso) {
+        updateData.fecha_compromiso = currentSet.fecha_compromiso;
+      }
+
+      const { error } = await supabase
+        .from('auditoria_sets')
+        .update(updateData)
+        .eq('id', setId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Levantamiento contestado",
+        description: "La respuesta ha sido enviada exitosamente.",
+      });
+
+      // Recargar los sets para obtener la información actualizada
+      if (auditoriaSeleccionada) {
+        await loadAuditoriaSets(auditoriaSeleccionada);
+      }
+
+    } catch (error) {
+      console.error('Error contestando levantamiento:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo enviar la respuesta.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(null);
+    }
+  };
+
+  // Verificar si el set tiene respuesta completa
+  const hasResponse = (set: AuditoriaSet) => {
+    const tieneEvidencia = set.foto_urls_ga && set.foto_urls_ga.length > 0;
+    const tieneFechaCompromiso = set.fecha_compromiso;
+    return tieneEvidencia || tieneFechaCompromiso;
   };
 
   if (showCamera && selectedSetId) {
@@ -445,19 +500,22 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                     </div>
                   )}
 
+                  {/* Mostrar fecha de compromiso si existe */}
+                  {set.fecha_compromiso && (
+                    <div className="mb-4">
+                      <Label className="text-sm font-medium text-gray-700">Fecha de Compromiso</Label>
+                      <Input 
+                        value={format(new Date(set.fecha_compromiso), 'dd/MM/yyyy', { locale: es })} 
+                        disabled 
+                        className="bg-gray-50" 
+                      />
+                    </div>
+                  )}
+
                   {/* Acciones para evidencia o fecha de compromiso */}
-                  <div className="border-t pt-4">
-                    {set.fecha_compromiso ? (
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Fecha de Compromiso</Label>
-                        <Input 
-                          value={format(new Date(set.fecha_compromiso), 'dd/MM/yyyy', { locale: es })} 
-                          disabled 
-                          className="bg-gray-50" 
-                        />
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
+                  <div className="border-t pt-4 space-y-4">
+                    {!hasResponse(set) && (
+                      <>
                         <div className="flex gap-2">
                           <Button
                             onClick={() => handleCaptureEvidence(set.id, set.area)}
@@ -507,6 +565,20 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                             )}
                           </div>
                         </div>
+                      </>
+                    )}
+
+                    {/* Botón Contestar Levantamiento */}
+                    {hasResponse(set) && (
+                      <div className="border-t pt-4">
+                        <Button
+                          onClick={() => handleContestarLevantamiento(set.id)}
+                          disabled={isSubmitting === set.id}
+                          className="bg-orange-600 hover:bg-orange-700 text-white w-full"
+                        >
+                          <Send className="w-4 h-4 mr-2" />
+                          {isSubmitting === set.id ? 'Enviando...' : 'Contestar Levantamiento'}
+                        </Button>
                       </div>
                     )}
                   </div>
