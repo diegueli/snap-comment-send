@@ -116,11 +116,11 @@ const MainApp: React.FC = () => {
   }
 
   if (activeModule === 'resumen-auditorias') {
-    return <ResumenAuditoriasForm onClose={handleCloseModule} onReset={handleReinicio} />;
+    return <ResumenAuditoriasForm onClose={handleCloseModule} />;
   }
 
   if (activeModule === 'bloqueos') {
-    return <BloqueosForm onClose={handleCloseModule} onReset={handleReinicio} />;
+    return <BloqueosForm onClose={handleCloseModule} />;
   }
 
   if (showAuditoriaMenu) {
