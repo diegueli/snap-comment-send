@@ -1,4 +1,5 @@
-import React, { useCallback, useMemo, useRef, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Camera, X, Trash2 } from 'lucide-react';
@@ -17,153 +18,95 @@ interface BloqueosCameraViewProps {
   currentPhotos: Photo[];
 }
 
-const MAX_PHOTOS = 3;
-const CAMERA_AREA = 'Evidencia Bloqueo';
-
-const PhotoGrid: React.FC<{
-  photos: Photo[];
-  onDelete: (photoId: string, e?: React.MouseEvent) => void;
-  showIndex?: boolean;
-}> = ({ photos, onDelete, showIndex = false }) => (
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-    {photos.map((photo, index) => (
-      <div key={photo.id} className="relative">
-        <img
-          src={photo.url}
-          alt={`Evidencia ${index + 1}`}
-          className="w-full h-48 object-cover rounded-lg border-2 border-red-200"
-        />
-        <Button
-          type="button"
-          variant="destructive"
-          size="sm"
-          onClick={(e) => onDelete(photo.id, e)}
-          className="absolute top-2 right-2 h-8 w-8 p-0"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-        <div className="absolute bottom-2 left-2 bg-red-600/90 text-white px-2 py-1 rounded shadow text-xs font-semibold tracking-wide"></div>
-          {showIndex ? `Foto ${index + 1} de ${photos.length}` : `Foto ${index + 1}`}
-        </div>
-      </div>
-    ))}
-  </div>
-);
-
-const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
-  onPhotosChange,
-  currentPhotos,
+const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({ 
+  onPhotosChange, 
+  currentPhotos 
 }) => {
-  const {
-    isCapturing,
-    cameraPermission,
-    videoRef,
-    startCamera,
-    stopCamera,
+  const [currentArea] = useState('Evidencia Bloqueo');
+  
+  const { 
+    isCapturing, 
+    cameraPermission, 
+    videoRef, 
+    startCamera, 
+    stopCamera 
   } = useCamera();
 
   const { canvasRef, capturePhoto } = usePhotoCapture();
 
-  // Keep track of created object URLs for cleanup
-  const objectUrlsRef = useRef<Set<string>>(new Set());
-
-  useEffect(() => {
-    // Add current photo URLs to the set
-    currentPhotos.forEach((photo) => objectUrlsRef.current.add(photo.url));
-    return () => {
-      // Cleanup all object URLs on unmount
-      objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
-      objectUrlsRef.current.clear();
-    };
-  }, [currentPhotos]);
-
-  const isComplete = useMemo(() => currentPhotos.length >= MAX_PHOTOS, [currentPhotos]);
-
-  const handleStartCamera = useCallback(
-    async (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const success = await startCamera(CAMERA_AREA);
-      if (!success) {
-        toast({
-          title: 'Error de cámara',
-          description: 'No se pudo acceder a la cámara. Verifica los permisos.',
-          variant: 'destructive',
-        });
-      }
-    },
-    [startCamera]
-  );
-
-  const handleCapturePhoto = useCallback(
-    async (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const newPhoto = await capturePhoto(
-        videoRef,
-        currentPhotos.map((p) => ({
-          id: p.id,
-          file: p.file,
-          timestamp: new Date(),
-        }))
-      );
-      if (newPhoto) {
-        const url = URL.createObjectURL(newPhoto.file);
-        objectUrlsRef.current.add(url);
-        const photoWithUrl: Photo = {
-          id: newPhoto.id,
-          url,
-          file: newPhoto.file,
-        };
-        const updatedPhotos = [...currentPhotos, photoWithUrl];
-        onPhotosChange(updatedPhotos);
-
-        toast({
-          title: 'Foto capturada',
-          description: `Foto ${updatedPhotos.length} de ${MAX_PHOTOS} tomada exitosamente`,
-        });
-
-        if (updatedPhotos.length >= MAX_PHOTOS) {
-          stopCamera();
-          toast({
-            title: 'Evidencia completa',
-            description: `Se han capturado las ${MAX_PHOTOS} fotos requeridas para el bloqueo.`,
-          });
-        }
-      }
-    },
-    [capturePhoto, currentPhotos, onPhotosChange, stopCamera, videoRef]
-  );
-
-  const handleStopCamera = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      stopCamera();
-    },
-    [stopCamera]
-  );
-
-  const deletePhoto = useCallback(
-    (photoId: string, e?: React.MouseEvent) => {
-      if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      const updatedPhotos = currentPhotos.filter((photo) => {
-        if (photo.id === photoId) {
-          URL.revokeObjectURL(photo.url);
-          objectUrlsRef.current.delete(photo.url);
-          return false;
-        }
-        return true;
+  const handleStartCamera = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent form submission
+    e.stopPropagation();
+    
+    const success = await startCamera(currentArea);
+    if (!success) {
+      toast({
+        title: "Error de cámara",
+        description: "No se pudo acceder a la cámara. Verifica los permisos.",
+        variant: "destructive",
       });
-      onPhotosChange(updatedPhotos);
-    },
-    [currentPhotos, onPhotosChange]
-  );
+    }
+  };
 
-  if (isComplete) {
+  const handleCapturePhoto = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent form submission
+    e.stopPropagation();
+    
+    const newPhoto = await capturePhoto(videoRef, currentPhotos.map(p => ({
+      id: p.id,
+      file: p.file,
+      timestamp: new Date()
+    })));
+    
+    if (newPhoto) {
+      const photoWithUrl: Photo = {
+        id: newPhoto.id,
+        url: URL.createObjectURL(newPhoto.file),
+        file: newPhoto.file
+      };
+
+      const updatedPhotos = [...currentPhotos, photoWithUrl];
+      onPhotosChange(updatedPhotos);
+
+      toast({
+        title: "Foto capturada",
+        description: `Foto ${updatedPhotos.length} de 3 tomada exitosamente`,
+      });
+
+      // Auto-stop camera after 3 photos
+      if (updatedPhotos.length >= 3) {
+        stopCamera();
+        toast({
+          title: "Evidencia completa",
+          description: "Se han capturado las 3 fotos requeridas para el bloqueo.",
+        });
+      }
+    }
+  };
+
+  const handleStopCamera = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent form submission
+    e.stopPropagation();
+    stopCamera();
+  };
+
+  const deletePhoto = (photoId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    const updatedPhotos = currentPhotos.filter(photo => {
+      if (photo.id === photoId) {
+        URL.revokeObjectURL(photo.url);
+        return false;
+      }
+      return true;
+    });
+    onPhotosChange(updatedPhotos);
+  };
+
+  if (currentPhotos.length >= 3) {
     return (
       <Card className="border-red-200 shadow-lg">
         <CardHeader className="bg-gradient-to-r from-red-50 to-orange-50">
@@ -172,8 +115,30 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          <PhotoGrid photos={currentPhotos} onDelete={deletePhoto} />
-          <Button
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            {currentPhotos.map((photo, index) => (
+              <div key={photo.id} className="relative">
+                <img
+                  src={photo.url}
+                  alt={`Evidencia ${index + 1}`}
+                  className="w-full h-48 object-cover rounded-lg border-2 border-red-200"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={(e) => deletePhoto(photo.id, e)}
+                  className="absolute top-2 right-2 h-8 w-8 p-0"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+                <div className="absolute bottom-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-sm font-medium">
+                  Foto {index + 1}
+                </div>
+              </div>
+            ))}
+          </div>
+          <Button 
             type="button"
             onClick={handleStartCamera}
             variant="outline"
@@ -198,24 +163,59 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
         {!isCapturing ? (
           <div className="text-center space-y-4">
             <p className="text-gray-700 mb-4">
-              Se requiere evidencia del producto bloqueado (máximo {MAX_PHOTOS} fotos)
+              Se requiere evidencia fotográfica del producto bloqueado (máximo 3 fotos)
             </p>
             {currentPhotos.length > 0 && (
-              <PhotoGrid photos={currentPhotos} onDelete={deletePhoto} showIndex />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                {currentPhotos.map((photo, index) => (
+                  <div key={photo.id} className="relative">
+                    <img
+                      src={photo.url}
+                      alt={`Evidencia ${index + 1}`}
+                      className="w-full h-48 object-cover rounded-lg border-2 border-red-200"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={(e) => deletePhoto(photo.id, e)}
+                      className="absolute top-2 right-2 h-8 w-8 p-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <div className="absolute bottom-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-sm font-medium">
+                      Foto {index + 1}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
-            <Button
+            <Button 
               type="button"
               onClick={handleStartCamera}
               disabled={cameraPermission === 'denied'}
               className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700"
             >
               <Camera className="w-4 h-4 mr-2" />
-              {currentPhotos.length === 0
-                ? 'Iniciar Cámara'
-                : `Continuar (${currentPhotos.length}/${MAX_PHOTOS})`}
+              {currentPhotos.length === 0 ? 'Iniciar Cámara' : `Continuar (${currentPhotos.length}/3)`}
             </Button>
             {cameraPermission === 'denied' && (
               <p className="text-red-600 text-sm">
+                Permisos de cámara denegados. Actualiza la página y permite el acceso a la cámara.
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="relative w-full flex justify-center">
+              <video
+                ref={videoRef}
+                className="w-full max-w-sm rounded-lg border-2 border-red-200"
+                style={{ maxHeight: '400px' }}
+                playsInline
+                muted
+                autoPlay
+              />
               <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-sm font-medium">
                 Fotos: {currentPhotos.length}/3
               </div>
