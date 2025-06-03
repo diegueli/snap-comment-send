@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,7 +32,7 @@ interface AuditoriaSet {
   foto_urls: string[];
   evidencia_foto_url?: string;
   fecha_compromiso?: string;
-  foto_urls_ga?: string[];
+  foto_urls_ga: string[];
 }
 
 interface GestionAuditoriaFormProps {
@@ -149,8 +148,8 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
         foto_urls: set.foto_urls || [],
         evidencia_foto_url: set.evidencia_foto_url,
         fecha_compromiso: set.fecha_compromiso,
-        foto_urls_ga: set.foto_urls_ga ? 
-          (typeof set.foto_urls_ga === 'string' ? [set.foto_urls_ga] : set.foto_urls_ga) : []
+        foto_urls_ga: Array.isArray(set.foto_urls_ga) ? set.foto_urls_ga : 
+          (set.foto_urls_ga ? [set.foto_urls_ga] : [])
       }));
 
       setAuditoriaSets(setsFormatted);
