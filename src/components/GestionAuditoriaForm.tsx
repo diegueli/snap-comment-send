@@ -51,29 +51,40 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
   const [fechaCompromiso, setFechaCompromiso] = useState<Date | undefined>(undefined);
   const [showCalendar, setShowCalendar] = useState(false);
   const [gerenciaNombre, setGerenciaNombre] = useState<string>('');
+  const [gerenciaId, setGerenciaId] = useState<number | null>(null);
   const [currentArea, setCurrentArea] = useState<string>('');
 
-  // Cargar información de la gerencia del usuario
+  // Cargar información de la gerencia del usuario desde la tabla profiles
   useEffect(() => {
-    const loadGerenciaInfo = async () => {
-      if (!profile?.gerencia_id) return;
+    const loadUserProfile = async () => {
+      if (!user?.id) return;
 
       try {
-        const { data, error } = await supabase
-          .from('gerencias')
-          .select('nombre')
-          .eq('id', profile.gerencia_id)
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select(`
+            gerencia_id,
+            gerencias:gerencia_id (
+              id,
+              nombre
+            )
+          `)
+          .eq('id', user.id)
           .single();
 
-        if (error) throw error;
-        setGerenciaNombre(data.nombre);
+        if (profileError) throw profileError;
+
+        if (profileData?.gerencias) {
+          setGerenciaId(profileData.gerencia_id);
+          setGerenciaNombre(profileData.gerencias.nombre);
+        }
       } catch (error) {
-        console.error('Error loading gerencia:', error);
+        console.error('Error loading user profile:', error);
       }
     };
 
-    loadGerenciaInfo();
-  }, [profile?.gerencia_id]);
+    loadUserProfile();
+  }, [user?.id]);
 
   // Cargar auditorías disponibles
   useEffect(() => {
@@ -129,7 +140,20 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
 
       if (error) throw error;
 
-      setAuditoriaSets(data || []);
+      // Convertir los datos para manejar foto_urls_ga correctamente
+      const setsFormatted = (data || []).map(set => ({
+        id: set.id,
+        area: set.area,
+        levantamiento: set.levantamiento || '',
+        responsable: set.responsable || '',
+        foto_urls: set.foto_urls || [],
+        evidencia_foto_url: set.evidencia_foto_url,
+        fecha_compromiso: set.fecha_compromiso,
+        foto_urls_ga: set.foto_urls_ga ? 
+          (typeof set.foto_urls_ga === 'string' ? [set.foto_urls_ga] : set.foto_urls_ga) : []
+      }));
+
+      setAuditoriaSets(setsFormatted);
     } catch (error) {
       console.error('Error loading auditoria sets:', error);
       toast({
