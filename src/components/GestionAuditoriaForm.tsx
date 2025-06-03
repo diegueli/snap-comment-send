@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -263,7 +262,17 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
     }
   };
 
-  // Contestar levantamiento - enviar respuesta a base de datos
+  // Verificar si el set tiene respuesta completa
+  const hasResponse = (set: AuditoriaSet) => {
+    return set.evidencia_foto_url || set.fecha_compromiso;
+  };
+
+  // Verificar si el botón "Contestar Levantamiento" puede ejecutarse
+  const canContestarLevantamiento = (set: AuditoriaSet) => {
+    return hasResponse(set);
+  };
+
+  // Contestar levantamiento - enviar respuesta a base de datos (solo una vez)
   const handleContestarLevantamiento = async (setId: string) => {
     setIsSubmitting(setId);
     
@@ -271,7 +280,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
       const currentSet = auditoriaSets.find(set => set.id === setId);
       if (!currentSet) return;
 
-      // Verificar que tenga al menos una respuesta (fecha de compromiso o evidencia fotográfica)
+      // Verificar que tenga al menos una respuesta
       const tieneEvidencia = currentSet.evidencia_foto_url;
       const tieneFechaCompromiso = currentSet.fecha_compromiso;
 
@@ -323,11 +332,6 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
     } finally {
       setIsSubmitting(null);
     }
-  };
-
-  // Verificar si el set tiene respuesta completa
-  const hasResponse = (set: AuditoriaSet) => {
-    return set.evidencia_foto_url || set.fecha_compromiso;
   };
 
   if (showCamera && selectedSetId) {
@@ -507,7 +511,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                         <div className="flex gap-2">
                           <Button
                             onClick={() => handleCaptureEvidence(set.id, set.area)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white"
                           >
                             <Camera className="w-4 h-4 mr-2" />
                             Tomar Evidencia Fotográfica
@@ -546,7 +550,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                             {fechaCompromiso && (
                               <Button
                                 onClick={() => handleFechaCompromiso(set.id)}
-                                className="bg-green-600 hover:bg-green-700 text-white"
+                                className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white"
                               >
                                 Guardar Fecha
                               </Button>
@@ -556,13 +560,13 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                       </>
                     )}
 
-                    {/* Botón Contestar Levantamiento */}
-                    {hasResponse(set) && (
+                    {/* Botón Contestar Levantamiento - Solo disponible si hay respuesta y no se ha ejecutado antes */}
+                    {canContestarLevantamiento(set) && (
                       <div className="border-t pt-4">
                         <Button
                           onClick={() => handleContestarLevantamiento(set.id)}
                           disabled={isSubmitting === set.id}
-                          className="bg-orange-600 hover:bg-orange-700 text-white w-full"
+                          className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white w-full"
                         >
                           <Send className="w-4 h-4 mr-2" />
                           {isSubmitting === set.id ? 'Enviando...' : 'Contestar Levantamiento'}

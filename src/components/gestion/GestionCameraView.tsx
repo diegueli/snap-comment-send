@@ -92,9 +92,9 @@ const GestionCameraView: React.FC<GestionCameraViewProps> = ({
   };
 
   return (
-    <Card className="border-blue-200 shadow-lg">
-      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
-        <CardTitle className="text-xl font-bold text-blue-800 text-center">
+    <Card className="border-yellow-200 shadow-lg">
+      <CardHeader className="bg-gradient-to-r from-yellow-50 to-red-50">
+        <CardTitle className="text-xl font-bold bg-gradient-to-r from-yellow-600 to-red-600 bg-clip-text text-transparent text-center">
           Evidencia Fotográfica de Gestión
         </CardTitle>
       </CardHeader>
@@ -113,14 +113,14 @@ const GestionCameraView: React.FC<GestionCameraViewProps> = ({
               <Button
                 onClick={handleRetakePhoto}
                 variant="outline"
-                className="border-blue-200 text-blue-600 hover:bg-blue-50"
+                className="border-yellow-200 text-yellow-600 hover:bg-yellow-50"
               >
                 <Camera className="w-4 h-4 mr-2" />
                 Retomar
               </Button>
               <Button
                 onClick={handleConfirmPhoto}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white"
               >
                 <Check className="w-4 h-4 mr-2" />
                 Confirmar
@@ -137,7 +137,7 @@ const GestionCameraView: React.FC<GestionCameraViewProps> = ({
               type="button"
               onClick={handleStartCamera}
               disabled={cameraPermission === 'denied'}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+              className="w-full bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white"
             >
               <Camera className="w-4 h-4 mr-2" />
               Iniciar Cámara
@@ -161,7 +161,7 @@ const GestionCameraView: React.FC<GestionCameraViewProps> = ({
             <div className="relative w-full flex justify-center">
               <video
                 ref={videoRef}
-                className="w-full max-w-sm rounded-lg border-2 border-blue-200"
+                className="w-full max-w-sm rounded-lg border-2 border-yellow-200"
                 style={{ maxHeight: '400px' }}
                 playsInline
                 muted
@@ -172,7 +172,7 @@ const GestionCameraView: React.FC<GestionCameraViewProps> = ({
               <Button
                 type="button"
                 onClick={handleCapturePhoto}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white"
               >
                 <Camera className="w-4 h-4 mr-2" />
                 Capturar Evidencia
@@ -181,7 +181,7 @@ const GestionCameraView: React.FC<GestionCameraViewProps> = ({
                 type="button"
                 onClick={handleStopCamera}
                 variant="outline"
-                className="border-blue-200 text-blue-600 hover:bg-blue-50"
+                className="border-yellow-200 text-yellow-600 hover:bg-yellow-50"
               >
                 <X className="w-4 h-4 mr-2" />
                 Cerrar Cámara

@@ -1,12 +1,13 @@
 
 import React, { useState } from 'react';
-import { Camera, Shield, FileSearch } from 'lucide-react';
+import { Camera, Shield, FileSearch, ClipboardList, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import CameraApp from './CameraApp';
 import BloqueosForm from './BloqueosForm';
 import GestionAuditoriaForm from './GestionAuditoriaForm';
+import ResumenAuditoriasForm from './resumen/ResumenAuditoriasForm';
 import AuthForm from './AuthForm';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -15,6 +16,8 @@ const MainApp = () => {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isBloqueosOpen, setIsBloqueosOpen] = useState(false);
   const [isGestionOpen, setIsGestionOpen] = useState(false);
+  const [isResumenOpen, setIsResumenOpen] = useState(false);
+  const [isAuditoriasMenuOpen, setIsAuditoriasMenuOpen] = useState(false);
 
   // Show loading state while auth is initializing
   if (loading) {
@@ -38,6 +41,8 @@ const MainApp = () => {
     setIsCameraOpen(false);
     setIsBloqueosOpen(false);
     setIsGestionOpen(false);
+    setIsResumenOpen(false);
+    setIsAuditoriasMenuOpen(false);
   };
 
   // Convert profile to userData format for compatibility with CameraApp
@@ -45,6 +50,15 @@ const MainApp = () => {
     name: profile.name,
     email: user.email || '',
     position: profile.position,
+  };
+
+  const handleAuditoriasMenuOpen = (open: boolean) => {
+    setIsAuditoriasMenuOpen(open);
+    if (!open) {
+      setIsCameraOpen(false);
+      setIsGestionOpen(false);
+      setIsResumenOpen(false);
+    }
   };
 
   return (
@@ -90,41 +104,57 @@ const MainApp = () => {
 
         {/* Module Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          {/* Auditoria Button */}
-          <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
+          {/* Auditorías Menu Button */}
+          <Dialog open={isAuditoriasMenuOpen} onOpenChange={handleAuditoriasMenuOpen}>
             <DialogTrigger asChild>
               <Button 
                 className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white px-8 py-4 text-lg font-semibold shadow-lg"
                 size="lg"
               >
-                <Camera className="w-6 h-6 mr-3" />
-                Auditoría
+                <ClipboardList className="w-6 h-6 mr-3" />
+                Auditorías
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md mx-auto max-h-[90vh] overflow-y-auto p-0">
-              <DialogHeader className="p-6 pb-0">
-                <DialogTitle className="text-center">Auditoría</DialogTitle>
+            <DialogContent className="max-w-md mx-auto p-6">
+              <DialogHeader>
+                <DialogTitle className="text-center text-xl mb-4">Módulos de Auditoría</DialogTitle>
               </DialogHeader>
-              <div className="p-0">
-                <CameraApp onClose={() => setIsCameraOpen(false)} userData={userData} />
-              </div>
-            </DialogContent>
-          </Dialog>
+              <div className="space-y-3">
+                {/* Ingresar Auditoría */}
+                <Button
+                  onClick={() => {
+                    setIsAuditoriasMenuOpen(false);
+                    setIsCameraOpen(true);
+                  }}
+                  className="w-full bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white py-3"
+                >
+                  <Camera className="w-5 h-5 mr-2" />
+                  Ingresar Auditoría
+                </Button>
 
-          {/* Gestión Auditoría Button */}
-          <Dialog open={isGestionOpen} onOpenChange={setIsGestionOpen}>
-            <DialogTrigger asChild>
-              <Button 
-                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-4 text-lg font-semibold shadow-lg"
-                size="lg"
-              >
-                <FileSearch className="w-6 h-6 mr-3" />
-                Gestión Auditoría
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-6xl mx-auto max-h-[90vh] overflow-hidden p-0">
-              <div className="overflow-y-auto max-h-[90vh] p-6">
-                <GestionAuditoriaForm onClose={() => setIsGestionOpen(false)} />
+                {/* Gestión Auditoría */}
+                <Button
+                  onClick={() => {
+                    setIsAuditoriasMenuOpen(false);
+                    setIsGestionOpen(true);
+                  }}
+                  className="w-full bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white py-3"
+                >
+                  <FileSearch className="w-5 h-5 mr-2" />
+                  Gestión Auditoría
+                </Button>
+
+                {/* Resumen Auditorías */}
+                <Button
+                  onClick={() => {
+                    setIsAuditoriasMenuOpen(false);
+                    setIsResumenOpen(true);
+                  }}
+                  className="w-full bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white py-3"
+                >
+                  <BarChart3 className="w-5 h-5 mr-2" />
+                  Resumen Auditorías
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -147,6 +177,37 @@ const MainApp = () => {
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Dialogs for Auditorías modules */}
+        {/* Ingresar Auditoría Dialog */}
+        <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
+          <DialogContent className="max-w-md mx-auto max-h-[90vh] overflow-y-auto p-0">
+            <DialogHeader className="p-6 pb-0">
+              <DialogTitle className="text-center">Ingresar Auditoría</DialogTitle>
+            </DialogHeader>
+            <div className="p-0">
+              <CameraApp onClose={() => setIsCameraOpen(false)} userData={userData} />
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Gestión Auditoría Dialog */}
+        <Dialog open={isGestionOpen} onOpenChange={setIsGestionOpen}>
+          <DialogContent className="max-w-6xl mx-auto max-h-[90vh] overflow-hidden p-0">
+            <div className="overflow-y-auto max-h-[90vh]">
+              <GestionAuditoriaForm onClose={() => setIsGestionOpen(false)} />
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Resumen Auditorías Dialog */}
+        <Dialog open={isResumenOpen} onOpenChange={setIsResumenOpen}>
+          <DialogContent className="max-w-6xl mx-auto max-h-[90vh] overflow-hidden p-0">
+            <div className="overflow-y-auto max-h-[90vh]">
+              <ResumenAuditoriasForm onClose={() => setIsResumenOpen(false)} />
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
