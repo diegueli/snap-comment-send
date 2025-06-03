@@ -97,7 +97,7 @@ export const generatePDF = async ({
       yPosition += 10;
     }
 
-    // Procesar conjuntos de fotos - ahora con áreas numeradas
+    // Procesar conjuntos de fotos
     for (let i = 0; i < photoSets.length; i++) {
       const set = photoSets[i];
       
@@ -108,7 +108,6 @@ export const generatePDF = async ({
 
       pdf.setFontSize(16);
       pdf.setTextColor(196, 47, 47);
-      // El área ya viene numerada desde el frontend
       pdf.text(`ÁREA: ${set.area}`, 20, yPosition);
       yPosition += 15;
 
@@ -211,10 +210,10 @@ export const generatePDF = async ({
       // Crear un File object en lugar de usar blob directamente
       const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
       
-      // Subir PDF a Supabase Storage usando codigo_auditoria como referencia
+      // Subir PDF a Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('bucket_auditorias')
-        .upload(`pdfs/${codigoAuditoria || Date.now()}/${fileName}`, pdfFile, {
+        .upload(`pdfs/${auditoriaId || Date.now()}/${fileName}`, pdfFile, {
           contentType: 'application/pdf',
           upsert: true
         });

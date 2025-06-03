@@ -5,7 +5,7 @@ import { CapturedPhoto, PhotoSet } from '@/types/auditoria';
 
 interface UsePhotoActionsProps {
   currentPhotos: CapturedPhoto[];
-  setCurrentPhotos: (photos: CapturedPhoto[]) => void;
+  setCurrentPhotos: (photos: CapturedPhoto[] | ((prev: CapturedPhoto[]) => CapturedPhoto[])) => void;
   setPhotoSets: (sets: PhotoSet[] | ((prev: PhotoSet[]) => PhotoSet[])) => void;
   currentArea: string;
   currentLevantamiento: string;
@@ -16,8 +16,6 @@ interface UsePhotoActionsProps {
   setCurrentResponsable: (responsable: string) => void;
   setCurrentResponsableId: (id: number | null) => void;
   setShowAreaInput: (show: boolean) => void;
-  generateNumberedArea: (areaName: string, existingSets: PhotoSet[]) => string;
-  stopCamera?: () => void;
 }
 
 export const usePhotoActions = ({
@@ -32,115 +30,100 @@ export const usePhotoActions = ({
   setCurrentLevantamiento,
   setCurrentResponsable,
   setCurrentResponsableId,
-  setShowAreaInput,
-  generateNumberedArea,
-  stopCamera
+  setShowAreaInput
 }: UsePhotoActionsProps) => {
-
+  
   const deletePhoto = useCallback((photoId: string) => {
-    setCurrentPhotos(currentPhotos.filter(photo => photo.id !== photoId));
-  }, [currentPhotos, setCurrentPhotos]);
+    setCurrentPhotos(prev => prev.filter(photo => photo.id !== photoId));
+    toast({
+      title: "Foto eliminada",
+      description: "Foto removida del conjunto actual.",
+    });
+  }, [setCurrentPhotos]);
 
-  const saveCurrentSet = useCallback(() => {
-    if (currentPhotos.length === 0 || !currentArea.trim()) {
+  const saveCurrentSet = useCallback(async () => {
+    if (currentPhotos.length === 0) {
       toast({
-        title: "No se puede guardar",
-        description: "Necesita fotos y un área definida.",
+        title: "No hay fotos para guardar",
+        description: "Por favor capture al menos una foto primero.",
         variant: "destructive",
       });
       return;
     }
 
-    setPhotoSets(prev => {
-      const numberedArea = generateNumberedArea(currentArea, prev);
-      const newSet: PhotoSet = {
-        id: Date.now().toString(),
-        area: numberedArea,
-        photos: [...currentPhotos],
-        levantamiento: currentLevantamiento,
-        responsable: currentResponsable,
-        gerencia_resp_id: currentResponsableId,
-        timestamp: new Date()
-      };
-      return [...prev, newSet];
-    });
+    if (!currentArea.trim()) {
+      toast({
+        title: "Área requerida",
+        description: "Por favor ingrese el área.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    // Reset current state
+    const newSet: PhotoSet = {
+      id: Date.now().toString(),
+      area: currentArea.trim(),
+      photos: [...currentPhotos],
+      levantamiento: currentLevantamiento,
+      responsable: currentResponsable,
+      gerencia_resp_id: currentResponsableId,
+      timestamp: new Date()
+    };
+
+    setPhotoSets(prev => [...prev, newSet]);
     setCurrentPhotos([]);
     setCurrentArea('');
     setCurrentLevantamiento('');
     setCurrentResponsable('');
     setCurrentResponsableId(null);
-    setShowAreaInput(true);
-
+    setShowAreaInput(false);
+    
     toast({
-      title: "Conjunto guardado",
-      description: "Las fotos han sido guardadas exitosamente.",
+      title: "¡Conjunto de fotos guardado!",
+      description: `Conjunto "${newSet.area}" con ${newSet.photos.length} foto(s) agregado.`,
     });
-  }, [
-    currentPhotos, 
-    currentArea, 
-    currentLevantamiento, 
-    currentResponsable, 
-    currentResponsableId,
-    setPhotoSets, 
-    setCurrentPhotos, 
-    setCurrentArea, 
-    setCurrentLevantamiento, 
-    setCurrentResponsable,
-    setCurrentResponsableId,
-    setShowAreaInput,
-    generateNumberedArea
-  ]);
+  }, [currentPhotos, currentArea, currentLevantamiento, currentResponsable, currentResponsableId, setCurrentPhotos, setPhotoSets, setCurrentArea, setCurrentLevantamiento, setCurrentResponsable, setCurrentResponsableId, setShowAreaInput]);
 
   const deletePhotoSet = useCallback((setId: string) => {
     setPhotoSets(prev => prev.filter(set => set.id !== setId));
     toast({
       title: "Conjunto eliminado",
-      description: "El conjunto de fotos ha sido eliminado.",
+      description: "Conjunto removido del documento.",
     });
   }, [setPhotoSets]);
 
   const deletePhotoFromSet = useCallback((setId: string, photoId: string) => {
-    setPhotoSets(prev => prev.map(set => 
-      set.id === setId 
-        ? { ...set, photos: set.photos.filter(photo => photo.id !== photoId) }
-        : set
-    ));
+    setPhotoSets(prev => prev.map(set => {
+      if (set.id === setId) {
+        const updatedPhotos = set.photos.filter(photo => photo.id !== photoId);
+        if (updatedPhotos.length === 0) {
+          toast({
+            title: "Conjunto eliminado",
+            description: "Conjunto removido al no tener fotos restantes.",
+          });
+          return null;
+        }
+        toast({
+          title: "Foto eliminada",
+          description: "Foto removida del conjunto.",
+        });
+        return { ...set, photos: updatedPhotos };
+      }
+      return set;
+    }).filter(Boolean) as PhotoSet[]);
   }, [setPhotoSets]);
 
   const updatePhotoSet = useCallback((setId: string, updates: Partial<PhotoSet>) => {
     setPhotoSets(prev => prev.map(set => 
-      set.id === setId 
-        ? { ...set, ...updates }
-        : set
+      set.id === setId ? { ...set, ...updates } : set
     ));
-
-    toast({
-      title: "Conjunto actualizado",
-      description: "El conjunto ha sido actualizado correctamente.",
-    });
   }, [setPhotoSets]);
-
-  // Nueva función para detener cámara cuando hay menos de 3 fotos
-  const handleStopCameraWithFewPhotos = useCallback(() => {
-    if (currentPhotos.length > 0 && currentPhotos.length < 3) {
-      if (stopCamera) {
-        stopCamera();
-      }
-      toast({
-        title: "Cámara detenida",
-        description: `Se han capturado ${currentPhotos.length} foto(s). Puede continuar al siguiente conjunto.`,
-      });
-    }
-  }, [currentPhotos.length, stopCamera]);
 
   return {
     deletePhoto,
     saveCurrentSet,
     deletePhotoSet,
     deletePhotoFromSet,
-    updatePhotoSet,
-    handleStopCameraWithFewPhotos
+    updatePhotoSet
   };
 };

@@ -31,7 +31,8 @@ export interface AuditoriaFormData {
 }
 
 export interface AuditoriaData extends AuditoriaFormData {
-  codigoAuditoria: string; // Required field, now the primary key
+  id?: string;
+  codigoAuditoria: string; // Make this required instead of optional
 }
 
 export interface Planta {

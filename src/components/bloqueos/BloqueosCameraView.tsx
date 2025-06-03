@@ -1,4 +1,3 @@
-
 import React, { useCallback, useMemo, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,7 +42,7 @@ const PhotoGrid: React.FC<{
         >
           <Trash2 className="h-4 w-4" />
         </Button>
-        <div className="absolute bottom-2 left-2 bg-red-600/90 text-white px-2 py-1 rounded shadow text-xs font-semibold tracking-wide">
+        <div className="absolute bottom-2 left-2 bg-red-600/90 text-white px-2 py-1 rounded shadow text-xs font-semibold tracking-wide"></div>
           {showIndex ? `Foto ${index + 1} de ${photos.length}` : `Foto ${index + 1}`}
         </div>
       </div>
@@ -84,7 +83,6 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
     async (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log('Starting camera for bloqueos...');
       const success = await startCamera(CAMERA_AREA);
       if (!success) {
         toast({
@@ -101,18 +99,6 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
     async (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      
-      console.log(`Attempting to capture photo ${currentPhotos.length + 1}/${MAX_PHOTOS}`);
-      
-      if (currentPhotos.length >= MAX_PHOTOS) {
-        toast({
-          title: 'Límite alcanzado',
-          description: `Ya se han capturado las ${MAX_PHOTOS} fotos máximas permitidas.`,
-          variant: 'destructive',
-        });
-        return;
-      }
-
       const newPhoto = await capturePhoto(
         videoRef,
         currentPhotos.map((p) => ({
@@ -121,9 +107,7 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
           timestamp: new Date(),
         }))
       );
-      
       if (newPhoto) {
-        console.log('Photo captured successfully:', newPhoto.id);
         const url = URL.createObjectURL(newPhoto.file);
         objectUrlsRef.current.add(url);
         const photoWithUrl: Photo = {
@@ -140,20 +124,12 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
         });
 
         if (updatedPhotos.length >= MAX_PHOTOS) {
-          console.log('Maximum photos reached, stopping camera');
           stopCamera();
           toast({
             title: 'Evidencia completa',
             description: `Se han capturado las ${MAX_PHOTOS} fotos requeridas para el bloqueo.`,
           });
         }
-      } else {
-        console.error('Failed to capture photo');
-        toast({
-          title: 'Error al capturar',
-          description: 'No se pudo capturar la foto. Intenta nuevamente.',
-          variant: 'destructive',
-        });
       }
     },
     [capturePhoto, currentPhotos, onPhotosChange, stopCamera, videoRef]
@@ -163,7 +139,6 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log('Stopping camera manually');
       stopCamera();
     },
     [stopCamera]
@@ -175,7 +150,6 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
         e.preventDefault();
         e.stopPropagation();
       }
-      console.log('Deleting photo:', photoId);
       const updatedPhotos = currentPhotos.filter((photo) => {
         if (photo.id === photoId) {
           URL.revokeObjectURL(photo.url);
@@ -242,33 +216,19 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
             </Button>
             {cameraPermission === 'denied' && (
               <p className="text-red-600 text-sm">
-                Acceso a la cámara denegado. Por favor permite el acceso en tu navegador.
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="relative bg-black rounded-lg overflow-hidden">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-64 md:h-80 object-cover"
-              />
               <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-sm font-medium">
-                Fotos: {currentPhotos.length}/{MAX_PHOTOS}
+                Fotos: {currentPhotos.length}/3
               </div>
             </div>
             <div className="flex flex-col gap-2 justify-center">
               <Button
                 type="button"
                 onClick={handleCapturePhoto}
-                disabled={currentPhotos.length >= MAX_PHOTOS}
+                disabled={currentPhotos.length >= 3}
                 className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700"
               >
                 <Camera className="w-4 h-4 mr-2" />
-                Capturar Foto ({currentPhotos.length + 1}/{MAX_PHOTOS})
+                Capturar Foto
               </Button>
               <Button
                 type="button"

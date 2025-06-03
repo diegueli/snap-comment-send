@@ -8,15 +8,11 @@ import CameraApp from './CameraApp';
 import BloqueosForm from './BloqueosForm';
 import AuthForm from './AuthForm';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAuditoriaState } from '@/hooks/useAuditoriaState';
 
 const MainApp = () => {
   const { user, profile, signOut, loading } = useAuth();
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isBloqueosOpen, setIsBloqueosOpen] = useState(false);
-  
-  // Use the auditoria state hook to get all the required props for CameraApp
-  const auditoriaState = useAuditoriaState();
 
   // Show loading state while auth is initializing
   if (loading) {
@@ -39,8 +35,6 @@ const MainApp = () => {
     await signOut();
     setIsCameraOpen(false);
     setIsBloqueosOpen(false);
-    // Reset auditoria state when logging out
-    auditoriaState.resetState();
   };
 
   // Convert profile to userData format for compatibility with CameraApp
@@ -109,24 +103,7 @@ const MainApp = () => {
                 <DialogTitle className="text-center">Auditoría</DialogTitle>
               </DialogHeader>
               <div className="p-0">
-                <CameraApp 
-                  onClose={() => setIsCameraOpen(false)} 
-                  userData={userData}
-                  currentPhotos={auditoriaState.currentPhotos}
-                  setCurrentPhotos={auditoriaState.setCurrentPhotos}
-                  setPhotoSets={auditoriaState.setPhotoSets}
-                  currentArea={auditoriaState.currentArea}
-                  currentLevantamiento={auditoriaState.currentLevantamiento}
-                  currentResponsable={auditoriaState.currentResponsable}
-                  currentResponsableId={auditoriaState.currentResponsableId}
-                  setCurrentArea={auditoriaState.setCurrentArea}
-                  setCurrentLevantamiento={auditoriaState.setCurrentLevantamiento}
-                  setCurrentResponsable={auditoriaState.setCurrentResponsable}
-                  setCurrentResponsableId={auditoriaState.setCurrentResponsableId}
-                  showAreaInput={auditoriaState.showAreaInput}
-                  setShowAreaInput={auditoriaState.setShowAreaInput}
-                  generateNumberedArea={auditoriaState.generateNumberedArea}
-                />
+                <CameraApp onClose={() => setIsCameraOpen(false)} userData={userData} />
               </div>
             </DialogContent>
           </Dialog>
