@@ -80,7 +80,7 @@ const AuthForm = () => {
       <div className="max-w-md w-full">
         {/* Header with Logo */}
         <Card className="mb-6 bg-white shadow-lg">
-          <CardHeader className="text-center">
+          <CardHeader className="text-center pb-4">
             <div className="flex justify-center items-center mb-4">
               <img 
                 src="/lovable-uploads/9ad6adb6-f76a-4982-92e9-09618c309f7c.png" 
@@ -88,10 +88,10 @@ const AuthForm = () => {
                 className="h-16 object-contain"
               />
             </div>
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-yellow-500 to-red-600 bg-clip-text text-transparent">
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-yellow-500 to-red-600 bg-clip-text text-transparent mb-2">
               Quinta Alimentos
             </CardTitle>
-            <p className="text-gray-600">
+            <p className="text-gray-600 text-center">
               Sistema de Auditoría
             </p>
           </CardHeader>
@@ -99,11 +99,11 @@ const AuthForm = () => {
 
         {/* Authentication Form */}
         <Card className="bg-white shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-xl text-center text-gray-800">
+          <CardHeader className="text-center pb-4">
+            <CardTitle className="text-xl text-gray-800 mb-2">
               {isSignUp ? 'Crear Cuenta' : 'Iniciar Sesión'}
             </CardTitle>
-            <p className="text-sm text-gray-600 text-center">
+            <p className="text-sm text-gray-600">
               {isSignUp 
                 ? 'Crea tu cuenta para acceder al sistema'
                 : 'Ingresa tus credenciales para acceder al sistema'
