@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -376,365 +375,377 @@ Nota: Las URLs de las fotos estarán disponibles después de registrar el bloque
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto overflow-y-auto max-h-[80vh]">
-      {/* Header with Logo and Title */}
-      <Card className="mb-6 bg-gradient-to-r from-red-50 to-orange-50 border-red-200">
-        <CardHeader className="text-center pb-4">
-          <div className="flex justify-center items-center mb-4">
-            <img 
-              src="/lovable-uploads/9ad6adb6-f76a-4982-92e9-09618c309f7c.png" 
-              alt="Quinta alimentos logo" 
-              className="h-12 object-contain"
-            />
-          </div>
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent mb-2">
-            Módulo de Bloqueos
-            {codigoBloqueo && (
-              <span className="block text-lg font-semibold text-red-700 mt-2">
-                Código: {codigoBloqueo}
-              </span>
-            )}
-          </CardTitle>
-          <p className="text-gray-700 text-sm leading-relaxed max-w-2xl mx-auto">
-            Este módulo permite registrar y gestionar bloqueos de productos en el sistema. 
-            Documenta productos que requieren retención por motivos de calidad, seguridad o 
-            control de procesos, asegurando la trazabilidad completa desde la identificación 
-            hasta la resolución del bloqueo.
-          </p>
-        </CardHeader>
-      </Card>
-
-      {/* Form Card */}
-      <Card className="border-red-200 shadow-lg">
-        <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-red-50 to-orange-50">
-          <CardTitle className="text-xl font-bold text-red-800 flex-1 text-center">
-            Registrar Bloqueo
-          </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="h-8 w-8 p-0 text-red-600 hover:bg-red-100"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </CardHeader>
-        <CardContent className="p-6">
-          <Form {...form}>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="planta_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-red-800">Planta</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="border-red-200 focus:border-red-400">
-                            <SelectValue placeholder="Selecciona una planta" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {plantas.length > 0 ? (
-                            plantas.map((planta) => (
-                              <SelectItem key={planta.id} value={planta.id.toString()}>
-                                {planta.nombre}
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem value="no-plantas" disabled>
-                              No hay plantas disponibles
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+    <div className="bg-gradient-to-br from-red-50 via-orange-50 to-red-50 min-h-screen">
+      <div className="max-w-5xl mx-auto p-4 space-y-4">
+        {/* Header optimizado */}
+        <Card className="bg-white/95 backdrop-blur-sm shadow-xl border-red-200/50">
+          <CardHeader className="text-center pb-4">
+            <div className="flex justify-between items-start mb-3">
+              <div className="flex-1"></div>
+              <div className="flex flex-col items-center space-y-2">
+                <img 
+                  src="/lovable-uploads/9ad6adb6-f76a-4982-92e9-09618c309f7c.png" 
+                  alt="Quinta alimentos logo" 
+                  className="h-14 object-contain"
                 />
-
-                <FormField
-                  control={form.control}
-                  name="area_planta_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-red-800">Área de Planta</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="border-red-200 focus:border-red-400">
-                            <SelectValue placeholder="Selecciona un área" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {areas.length > 0 ? (
-                            areas.map((area) => (
-                              <SelectItem key={area.id} value={area.id.toString()}>
-                                {area.nombre}
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem value="no-areas" disabled>
-                              No hay áreas disponibles
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="producto_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-red-800">Producto</FormLabel>
-                      <Popover open={productoOpen} onOpenChange={setProductoOpen}>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              aria-expanded={productoOpen}
-                              className={cn(
-                                "w-full justify-between border-red-200 focus:border-red-400 hover:bg-red-50",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value
-                                ? productos.find(
-                                    (producto) => producto.id.toString() === field.value
-                                  )?.nombre || "Producto no encontrado"
-                                : productoSearchValue || "Buscar producto..."}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-full p-0" align="start">
-                          <Command>
-                            <CommandInput 
-                              placeholder="Buscar producto..." 
-                              className="h-9"
-                              value={productoSearchValue}
-                              onValueChange={setProductoSearchValue}
-                            />
-                            <CommandList>
-                              <CommandEmpty>
-                                {productos.length === 0 
-                                  ? "No hay productos disponibles" 
-                                  : "No se encontraron productos"}
-                              </CommandEmpty>
-                              <CommandGroup>
-                                {filteredProductos.map((producto) => (
-                                  <CommandItem
-                                    key={producto.id}
-                                    value={producto.nombre || `Producto ${producto.id}`}
-                                    onSelect={() => {
-                                      field.onChange(producto.id.toString());
-                                      setProductoSearchValue('');
-                                      setProductoOpen(false);
-                                    }}
-                                    className="cursor-pointer"
-                                  >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        field.value === producto.id.toString()
-                                          ? "opacity-100"
-                                          : "opacity-0"
-                                      )}
-                                    />
-                                    <span>
-                                      {highlightMatch(
-                                        producto.nombre || `Producto ${producto.id}`,
-                                        productoSearchValue
-                                      )}
-                                    </span>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="turno_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-red-800">Turno</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="border-red-200 focus:border-red-400">
-                            <SelectValue placeholder="Selecciona un turno" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {turnos.length > 0 ? (
-                            turnos.map((turno) => (
-                              <SelectItem key={turno.id} value={turno.id.toString()}>
-                                {turno.nombre}
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem value="no-turnos" disabled>
-                              No hay turnos disponibles
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="cantidad"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-red-800">Cantidad</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="Ingresa la cantidad"
-                          className="border-red-200 focus:border-red-400"
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="lote"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-red-800">Lote</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="Ingresa el número de lote"
-                          className="border-red-200 focus:border-red-400"
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="fecha"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-red-800">Fecha</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="text" 
-                          className="border-red-200 bg-gray-50 text-center font-medium"
-                          readOnly
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="usuario"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-red-800">Usuario</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Usuario que registra el bloqueo" 
-                          className="border-red-200 bg-gray-50"
-                          readOnly
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="motivo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-red-800">Motivo del Bloqueo</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Describe el motivo del bloqueo (máximo 150 caracteres)"
-                        className="resize-none border-red-200 focus:border-red-400"
-                        maxLength={150}
-                        {...field}
-                      />
-                    </FormControl>
-                    <div className="text-sm text-gray-500 text-right">
-                      {field.value?.length || 0}/150
+                <div className="text-center">
+                  <CardTitle className="text-2xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
+                    Módulo de Bloqueos
+                  </CardTitle>
+                  {codigoBloqueo && (
+                    <div className="mt-2 inline-block bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">
+                      Código: {codigoBloqueo}
                     </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Camera Section - Always visible */}
-              <div className="mt-6">
-                <BloqueosCameraView
-                  currentPhotos={photos}
-                  onPhotosChange={setPhotos}
-                />
+                  )}
+                </div>
               </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 pt-6">
-                <Button 
-                  type="submit" 
-                  disabled={loading} 
-                  className="flex-1 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700"
-                >
-                  {loading ? 'Guardando...' : 'Registrar Bloqueo'}
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={sendEmail}
-                  disabled={sendingEmail}
-                  className="flex-1 sm:flex-none border-red-200 text-red-600 hover:bg-red-50"
-                >
-                  <Mail className="w-4 h-4 mr-2" />
-                  {sendingEmail ? 'Enviando...' : 'Enviar por Correo'}
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
+              <div className="flex-1 flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={onClose}
-                  className="flex-1 sm:flex-none border-red-200 text-red-600 hover:bg-red-50"
+                  className="h-8 w-8 p-0 text-red-600 hover:bg-red-100 rounded-full"
                 >
-                  Cancelar
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+            </div>
+            <p className="text-gray-600 text-sm leading-relaxed max-w-3xl mx-auto">
+              Registra y gestiona bloqueos de productos para control de calidad, seguridad y trazabilidad completa
+            </p>
+          </CardHeader>
+        </Card>
+
+        {/* Form Card optimizado */}
+        <Card className="bg-white/95 backdrop-blur-sm shadow-xl border-red-200/50">
+          <CardHeader className="bg-gradient-to-r from-red-50 to-orange-50 border-b border-red-100">
+            <CardTitle className="text-lg font-bold text-red-800 text-center">
+              Información del Bloqueo
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <Form {...form}>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Grid principal */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  
+                  <FormField
+                    control={form.control}
+                    name="planta_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-red-800 font-medium">Planta</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="border-red-200 focus:border-red-400 focus:ring-2 focus:ring-red-400/20">
+                              <SelectValue placeholder="Selecciona una planta" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="bg-white border-red-200">
+                            {plantas.length > 0 ? (
+                              plantas.map((planta) => (
+                                <SelectItem key={planta.id} value={planta.id.toString()}>
+                                  {planta.nombre}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="no-plantas" disabled>
+                                No hay plantas disponibles
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="area_planta_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-red-800 font-medium">Área de Planta</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="border-red-200 focus:border-red-400 focus:ring-2 focus:ring-red-400/20">
+                              <SelectValue placeholder="Selecciona un área" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="bg-white border-red-200">
+                            {areas.length > 0 ? (
+                              areas.map((area) => (
+                                <SelectItem key={area.id} value={area.id.toString()}>
+                                  {area.nombre}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="no-areas" disabled>
+                                No hay áreas disponibles
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="producto_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-red-800 font-medium">Producto</FormLabel>
+                        <Popover open={productoOpen} onOpenChange={setProductoOpen}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={productoOpen}
+                                className={cn(
+                                  "w-full justify-between border-red-200 focus:border-red-400 focus:ring-2 focus:ring-red-400/20",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value
+                                  ? productos.find(
+                                      (producto) => producto.id.toString() === field.value
+                                    )?.nombre || "Producto no encontrado"
+                                  : productoSearchValue || "Buscar producto..."}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-full p-0" align="start">
+                            <Command>
+                              <CommandInput 
+                                placeholder="Buscar producto..." 
+                                className="h-9"
+                                value={productoSearchValue}
+                                onValueChange={setProductoSearchValue}
+                              />
+                              <CommandList>
+                                <CommandEmpty>
+                                  {productos.length === 0 
+                                    ? "No hay productos disponibles" 
+                                    : "No se encontraron productos"}
+                                </CommandEmpty>
+                                <CommandGroup>
+                                  {filteredProductos.map((producto) => (
+                                    <CommandItem
+                                      key={producto.id}
+                                      value={producto.nombre || `Producto ${producto.id}`}
+                                      onSelect={() => {
+                                        field.onChange(producto.id.toString());
+                                        setProductoSearchValue('');
+                                        setProductoOpen(false);
+                                      }}
+                                      className="cursor-pointer"
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          field.value === producto.id.toString()
+                                            ? "opacity-100"
+                                            : "opacity-0"
+                                        )}
+                                      />
+                                      <span>
+                                        {highlightMatch(
+                                          producto.nombre || `Producto ${producto.id}`,
+                                          productoSearchValue
+                                        )}
+                                      </span>
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="turno_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-red-800 font-medium">Turno</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="border-red-200 focus:border-red-400 focus:ring-2 focus:ring-red-400/20">
+                              <SelectValue placeholder="Selecciona un turno" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="bg-white border-red-200">
+                            {turnos.length > 0 ? (
+                              turnos.map((turno) => (
+                                <SelectItem key={turno.id} value={turno.id.toString()}>
+                                  {turno.nombre}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="no-turnos" disabled>
+                                No hay turnos disponibles
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="cantidad"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-red-800 font-medium">Cantidad</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Ingresa la cantidad"
+                            className="border-red-200 focus:border-red-400 focus:ring-2 focus:ring-red-400/20"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="lote"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-red-800 font-medium">Lote</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Ingresa el número de lote"
+                            className="border-red-200 focus:border-red-400 focus:ring-2 focus:ring-red-400/20"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="fecha"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-red-800 font-medium">Fecha</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="text" 
+                            className="border-red-200 bg-gray-50 text-center font-medium focus:ring-2 focus:ring-red-400/20"
+                            readOnly
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="usuario"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-red-800 font-medium">Usuario</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Usuario que registra el bloqueo" 
+                            className="border-red-200 bg-gray-50 focus:ring-2 focus:ring-red-400/20"
+                            readOnly
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Campo motivo */}
+                <FormField
+                  control={form.control}
+                  name="motivo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-red-800 font-medium">Motivo del Bloqueo</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Describe detalladamente el motivo del bloqueo (máximo 150 caracteres)"
+                          className="resize-none border-red-200 focus:border-red-400 focus:ring-2 focus:ring-red-400/20"
+                          maxLength={150}
+                          rows={3}
+                          {...field}
+                        />
+                      </FormControl>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Detalla el motivo específico del bloqueo</span>
+                        <span className="text-gray-500">{field.value?.length || 0}/150</span>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Sección de cámara */}
+                <div className="border-t border-red-100 pt-5">
+                  <BloqueosCameraView
+                    currentPhotos={photos}
+                    onPhotosChange={setPhotos}
+                  />
+                </div>
+
+                {/* Botones de acción optimizados */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-5 border-t border-red-100">
+                  <Button 
+                    type="submit" 
+                    disabled={loading} 
+                    className="flex-1 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+                  >
+                    {loading ? 'Registrando...' : 'Registrar Bloqueo'}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={sendEmail}
+                    disabled={sendingEmail}
+                    className="flex-1 sm:flex-none border-red-200 text-red-600 hover:bg-red-50 font-medium py-3 px-6 rounded-lg"
+                  >
+                    <Mail className="w-4 h-4 mr-2" />
+                    {sendingEmail ? 'Enviando...' : 'Enviar por Correo'}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={onClose}
+                    className="flex-1 sm:flex-none border-gray-200 text-gray-600 hover:bg-gray-50 font-medium py-3 px-6 rounded-lg"
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
