@@ -1,11 +1,12 @@
 
 import React, { useState } from 'react';
-import { Camera, Shield } from 'lucide-react';
+import { Camera, Shield, FileSearch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import CameraApp from './CameraApp';
 import BloqueosForm from './BloqueosForm';
+import GestionAuditoriaForm from './GestionAuditoriaForm';
 import AuthForm from './AuthForm';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -13,6 +14,7 @@ const MainApp = () => {
   const { user, profile, signOut, loading } = useAuth();
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isBloqueosOpen, setIsBloqueosOpen] = useState(false);
+  const [isGestionOpen, setIsGestionOpen] = useState(false);
 
   // Show loading state while auth is initializing
   if (loading) {
@@ -35,6 +37,7 @@ const MainApp = () => {
     await signOut();
     setIsCameraOpen(false);
     setIsBloqueosOpen(false);
+    setIsGestionOpen(false);
   };
 
   // Convert profile to userData format for compatibility with CameraApp
@@ -104,6 +107,24 @@ const MainApp = () => {
               </DialogHeader>
               <div className="p-0">
                 <CameraApp onClose={() => setIsCameraOpen(false)} userData={userData} />
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Gestión Auditoría Button */}
+          <Dialog open={isGestionOpen} onOpenChange={setIsGestionOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-4 text-lg font-semibold shadow-lg"
+                size="lg"
+              >
+                <FileSearch className="w-6 h-6 mr-3" />
+                Gestión Auditoría
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-6xl mx-auto max-h-[90vh] overflow-hidden p-0">
+              <div className="overflow-y-auto max-h-[90vh] p-6">
+                <GestionAuditoriaForm onClose={() => setIsGestionOpen(false)} />
               </div>
             </DialogContent>
           </Dialog>
