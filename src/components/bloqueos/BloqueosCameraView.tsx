@@ -6,16 +6,11 @@ import { Camera, X, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useCamera } from '@/hooks/useCamera';
 import { usePhotoCapture } from '@/hooks/usePhotoCapture';
-
-interface Photo {
-  id: string;
-  url: string;
-  file: File;
-}
+import { BloqueosPhoto } from '@/types/bloqueos';
 
 interface BloqueosCameraViewProps {
-  onPhotosChange: (photos: Photo[]) => void;
-  currentPhotos: Photo[];
+  onPhotosChange: (photos: BloqueosPhoto[]) => void;
+  currentPhotos: BloqueosPhoto[];
 }
 
 const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({ 
@@ -35,7 +30,7 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
   const { canvasRef, capturePhoto } = usePhotoCapture();
 
   const handleStartCamera = async (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent form submission
+    e.preventDefault();
     e.stopPropagation();
     
     const success = await startCamera(currentArea);
@@ -49,23 +44,26 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
   };
 
   const handleCapturePhoto = async (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent form submission
+    e.preventDefault();
     e.stopPropagation();
     
-    const newPhoto = await capturePhoto(videoRef, currentPhotos.map(p => ({
+    // Convertir currentPhotos a formato CapturedPhoto para la función capturePhoto
+    const currentCapturedPhotos = currentPhotos.map(p => ({
       id: p.id,
       file: p.file,
       timestamp: new Date()
-    })));
+    }));
+    
+    const newPhoto = await capturePhoto(videoRef, currentCapturedPhotos);
     
     if (newPhoto) {
-      const photoWithUrl: Photo = {
+      const bloqueosPhoto: BloqueosPhoto = {
         id: newPhoto.id,
-        url: URL.createObjectURL(newPhoto.file),
-        file: newPhoto.file
+        url: URL.createObjectURL(newPhoto.file!),
+        file: newPhoto.file!
       };
 
-      const updatedPhotos = [...currentPhotos, photoWithUrl];
+      const updatedPhotos = [...currentPhotos, bloqueosPhoto];
       onPhotosChange(updatedPhotos);
 
       toast({
@@ -85,7 +83,7 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
   };
 
   const handleStopCamera = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent form submission
+    e.preventDefault();
     e.stopPropagation();
     stopCamera();
   };

@@ -1,14 +1,9 @@
 
 import { supabase } from '@/integrations/supabase/client';
-
-interface Photo {
-  id: string;
-  url: string;
-  file: File;
-}
+import { BloqueosPhoto } from '@/types/bloqueos';
 
 export const uploadBloqueosPhotos = async (
-  photos: Photo[],
+  photos: BloqueosPhoto[],
   codigoBloqueo: string
 ): Promise<string[]> => {
   const uploadedUrls: string[] = [];

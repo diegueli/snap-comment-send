@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { CapturedPhoto, PhotoSet, AuditoriaFormData, UserData, AuditoriaData } from '@/types/auditoria';
+import { CapturedPhoto, PhotoSet, AuditoriaData, UserData } from '@/types/auditoria';
 
 export const uploadPhotoToStorage = async (photo: CapturedPhoto, area: string, codigoAuditoria: string): Promise<string | null> => {
   if (!photo.file || !codigoAuditoria) return null;
@@ -33,16 +33,15 @@ export const uploadPhotoToStorage = async (photo: CapturedPhoto, area: string, c
 export const closeAuditoria = async (
   auditoriaData: AuditoriaData,
   userData: UserData,
-  photoSets: PhotoSet[],
-  setAuditoriaId: (id: string) => void
-): Promise<boolean> => {
+  photoSets: PhotoSet[]
+): Promise<{ success: boolean; codigoAuditoria?: string }> => {
   if (!auditoriaData || !userData || photoSets.length === 0) {
     toast({
       title: "No se puede cerrar la auditoría",
       description: "Debe tener al menos un conjunto de fotos guardado.",
       variant: "destructive",
     });
-    return false;
+    return { success: false };
   }
 
   try {
@@ -51,9 +50,11 @@ export const closeAuditoria = async (
       throw new Error('Usuario no autenticado');
     }
 
+    // Convertir fecha de DD/MM/YYYY a YYYY-MM-DD
     const [day, month, year] = auditoriaData.fecha.split('/');
     const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 
+    // Insertar auditoría
     const { data: auditoria, error: auditoriaError } = await supabase
       .from('auditorias')
       .insert({
@@ -70,12 +71,13 @@ export const closeAuditoria = async (
 
     if (auditoriaError) throw auditoriaError;
 
-    setAuditoriaId(auditoria.id);
+    console.log('Auditoría insertada:', auditoria);
 
+    // Procesar cada conjunto de fotos
     for (const set of photoSets) {
       const photoUrls: string[] = [];
       
-      // Upload photos and collect URLs, using codigo_auditoria for naming
+      // Subir fotos y recopilar URLs
       for (const photo of set.photos) {
         const url = await uploadPhotoToStorage(photo, set.area, auditoriaData.codigoAuditoria);
         if (url) {
@@ -83,10 +85,11 @@ export const closeAuditoria = async (
         }
       }
 
+      // Insertar conjunto usando auditoria_codigo
       const { error: setError } = await supabase
         .from('auditoria_sets')
         .insert({
-          auditoria_id: auditoria.id,
+          auditoria_codigo: auditoriaData.codigoAuditoria, // Usar codigo en lugar de id
           area: set.area,
           levantamiento: set.levantamiento || null,
           responsable: set.responsable || null,
@@ -94,7 +97,10 @@ export const closeAuditoria = async (
           foto_urls: photoUrls
         });
 
-      if (setError) throw setError;
+      if (setError) {
+        console.error('Error inserting set:', setError);
+        throw setError;
+      }
     }
 
     toast({
@@ -102,7 +108,7 @@ export const closeAuditoria = async (
       description: "Todos los datos han sido guardados en la base de datos.",
     });
 
-    return true;
+    return { success: true, codigoAuditoria: auditoriaData.codigoAuditoria };
   } catch (error) {
     console.error('Error saving auditoria:', error);
     toast({
@@ -110,6 +116,6 @@ export const closeAuditoria = async (
       description: "No se pudo guardar en la base de datos.",
       variant: "destructive",
     });
-    return false;
+    return { success: false };
   }
 };

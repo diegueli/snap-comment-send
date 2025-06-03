@@ -44,7 +44,6 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     editingAreaId,
     editingArea,
     showAreaInput,
-    auditoriaId,
     codigoAuditoria,
     isSavingToDatabase,
     setAuditoriaData,
@@ -62,7 +61,6 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     setEditingAreaId,
     setEditingArea,
     setShowAreaInput,
-    setAuditoriaId,
     setCodigoAuditoria,
     setIsSavingToDatabase,
     resetState
@@ -110,7 +108,6 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       if (error) throw error;
       
       setSelectedPlanta(planta);
-      // Create AuditoriaData with required codigoAuditoria
       const auditoriaDataWithCode = {
         ...formData,
         codigoAuditoria: formData.codigoAuditoria
@@ -161,10 +158,14 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     
     setIsSavingToDatabase(true);
     
-    const success = await closeAuditoria(auditoriaData, userData, photoSets, setAuditoriaId);
+    const result = await closeAuditoria(auditoriaData, userData, photoSets);
     
     setIsSavingToDatabase(false);
-  }, [auditoriaData, userData, photoSets, setAuditoriaId, setIsSavingToDatabase]);
+    
+    if (result.success && result.codigoAuditoria) {
+      setCodigoAuditoria(result.codigoAuditoria);
+    }
+  }, [auditoriaData, userData, photoSets, setIsSavingToDatabase, setCodigoAuditoria]);
 
   const handleGeneratePDF = useCallback(async () => {
     await generatePDF({
@@ -172,10 +173,10 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       auditoriaData,
       userData,
       selectedPlanta,
-      auditoriaId,
+      auditoriaId: null, // No longer using auditoriaId
       codigoAuditoria
     });
-  }, [photoSets, auditoriaData, userData, selectedPlanta, auditoriaId, codigoAuditoria]);
+  }, [photoSets, auditoriaData, userData, selectedPlanta, codigoAuditoria]);
 
   const resetApp = useCallback(async () => {
     resetState();
