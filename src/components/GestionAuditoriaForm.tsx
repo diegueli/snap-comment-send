@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ArrowLeft, Calendar } from 'lucide-react';
+import { ArrowLeft, Calendar, Camera } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,18 +41,20 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
   // Cargar auditorías disponibles
   useEffect(() => {
     const loadAuditorias = async () => {
-      if (!user?.id) return;
+      if (!user?.id || !profile?.gerencia_id) return;
 
       try {
-        // Obtener todas las auditorías disponibles (sin filtrar por gerencia en este paso)
-        const { data: auditoriasData, error: auditoriasError } = await supabase
-          .from('auditorias')
-          .select('codigo_auditoria')
-          .order('created_at', { ascending: false });
+        // Obtener auditorías que tengan sets asignados a la gerencia del usuario
+        const { data: setsData, error: setsError } = await supabase
+          .from('auditoria_sets')
+          .select('auditoria_codigo')
+          .eq('gerencia_resp_id', profile.gerencia_id)
+          .is('fecha_compromiso', null)
+          .is('evidencia_foto_url', null);
 
-        if (auditoriasError) throw auditoriasError;
+        if (setsError) throw setsError;
 
-        const codigosUnicos = [...new Set(auditoriasData?.map(auditoria => auditoria.codigo_auditoria) || [])];
+        const codigosUnicos = [...new Set(setsData?.map(set => set.auditoria_codigo) || [])];
         setAuditoriasDisponibles(codigosUnicos);
       } catch (error) {
         console.error('Error loading auditorías:', error);
@@ -64,15 +67,20 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
     };
 
     loadAuditorias();
-  }, [user?.id]);
+  }, [user?.id, profile?.gerencia_id]);
 
   // Cargar sets de la auditoría seleccionada
   const loadAuditoriaSets = useCallback(async (codigoAuditoria: string) => {
+    if (!profile?.gerencia_id) return;
+
     try {
       const { data, error } = await supabase
         .from('auditoria_sets')
         .select('*')
-        .eq('auditoria_codigo', codigoAuditoria);
+        .eq('auditoria_codigo', codigoAuditoria)
+        .eq('gerencia_resp_id', profile.gerencia_id)
+        .is('fecha_compromiso', null)
+        .is('evidencia_foto_url', null);
 
       if (error) throw error;
 
@@ -98,7 +106,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
         variant: "destructive",
       });
     }
-  }, []);
+  }, [profile?.gerencia_id]);
 
   // Manejar selección de auditoría
   const handleAuditoriaSelection = useCallback(async (codigoAuditoria: string) => {
@@ -139,12 +147,8 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
 
       if (updateError) throw updateError;
 
-      // Actualizar estado local
-      setAuditoriaSets(prev => prev.map(set => 
-        set.id === currentSetId 
-          ? { ...set, evidencia_foto_url: publicUrl }
-          : set
-      ));
+      // Actualizar estado local removiendo el set de la lista
+      setAuditoriaSets(prev => prev.filter(set => set.id !== currentSetId));
 
       setShowCamera(false);
       setCurrentSetId(null);
@@ -183,12 +187,8 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
 
         if (error) throw error;
 
-        // Actualizar estado local
-        setAuditoriaSets(prev => prev.map(set => 
-          set.id === setId 
-            ? { ...set, fecha_compromiso: respuesta.fechaCompromiso }
-            : set
-        ));
+        // Remover el set de la lista
+        setAuditoriaSets(prev => prev.filter(set => set.id !== setId));
 
         toast({
           title: "Fecha de compromiso guardada",
@@ -205,11 +205,6 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
     } finally {
       setIsSubmitting(null);
     }
-  };
-
-  // Verificar si se puede contestar un set
-  const canAnswerSet = (set: AuditoriaSet) => {
-    return !set.evidencia_foto_url && !set.fecha_compromiso;
   };
 
   if (showCamera && currentSetId) {
@@ -232,7 +227,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
             onClick={onClose}
             variant="outline"
             size="sm"
-            className="bg-white/80 backdrop-blur-sm border-white"
+            className="bg-white/80 backdrop-blur-sm border-white text-black hover:bg-white/90"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Volver
@@ -327,65 +322,48 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                     </div>
                   )}
 
-                  {/* Estado actual de respuesta */}
-                  {set.evidencia_foto_url && (
-                    <div className="mb-4">
-                      <Label className="text-sm font-medium text-green-700 mb-2 block">
-                        ✅ Evidencia Fotográfica Proporcionada
-                      </Label>
-                      <img
-                        src={set.evidencia_foto_url}
-                        alt={`Evidencia ${set.area}`}
-                        className="w-32 h-24 object-cover rounded border border-green-300"
-                      />
-                    </div>
-                  )}
+                  {/* Sección de respuesta */}
+                  <div className="border-t pt-4">
+                    <Label className="text-lg font-medium text-gray-700 mb-3 block">
+                      Responder Set
+                    </Label>
 
-                  {set.fecha_compromiso && (
-                    <div className="mb-4">
-                      <Label className="text-sm font-medium text-blue-700 mb-2 block">
-                        📅 Fecha de Compromiso
-                      </Label>
-                      <Input 
-                        value={format(new Date(set.fecha_compromiso), 'dd/MM/yyyy', { locale: es })} 
-                        disabled 
-                        className="bg-blue-50 border-blue-200 max-w-xs" 
-                      />
-                    </div>
-                  )}
-
-                  {/* Sección de respuesta (solo si puede contestar) */}
-                  {canAnswerSet(set) && (
-                    <div className="border-t pt-4">
-                      <Label className="text-lg font-medium text-gray-700 mb-3 block">
-                        Responder Set
-                      </Label>
-
+                    <div className="space-y-4">
                       <RadioGroup
                         value={respuestasSet[set.id]?.tipo || ''}
                         onValueChange={(value: 'evidencia' | 'fecha') => 
                           handleRespuestaChange(set.id, value)
                         }
-                        className="mb-4"
+                        className="space-y-3"
                       >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="evidencia" id={`evidencia-${set.id}`} />
-                          <Label htmlFor={`evidencia-${set.id}`}>Opción 1: Evidencia Fotográfica</Label>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                          <RadioGroupItem value="evidencia" id={`evidencia-${set.id}`} className="text-blue-600" />
+                          <div className="flex items-center space-x-2 flex-1">
+                            <Camera className="w-5 h-5 text-blue-600" />
+                            <Label htmlFor={`evidencia-${set.id}`} className="text-sm font-medium cursor-pointer">
+                              Opción 1: Evidencia Fotográfica
+                            </Label>
+                          </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="fecha" id={`fecha-${set.id}`} />
-                          <Label htmlFor={`fecha-${set.id}`}>Opción 2: Fecha de Compromiso</Label>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                          <RadioGroupItem value="fecha" id={`fecha-${set.id}`} className="text-green-600" />
+                          <div className="flex items-center space-x-2 flex-1">
+                            <Calendar className="w-5 h-5 text-green-600" />
+                            <Label htmlFor={`fecha-${set.id}`} className="text-sm font-medium cursor-pointer">
+                              Opción 2: Fecha de Compromiso
+                            </Label>
+                          </div>
                         </div>
                       </RadioGroup>
 
                       {respuestasSet[set.id]?.tipo === 'fecha' && (
-                        <div className="mb-4">
-                          <Label className="text-sm font-medium text-gray-700">Fecha de Compromiso</Label>
+                        <div className="ml-8 mt-3">
+                          <Label className="text-sm font-medium text-gray-700">Seleccione fecha de compromiso</Label>
                           <Input
                             type="date"
                             value={respuestasSet[set.id]?.fechaCompromiso || ''}
                             onChange={(e) => handleRespuestaChange(set.id, 'fecha', e.target.value)}
-                            className="max-w-xs"
+                            className="max-w-xs mt-1"
                           />
                         </div>
                       )}
@@ -397,21 +375,13 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                         <Button
                           onClick={() => handleContestarLevantamiento(set.id)}
                           disabled={isSubmitting === set.id}
-                          className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white"
+                          className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white mt-4"
                         >
                           {isSubmitting === set.id ? 'Guardando...' : 'Contestar Levantamiento'}
                         </Button>
                       )}
                     </div>
-                  )}
-
-                  {!canAnswerSet(set) && (
-                    <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                      <Label className="text-sm font-medium text-green-700">
-                        ✅ Set ya respondido
-                      </Label>
-                    </div>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -422,7 +392,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
           <Card className="bg-white/95 backdrop-blur-sm shadow-xl">
             <CardContent className="p-6 text-center">
               <p className="text-gray-600">
-                No hay sets de auditoría asignados a su gerencia para esta auditoría.
+                No hay sets de auditoría pendientes asignados a su gerencia para esta auditoría.
               </p>
             </CardContent>
           </Card>
