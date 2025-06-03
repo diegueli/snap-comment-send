@@ -7,7 +7,7 @@ import BloqueosForm from './BloqueosForm';
 import GestionAuditoriaForm from './GestionAuditoriaForm';
 import ResumenAuditoriasForm from './resumen/ResumenAuditoriasForm';
 import CameraApp from './CameraApp';
-import { Camera, FileText, ClipboardCheck, BarChart3, Settings, LogOut } from 'lucide-react';
+import { Camera, FileText, ClipboardCheck, BarChart3, Settings, LogOut, ArrowLeft, RotateCcw } from 'lucide-react';
 import { AuditoriaFormData } from '@/types/auditoria';
 
 const MainApp: React.FC = () => {
@@ -46,6 +46,12 @@ const MainApp: React.FC = () => {
     setActiveModule('camera-capture');
   };
 
+  const handleReinicio = () => {
+    setActiveModule(null);
+    setShowAuditoriaMenu(false);
+    setAuditoriaData(null);
+  };
+
   if (activeModule === 'ingresar-auditoria') {
     return (
       <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-screen flex items-center justify-center p-4">
@@ -56,13 +62,24 @@ const MainApp: React.FC = () => {
               variant="outline"
               className="border-white/30 text-white hover:bg-white/10 backdrop-blur-sm"
             >
-              ← Volver
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Volver
             </Button>
           </div>
           <AuditoriaForm 
             onSubmit={handleAuditoriaFormSubmit}
             userData={profile}
           />
+          <div className="flex justify-center mt-6">
+            <Button
+              onClick={handleReinicio}
+              variant="outline"
+              className="border-white/30 text-white hover:bg-white/10 backdrop-blur-sm"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Reiniciar
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -94,6 +111,17 @@ const MainApp: React.FC = () => {
     return (
       <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-screen flex items-center justify-center p-4">
         <div className="max-w-5xl mx-auto">
+          <div className="flex justify-end mb-4">
+            <Button
+              onClick={handleCloseModule}
+              variant="outline"
+              className="bg-white/80 backdrop-blur-sm border-white"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Volver
+            </Button>
+          </div>
+          
           <Card className="bg-white/95 backdrop-blur-sm shadow-2xl">
             <CardHeader className="text-center">
               <CardTitle className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-red-600 bg-clip-text text-transparent">
@@ -162,13 +190,22 @@ const MainApp: React.FC = () => {
                 </Card>
               </div>
 
-              <div className="flex justify-center mt-8">
+              <div className="flex justify-center mt-8 space-x-4">
                 <Button
                   onClick={handleCloseModule}
                   variant="outline"
                   className="border-yellow-300 text-yellow-700 hover:bg-yellow-50"
                 >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
                   Volver al Menú Principal
+                </Button>
+                <Button
+                  onClick={handleReinicio}
+                  variant="outline"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Reiniciar
                 </Button>
               </div>
             </CardContent>

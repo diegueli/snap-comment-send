@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { ArrowLeft, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -212,7 +212,8 @@ const CameraApp = ({ onClose, userData, auditoriaData: initialAuditoriaData }: C
                 size="sm"
                 className="bg-white/80 backdrop-blur-sm border-white"
               >
-                <X className="w-4 h-4" />
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Volver
               </Button>
             </div>
           )}
@@ -220,6 +221,16 @@ const CameraApp = ({ onClose, userData, auditoriaData: initialAuditoriaData }: C
             onSubmit={handleAuditoriaSubmit}
             userData={userData}
           />
+          <div className="flex justify-center mt-6">
+            <Button
+              onClick={resetApp}
+              variant="outline"
+              className="bg-white/80 backdrop-blur-sm border-white"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Reiniciar
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -236,7 +247,8 @@ const CameraApp = ({ onClose, userData, auditoriaData: initialAuditoriaData }: C
               size="sm"
               className="bg-white/80 backdrop-blur-sm border-white"
             >
-              <X className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Volver
             </Button>
           </div>
         )}
@@ -300,6 +312,18 @@ const CameraApp = ({ onClose, userData, auditoriaData: initialAuditoriaData }: C
           onResetApp={resetApp}
           isSavingToDatabase={isSavingToDatabase}
         />
+
+        {/* Botón Reiniciar al final */}
+        <div className="flex justify-center pt-4">
+          <Button
+            onClick={resetApp}
+            variant="outline"
+            className="bg-white/80 backdrop-blur-sm border-gray-300 text-gray-700 hover:bg-gray-50"
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Reiniciar
+          </Button>
+        </div>
 
         <canvas ref={canvasRef} className="hidden" />
       </div>

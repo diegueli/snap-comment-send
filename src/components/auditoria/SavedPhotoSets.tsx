@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Edit, Check, X, Trash2, FileText } from 'lucide-react';
+import { Edit, Check, Trash2, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -59,7 +59,6 @@ const SavedPhotoSets = ({
 
   const handleResponsableChange = (responsable: string, gerenciaId?: number) => {
     setEditingResponsable(responsable);
-    // También podríamos manejar gerenciaId si es necesario
   };
 
   const startEditingArea = (set: PhotoSet) => {
@@ -71,6 +70,17 @@ const SavedPhotoSets = ({
     setEditingSetId(set.id);
     setEditingLevantamiento(set.levantamiento);
     setEditingResponsable(set.responsable);
+  };
+
+  const cancelAreaEdit = () => {
+    setEditingAreaId(null);
+    setEditingArea('');
+  };
+
+  const cancelSetEdit = () => {
+    setEditingSetId(null);
+    setEditingLevantamiento('');
+    setEditingResponsable('');
   };
 
   if (photoSets.length === 0) return null;
@@ -104,14 +114,11 @@ const SavedPhotoSets = ({
                       <Check className="w-3 h-3" />
                     </Button>
                     <Button
-                      onClick={() => {
-                        setEditingAreaId(null);
-                        setEditingArea('');
-                      }}
+                      onClick={cancelAreaEdit}
                       size="sm"
                       variant="outline"
                     >
-                      <X className="w-3 h-3" />
+                      Cancelar
                     </Button>
                   </div>
                 </div>
@@ -183,11 +190,7 @@ const SavedPhotoSets = ({
                       Guardar
                     </Button>
                     <Button
-                      onClick={() => {
-                        setEditingSetId(null);
-                        setEditingLevantamiento('');
-                        setEditingResponsable('');
-                      }}
+                      onClick={cancelSetEdit}
                       size="sm"
                       variant="outline"
                     >

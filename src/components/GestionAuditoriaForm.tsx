@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Camera, X, Send } from 'lucide-react';
+import { CalendarIcon, Camera, X, Send, RotateCcw, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,6 +52,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
   const [gerenciaId, setGerenciaId] = useState<number | null>(null);
   const [currentArea, setCurrentArea] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
+  const [selectedSetForDate, setSelectedSetForDate] = useState<string | null>(null);
 
   // Cargar información de la gerencia del usuario desde la tabla profiles
   useEffect(() => {
@@ -126,15 +127,9 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
     loadAuditorias();
   }, []);
 
-  // Verificar si el botón "Contestar Levantamiento" puede ejecutarse
-  const canContestarLevantamiento = (set: AuditoriaSet) => {
-    // Solo se puede ejecutar si AMBOS campos son null/undefined
+  // Verificar si el set puede responder (ambos campos son null)
+  const canRespondSet = (set: AuditoriaSet) => {
     return set.evidencia_foto_url === null && set.fecha_compromiso === null;
-  };
-
-  // Verificar si el set tiene respuesta completa (para mostrar el botón)
-  const hasResponse = (set: AuditoriaSet) => {
-    return set.evidencia_foto_url || set.fecha_compromiso;
   };
 
   // Verificar si el set ya fue procesado (tiene respuesta en BD)
@@ -240,8 +235,53 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
     }
   };
 
-  // Manejar fecha de compromiso
-  const handleFechaCompromiso = async (setId: string) => {
+  // Responder Set con foto
+  const handleResponderSetConFoto = async (setId: string) => {
+    const currentSet = auditoriaSets.find(set => set.id === setId);
+    if (!currentSet || !canRespondSet(currentSet)) return;
+
+    if (!currentSet.evidencia_foto_url) {
+      toast({
+        title: "Sin evidencia",
+        description: "Debe capturar una evidencia fotográfica primero.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(setId);
+    
+    try {
+      const { error } = await supabase
+        .from('auditoria_sets')
+        .update({ evidencia_foto_url: currentSet.evidencia_foto_url })
+        .eq('id', setId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Set respondido",
+        description: "La respuesta fotográfica ha sido enviada exitosamente.",
+      });
+
+      if (auditoriaSeleccionada) {
+        await loadAuditoriaSets(auditoriaSeleccionada);
+      }
+
+    } catch (error) {
+      console.error('Error responding set:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo enviar la respuesta.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(null);
+    }
+  };
+
+  // Responder Set con fecha
+  const handleResponderSetConFecha = async (setId: string) => {
     if (!fechaCompromiso) {
       toast({
         title: "Fecha requerida",
@@ -251,95 +291,36 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
       return;
     }
 
-    try {
-      const fechaFormatted = format(fechaCompromiso, 'yyyy-MM-dd');
-      
-      // Actualizar estado local
-      setAuditoriaSets(prev => prev.map(set => 
-        set.id === setId 
-          ? { ...set, fecha_compromiso: fechaFormatted }
-          : set
-      ));
-
-      setFechaCompromiso(undefined);
-      setShowCalendar(false);
-
-      toast({
-        title: "Fecha de compromiso guardada",
-        description: "La fecha de compromiso ha sido guardada exitosamente.",
-      });
-    } catch (error) {
-      console.error('Error saving fecha compromiso:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo guardar la fecha de compromiso.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Contestar levantamiento - enviar respuesta a base de datos (solo una vez)
-  const handleContestarLevantamiento = async (setId: string) => {
     const currentSet = auditoriaSets.find(set => set.id === setId);
-    if (!currentSet) return;
-
-    // Verificar que los campos estén null en la base de datos antes de proceder
-    if (!canContestarLevantamiento(currentSet)) {
-      toast({
-        title: "Set ya procesado",
-        description: "Este set ya ha sido contestado anteriormente.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Verificar que tenga al menos una respuesta local
-    const tieneEvidencia = currentSet.evidencia_foto_url;
-    const tieneFechaCompromiso = currentSet.fecha_compromiso;
-
-    if (!tieneEvidencia && !tieneFechaCompromiso) {
-      toast({
-        title: "Respuesta requerida",
-        description: "Debe proporcionar evidencia fotográfica o fecha de compromiso.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!currentSet || !canRespondSet(currentSet)) return;
 
     setIsSubmitting(setId);
     
     try {
-      // Preparar datos para actualizar
-      const updateData: any = {};
+      const fechaFormatted = format(fechaCompromiso, 'yyyy-MM-dd');
       
-      if (tieneEvidencia) {
-        updateData.evidencia_foto_url = currentSet.evidencia_foto_url;
-      }
-      
-      if (tieneFechaCompromiso) {
-        updateData.fecha_compromiso = currentSet.fecha_compromiso;
-      }
-
-      // Actualizar en la base de datos
       const { error } = await supabase
         .from('auditoria_sets')
-        .update(updateData)
+        .update({ fecha_compromiso: fechaFormatted })
         .eq('id', setId);
 
       if (error) throw error;
 
+      setFechaCompromiso(undefined);
+      setShowCalendar(false);
+      setSelectedSetForDate(null);
+
       toast({
-        title: "Levantamiento contestado",
-        description: "La respuesta ha sido enviada exitosamente.",
+        title: "Set respondido",
+        description: "La fecha de compromiso ha sido enviada exitosamente.",
       });
 
-      // Recargar los sets para obtener la información actualizada
       if (auditoriaSeleccionada) {
         await loadAuditoriaSets(auditoriaSeleccionada);
       }
 
     } catch (error) {
-      console.error('Error contestando levantamiento:', error);
+      console.error('Error responding set:', error);
       toast({
         title: "Error",
         description: "No se pudo enviar la respuesta.",
@@ -348,6 +329,25 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
     } finally {
       setIsSubmitting(null);
     }
+  };
+
+  // Reiniciar formulario
+  const handleReinicio = () => {
+    setAuditoriaSeleccionada('');
+    setAuditoriaInfo(null);
+    setAuditoriaSets([]);
+    setSelectedSetId(null);
+    setShowCamera(false);
+    setFechaCompromiso(undefined);
+    setShowCalendar(false);
+    setSelectedSetForDate(null);
+    setCurrentArea('');
+    setIsSubmitting(null);
+    
+    toast({
+      title: "Formulario reiniciado",
+      description: "Todos los datos han sido limpiados.",
+    });
   };
 
   if (showCamera && selectedSetId) {
@@ -365,7 +365,8 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
               size="sm"
               className="bg-white/80 backdrop-blur-sm border-white"
             >
-              <X className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Volver
             </Button>
           </div>
           <GestionCameraView
@@ -384,6 +385,8 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
   return (
     <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-[80vh] p-4">
       <div className="max-w-4xl mx-auto space-y-6">
+        
+        {/* Botón Volver en esquina superior derecha */}
         <div className="flex justify-end mb-4">
           <Button
             onClick={onClose}
@@ -391,7 +394,8 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
             size="sm"
             className="bg-white/80 backdrop-blur-sm border-white"
           >
-            <X className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Volver
           </Button>
         </div>
 
@@ -453,18 +457,6 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                 </div>
               </div>
             )}
-
-            {/* Botón cerrar en la esquina superior derecha */}
-            <div className="flex justify-end">
-              <Button
-                onClick={onClose}
-                variant="outline"
-                size="sm"
-                className="bg-white/80 backdrop-blur-sm border-white"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
           </CardContent>
         </Card>
 
@@ -532,26 +524,43 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                     </div>
                   )}
 
-                  {/* Acciones para evidencia o fecha de compromiso */}
+                  {/* Acciones para responder set */}
                   <div className="border-t pt-4 space-y-4">
-                    {!isSetProcessed(set) && (
+                    {canRespondSet(set) ? (
                       <>
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() => handleCaptureEvidence(set.id, set.area)}
-                            className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white"
-                          >
-                            <Camera className="w-4 h-4 mr-2" />
-                            Tomar Evidencia Fotográfica
-                          </Button>
+                        {/* Opción 1: Evidencia Fotográfica */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Opción 1: Evidencia Fotográfica</Label>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => handleCaptureEvidence(set.id, set.area)}
+                              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                            >
+                              <Camera className="w-4 h-4 mr-2" />
+                              Tomar Evidencia
+                            </Button>
+                            {set.evidencia_foto_url && (
+                              <Button
+                                onClick={() => handleResponderSetConFoto(set.id)}
+                                disabled={isSubmitting === set.id}
+                                className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white"
+                              >
+                                <Send className="w-4 h-4 mr-2" />
+                                {isSubmitting === set.id ? 'Enviando...' : 'Responder Set'}
+                              </Button>
+                            )}
+                          </div>
                         </div>
                         
-                        <div className="border-t pt-4">
-                          <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                            O seleccione Fecha de Compromiso
-                          </Label>
+                        {/* Opción 2: Fecha de Compromiso */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Opción 2: Fecha de Compromiso</Label>
                           <div className="flex gap-2">
-                            <Popover open={showCalendar} onOpenChange={setShowCalendar}>
+                            <Popover open={showCalendar && selectedSetForDate === set.id} onOpenChange={(open) => {
+                              setShowCalendar(open);
+                              if (open) setSelectedSetForDate(set.id);
+                              else setSelectedSetForDate(null);
+                            }}>
                               <PopoverTrigger asChild>
                                 <Button
                                   variant="outline"
@@ -559,9 +568,12 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                                     "justify-start text-left font-normal",
                                     !fechaCompromiso && "text-muted-foreground"
                                   )}
+                                  onClick={() => setSelectedSetForDate(set.id)}
                                 >
                                   <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {fechaCompromiso ? format(fechaCompromiso, "dd/MM/yyyy", { locale: es }) : "Seleccionar fecha"}
+                                  {fechaCompromiso && selectedSetForDate === set.id 
+                                    ? format(fechaCompromiso, "dd/MM/yyyy", { locale: es }) 
+                                    : "Seleccionar fecha"}
                                 </Button>
                               </PopoverTrigger>
                               <PopoverContent className="w-auto p-0" align="start">
@@ -575,41 +587,24 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                                 />
                               </PopoverContent>
                             </Popover>
-                            {fechaCompromiso && (
+                            {fechaCompromiso && selectedSetForDate === set.id && (
                               <Button
-                                onClick={() => handleFechaCompromiso(set.id)}
+                                onClick={() => handleResponderSetConFecha(set.id)}
+                                disabled={isSubmitting === set.id}
                                 className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white"
                               >
-                                Guardar Fecha
+                                <Send className="w-4 h-4 mr-2" />
+                                {isSubmitting === set.id ? 'Enviando...' : 'Responder Set'}
                               </Button>
                             )}
                           </div>
                         </div>
                       </>
-                    )}
-
-                    {/* Botón Contestar Levantamiento - Solo disponible si hay respuesta local y no está procesado */}
-                    {hasResponse(set) && canContestarLevantamiento(set) && (
-                      <div className="border-t pt-4">
-                        <Button
-                          onClick={() => handleContestarLevantamiento(set.id)}
-                          disabled={isSubmitting === set.id}
-                          className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white w-full"
-                        >
-                          <Send className="w-4 h-4 mr-2" />
-                          {isSubmitting === set.id ? 'Enviando...' : 'Contestar Levantamiento'}
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* Mostrar mensaje si el set ya fue procesado */}
-                    {isSetProcessed(set) && (
-                      <div className="border-t pt-4">
-                        <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                          <p className="text-green-700 text-sm font-medium">
-                            ✅ Set contestado exitosamente
-                          </p>
-                        </div>
+                    ) : (
+                      <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                        <p className="text-green-700 text-sm font-medium">
+                          ✅ Set ya respondido
+                        </p>
                       </div>
                     )}
                   </div>
@@ -628,6 +623,18 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
             </CardContent>
           </Card>
         )}
+
+        {/* Botón Reiniciar al final */}
+        <div className="flex justify-center pt-4">
+          <Button
+            onClick={handleReinicio}
+            variant="outline"
+            className="bg-white/80 backdrop-blur-sm border-gray-300 text-gray-700 hover:bg-gray-50"
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Reiniciar
+          </Button>
+        </div>
       </div>
     </div>
   );

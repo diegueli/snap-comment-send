@@ -84,7 +84,6 @@ export const usePhotoActions = ({
     setCurrentResponsableId(null);
     setShowAreaInput(false);
     
-    // Cerrar la cámara después de guardar el conjunto
     stopCamera();
     
     toast({
