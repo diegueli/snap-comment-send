@@ -43,15 +43,15 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
       if (!user?.id) return;
 
       try {
-        // Obtener auditorías donde el usuario esté involucrado como responsable en algún set
-        const { data: setsData, error: setsError } = await supabase
-          .from('auditoria_sets')
-          .select('auditoria_codigo')
-          .eq('gerencia_resp_id', profile?.gerencia_id);
+        // Obtener todas las auditorías disponibles (sin filtrar por gerencia en este paso)
+        const { data: auditoriasData, error: auditoriasError } = await supabase
+          .from('auditorias')
+          .select('codigo_auditoria')
+          .order('created_at', { ascending: false });
 
-        if (setsError) throw setsError;
+        if (auditoriasError) throw auditoriasError;
 
-        const codigosUnicos = [...new Set(setsData?.map(set => set.auditoria_codigo) || [])];
+        const codigosUnicos = [...new Set(auditoriasData?.map(auditoria => auditoria.codigo_auditoria) || [])];
         setAuditoriasDisponibles(codigosUnicos);
       } catch (error) {
         console.error('Error loading auditorías:', error);
@@ -64,7 +64,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
     };
 
     loadAuditorias();
-  }, [user?.id, profile?.gerencia_id]);
+  }, [user?.id]);
 
   // Cargar sets de la auditoría seleccionada
   const loadAuditoriaSets = useCallback(async (codigoAuditoria: string) => {
@@ -72,8 +72,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
       const { data, error } = await supabase
         .from('auditoria_sets')
         .select('*')
-        .eq('auditoria_codigo', codigoAuditoria)
-        .eq('gerencia_resp_id', profile?.gerencia_id);
+        .eq('auditoria_codigo', codigoAuditoria);
 
       if (error) throw error;
 
@@ -99,7 +98,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
         variant: "destructive",
       });
     }
-  }, [profile?.gerencia_id]);
+  }, []);
 
   // Manejar selección de auditoría
   const handleAuditoriaSelection = useCallback(async (codigoAuditoria: string) => {
