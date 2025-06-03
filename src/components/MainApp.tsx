@@ -72,6 +72,7 @@ const MainApp: React.FC = () => {
     return (
       <CameraApp 
         auditoriaData={auditoriaData}
+        userData={profile}
         onClose={handleCloseModule}
       />
     );

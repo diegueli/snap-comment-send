@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -49,8 +48,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
       
-      // Get email from user object
-      const email = user?.email || '';
+      // Get email from the current user object
+      const currentUser = await supabase.auth.getUser();
+      const email = currentUser.data.user?.email || '';
       
       setProfile({
         ...data,
