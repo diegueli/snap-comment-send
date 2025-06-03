@@ -17,6 +17,7 @@ interface UsePhotoActionsProps {
   setCurrentResponsableId: (id: number | null) => void;
   setShowAreaInput: (show: boolean) => void;
   getNumberedArea: (area: string) => string;
+  stopCamera: () => void; // Agregar función para cerrar cámara
 }
 
 export const usePhotoActions = ({
@@ -32,7 +33,8 @@ export const usePhotoActions = ({
   setCurrentResponsable,
   setCurrentResponsableId,
   setShowAreaInput,
-  getNumberedArea
+  getNumberedArea,
+  stopCamera
 }: UsePhotoActionsProps) => {
   
   const deletePhoto = useCallback((photoId: string) => {
@@ -82,11 +84,14 @@ export const usePhotoActions = ({
     setCurrentResponsableId(null);
     setShowAreaInput(false);
     
+    // Cerrar la cámara después de guardar el conjunto
+    stopCamera();
+    
     toast({
       title: "¡Conjunto de fotos guardado!",
       description: `Conjunto "${newSet.area}" con ${newSet.photos.length} foto(s) agregado.`,
     });
-  }, [currentPhotos, currentArea, currentLevantamiento, currentResponsable, currentResponsableId, setCurrentPhotos, setPhotoSets, setCurrentArea, setCurrentLevantamiento, setCurrentResponsable, setCurrentResponsableId, setShowAreaInput, getNumberedArea]);
+  }, [currentPhotos, currentArea, currentLevantamiento, currentResponsable, currentResponsableId, setCurrentPhotos, setPhotoSets, setCurrentArea, setCurrentLevantamiento, setCurrentResponsable, setCurrentResponsableId, setShowAreaInput, getNumberedArea, stopCamera]);
 
   const deletePhotoSet = useCallback((setId: string) => {
     setPhotoSets(prev => prev.filter(set => set.id !== setId));

@@ -60,7 +60,7 @@ export const closeAuditoria = async (
     const [day, month, year] = auditoriaData.fecha.split('/');
     const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 
-    // Insertar auditoría
+    // Insertar auditoría en la tabla 'auditorias'
     const { data: auditoria, error: auditoriaError } = await supabase
       .from('auditorias')
       .insert({
@@ -69,8 +69,7 @@ export const closeAuditoria = async (
         fecha: isoDate,
         auditor: auditoriaData.auditor,
         planta_id: auditoriaData.plantaId,
-        codigo_auditoria: auditoriaData.codigoAuditoria,
-        status: 'Activo'
+        codigo_auditoria: auditoriaData.codigoAuditoria
       })
       .select()
       .single();
@@ -82,7 +81,7 @@ export const closeAuditoria = async (
 
     console.log('Auditoría insertada:', auditoria);
 
-    // Procesar cada conjunto de fotos
+    // Procesar cada conjunto de fotos e insertarlos en 'auditoria_sets'
     for (const set of photoSets) {
       const photoUrls: string[] = [];
       
@@ -98,7 +97,7 @@ export const closeAuditoria = async (
 
       console.log('URLs de fotos generadas:', photoUrls);
 
-      // Insertar conjunto usando auditoria_codigo
+      // Insertar conjunto en la tabla 'auditoria_sets' usando auditoria_codigo
       const { error: setError } = await supabase
         .from('auditoria_sets')
         .insert({

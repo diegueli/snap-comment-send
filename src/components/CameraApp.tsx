@@ -1,4 +1,3 @@
-
 import React, { useCallback } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -96,7 +95,8 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     setCurrentResponsable,
     setCurrentResponsableId,
     setShowAreaInput,
-    getNumberedArea
+    getNumberedArea,
+    stopCamera
   });
 
   const handleAuditoriaSubmit = useCallback(async (formData: AuditoriaFormData & { codigoAuditoria: string }) => {

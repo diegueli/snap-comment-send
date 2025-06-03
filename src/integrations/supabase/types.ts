@@ -82,6 +82,7 @@ export type Database = {
           created_at: string
           fecha: string
           fecha_compromiso: string | null
+          id: string
           planta_id: number | null
           status: string | null
           titulo_documento: string
@@ -94,6 +95,7 @@ export type Database = {
           created_at?: string
           fecha: string
           fecha_compromiso?: string | null
+          id?: string
           planta_id?: number | null
           status?: string | null
           titulo_documento: string
@@ -106,6 +108,7 @@ export type Database = {
           created_at?: string
           fecha?: string
           fecha_compromiso?: string | null
+          id?: string
           planta_id?: number | null
           status?: string | null
           titulo_documento?: string
