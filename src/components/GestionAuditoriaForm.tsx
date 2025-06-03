@@ -33,7 +33,6 @@ interface AuditoriaSet {
   foto_urls: string[];
   evidencia_foto_url?: string;
   fecha_compromiso?: string;
-  foto_urls_ga: string[];
 }
 
 interface GestionAuditoriaFormProps {
@@ -141,7 +140,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
 
       if (error) throw error;
 
-      // Convertir los datos para manejar foto_urls_ga correctamente
+      // Convertir los datos para el formato esperado
       const setsFormatted = (data || []).map(set => ({
         id: set.id,
         area: set.area,
@@ -149,9 +148,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
         responsable: set.responsable || '',
         foto_urls: set.foto_urls || [],
         evidencia_foto_url: set.evidencia_foto_url,
-        fecha_compromiso: set.fecha_compromiso,
-        foto_urls_ga: Array.isArray(set.foto_urls_ga) ? set.foto_urls_ga : 
-          (set.foto_urls_ga ? [set.foto_urls_ga] : [])
+        fecha_compromiso: set.fecha_compromiso
       }));
 
       setAuditoriaSets(setsFormatted);
@@ -203,15 +200,10 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
         .from('bucket_auditorias')
         .getPublicUrl(fileName);
 
-      // Obtener URLs existentes de gestión auditoría
-      const currentSet = auditoriaSets.find(set => set.id === selectedSetId);
-      const existingUrls = currentSet?.foto_urls_ga || [];
-      const updatedUrls = [...existingUrls, publicUrl];
-
-      // Actualizar estado local
+      // Actualizar estado local con la nueva evidencia fotográfica
       setAuditoriaSets(prev => prev.map(set => 
         set.id === selectedSetId 
-          ? { ...set, foto_urls_ga: updatedUrls }
+          ? { ...set, evidencia_foto_url: publicUrl }
           : set
       ));
 
@@ -280,7 +272,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
       if (!currentSet) return;
 
       // Verificar que tenga al menos una respuesta (fecha de compromiso o evidencia fotográfica)
-      const tieneEvidencia = currentSet.foto_urls_ga && currentSet.foto_urls_ga.length > 0;
+      const tieneEvidencia = currentSet.evidencia_foto_url;
       const tieneFechaCompromiso = currentSet.fecha_compromiso;
 
       if (!tieneEvidencia && !tieneFechaCompromiso) {
@@ -292,17 +284,18 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
         return;
       }
 
-      // Actualizar en la base de datos
+      // Preparar datos para actualizar
       const updateData: any = {};
       
       if (tieneEvidencia) {
-        updateData.foto_urls_ga = currentSet.foto_urls_ga;
+        updateData.evidencia_foto_url = currentSet.evidencia_foto_url;
       }
       
       if (tieneFechaCompromiso) {
         updateData.fecha_compromiso = currentSet.fecha_compromiso;
       }
 
+      // Actualizar en la base de datos
       const { error } = await supabase
         .from('auditoria_sets')
         .update(updateData)
@@ -334,9 +327,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
 
   // Verificar si el set tiene respuesta completa
   const hasResponse = (set: AuditoriaSet) => {
-    const tieneEvidencia = set.foto_urls_ga && set.foto_urls_ga.length > 0;
-    const tieneFechaCompromiso = set.fecha_compromiso;
-    return tieneEvidencia || tieneFechaCompromiso;
+    return set.evidencia_foto_url || set.fecha_compromiso;
   };
 
   if (showCamera && selectedSetId) {
@@ -483,19 +474,16 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                     </div>
                   )}
 
-                  {/* Fotografías de gestión de auditoría */}
-                  {set.foto_urls_ga && set.foto_urls_ga.length > 0 && (
+                  {/* Evidencia fotográfica de gestión */}
+                  {set.evidencia_foto_url && (
                     <div className="mb-4">
                       <Label className="text-sm font-medium text-gray-700 mb-2 block">Evidencia Fotográfica de Gestión</Label>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {set.foto_urls_ga.map((url, index) => (
-                          <img
-                            key={index}
-                            src={url}
-                            alt={`Evidencia ${index + 1} de gestión ${set.area}`}
-                            className="w-full h-24 object-cover rounded border"
-                          />
-                        ))}
+                        <img
+                          src={set.evidencia_foto_url}
+                          alt={`Evidencia de gestión ${set.area}`}
+                          className="w-full h-24 object-cover rounded border"
+                        />
                       </div>
                     </div>
                   )}
