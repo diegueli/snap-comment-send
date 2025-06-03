@@ -1,191 +1,194 @@
 
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Camera, RotateCcw } from 'lucide-react';
+import { Camera, X, Check } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useCamera } from '@/hooks/useCamera';
+import { usePhotoCapture } from '@/hooks/usePhotoCapture';
 
 interface GestionCameraViewProps {
   onPhotoTaken: (file: File) => void;
   onCancel: () => void;
 }
 
-const GestionCameraView = ({ onPhotoTaken, onCancel }: GestionCameraViewProps) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+const GestionCameraView: React.FC<GestionCameraViewProps> = ({ 
+  onPhotoTaken, 
+  onCancel 
+}) => {
+  const [currentArea] = useState('Evidencia Gestion Auditoria');
+  const [capturedPhoto, setCapturedPhoto] = useState<{ url: string; file: File } | null>(null);
+  
+  const { 
+    isCapturing, 
+    cameraPermission, 
+    videoRef, 
+    startCamera, 
+    stopCamera 
+  } = useCamera();
 
-  // Iniciar cámara
-  const startCamera = useCallback(async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-        audio: false
-      });
-      
-      setStream(mediaStream);
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
-      
-      setIsCapturing(true);
-    } catch (error) {
-      console.error('Error accessing camera:', error);
+  const { canvasRef, capturePhoto } = usePhotoCapture();
+
+  const handleStartCamera = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const success = await startCamera(currentArea);
+    if (!success) {
       toast({
         title: "Error de cámara",
-        description: "No se puede acceder a la cámara. Verifique los permisos.",
+        description: "No se pudo acceder a la cámara. Verifica los permisos.",
         variant: "destructive",
       });
     }
-  }, []);
+  };
 
-  // Detener cámara
-  const stopCamera = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
+  const handleCapturePhoto = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const newPhoto = await capturePhoto(videoRef, []);
+    
+    if (newPhoto && newPhoto.file) {
+      const url = URL.createObjectURL(newPhoto.file);
+      setCapturedPhoto({ url, file: newPhoto.file });
+      stopCamera();
+
+      toast({
+        title: "Foto capturada",
+        description: "Evidencia fotográfica capturada exitosamente",
+      });
     }
-    setIsCapturing(false);
-  }, [stream]);
+  };
 
-  // Capturar foto
-  const capturePhoto = useCallback(() => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
+  const handleStopCamera = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    stopCamera();
+  };
 
-    if (!video || !canvas) return;
-
-    const context = canvas.getContext('2d');
-    if (!context) return;
-
-    // Configurar canvas con las dimensiones del video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    // Dibujar el frame actual del video en el canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // Convertir a blob y crear URL
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const url = URL.createObjectURL(blob);
-        setCapturedPhoto(url);
-        stopCamera();
-      }
-    }, 'image/jpeg', 0.9);
-  }, [stopCamera]);
-
-  // Confirmar foto
-  const confirmPhoto = useCallback(async () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    canvas.toBlob(async (blob) => {
-      if (blob) {
-        const file = new File([blob], `evidencia_${Date.now()}.jpg`, {
-          type: 'image/jpeg',
-          lastModified: Date.now(),
-        });
-        
-        onPhotoTaken(file);
-      }
-    }, 'image/jpeg', 0.9);
-  }, [onPhotoTaken]);
-
-  // Retomar foto
-  const retakePhoto = useCallback(() => {
+  const handleConfirmPhoto = () => {
     if (capturedPhoto) {
-      URL.revokeObjectURL(capturedPhoto);
+      onPhotoTaken(capturedPhoto.file);
+      URL.revokeObjectURL(capturedPhoto.url);
       setCapturedPhoto(null);
     }
-    startCamera();
-  }, [capturedPhoto, startCamera]);
+  };
 
-  // Inicializar cámara al montar
-  useEffect(() => {
-    startCamera();
-    return () => {
-      stopCamera();
-      if (capturedPhoto) {
-        URL.revokeObjectURL(capturedPhoto);
-      }
-    };
-  }, [startCamera, stopCamera, capturedPhoto]);
+  const handleRetakePhoto = () => {
+    if (capturedPhoto) {
+      URL.revokeObjectURL(capturedPhoto.url);
+      setCapturedPhoto(null);
+    }
+    startCamera(currentArea);
+  };
+
+  const handleCancel = () => {
+    if (capturedPhoto) {
+      URL.revokeObjectURL(capturedPhoto.url);
+    }
+    stopCamera();
+    onCancel();
+  };
 
   return (
-    <Card className="bg-white/95 backdrop-blur-sm shadow-xl">
-      <CardHeader>
-        <CardTitle className="text-center text-xl">Evidencia Fotográfica</CardTitle>
+    <Card className="border-blue-200 shadow-lg">
+      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
+        <CardTitle className="text-xl font-bold text-blue-800 text-center">
+          Evidencia Fotográfica de Gestión
+        </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="p-6">
         {capturedPhoto ? (
           // Vista previa de la foto capturada
           <div className="space-y-4">
             <div className="relative bg-black rounded-lg overflow-hidden">
               <img 
-                src={capturedPhoto} 
-                alt="Foto capturada" 
+                src={capturedPhoto.url} 
+                alt="Evidencia capturada" 
                 className="w-full h-64 object-contain"
               />
             </div>
             <div className="flex gap-3 justify-center">
               <Button
-                onClick={retakePhoto}
+                onClick={handleRetakePhoto}
                 variant="outline"
-                className="flex items-center gap-2"
+                className="border-blue-200 text-blue-600 hover:bg-blue-50"
               >
-                <RotateCcw className="w-4 h-4" />
+                <Camera className="w-4 h-4 mr-2" />
                 Retomar
               </Button>
               <Button
-                onClick={confirmPhoto}
-                className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                onClick={handleConfirmPhoto}
+                className="bg-green-600 hover:bg-green-700 text-white"
               >
-                <Camera className="w-4 h-4" />
+                <Check className="w-4 h-4 mr-2" />
                 Confirmar
               </Button>
             </div>
           </div>
+        ) : !isCapturing ? (
+          // Vista inicial - botón para iniciar cámara
+          <div className="text-center space-y-4">
+            <p className="text-gray-700 mb-4">
+              Capture evidencia fotográfica para la gestión de auditoría
+            </p>
+            <Button 
+              type="button"
+              onClick={handleStartCamera}
+              disabled={cameraPermission === 'denied'}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+            >
+              <Camera className="w-4 h-4 mr-2" />
+              Iniciar Cámara
+            </Button>
+            {cameraPermission === 'denied' && (
+              <p className="text-red-600 text-sm">
+                Permisos de cámara denegados. Actualiza la página y permite el acceso a la cámara.
+              </p>
+            )}
+            <Button
+              onClick={handleCancel}
+              variant="outline"
+              className="w-full border-gray-200"
+            >
+              Cancelar
+            </Button>
+          </div>
         ) : (
-          // Vista de la cámara
+          // Vista de la cámara activa
           <div className="space-y-4">
-            <div className="relative bg-black rounded-lg overflow-hidden">
+            <div className="relative w-full flex justify-center">
               <video
                 ref={videoRef}
-                autoPlay
+                className="w-full max-w-sm rounded-lg border-2 border-blue-200"
+                style={{ maxHeight: '400px' }}
                 playsInline
                 muted
-                className="w-full h-64 object-cover"
+                autoPlay
               />
-              {!isCapturing && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                  <p className="text-white">Iniciando cámara...</p>
-                </div>
-              )}
             </div>
-            
-            <div className="flex gap-3 justify-center">
+            <div className="flex flex-col gap-2 justify-center">
               <Button
-                onClick={onCancel}
-                variant="outline"
+                type="button"
+                onClick={handleCapturePhoto}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
               >
-                Cancelar
+                <Camera className="w-4 h-4 mr-2" />
+                Capturar Evidencia
               </Button>
               <Button
-                onClick={capturePhoto}
-                disabled={!isCapturing}
-                className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+                type="button"
+                onClick={handleStopCamera}
+                variant="outline"
+                className="border-blue-200 text-blue-600 hover:bg-blue-50"
               >
-                <Camera className="w-4 h-4" />
-                Capturar
+                <X className="w-4 h-4 mr-2" />
+                Cerrar Cámara
               </Button>
             </div>
           </div>
         )}
-        
         <canvas ref={canvasRef} className="hidden" />
       </CardContent>
     </Card>
