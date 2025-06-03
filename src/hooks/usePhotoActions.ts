@@ -109,25 +109,16 @@ export const usePhotoActions = ({
     ));
   }, [setPhotoSets]);
 
-  const updatePhotoSet = useCallback((
-    setId: string, 
-    field: 'levantamiento' | 'responsable' | 'area',
-    value: string,
-    gerenciaId?: number | null
-  ) => {
+  const updatePhotoSet = useCallback((setId: string, updates: Partial<PhotoSet>) => {
     setPhotoSets(prev => prev.map(set => 
       set.id === setId 
-        ? { 
-            ...set, 
-            [field]: value,
-            ...(field === 'responsable' && gerenciaId !== undefined ? { gerencia_resp_id: gerenciaId } : {})
-          }
+        ? { ...set, ...updates }
         : set
     ));
 
     toast({
       title: "Conjunto actualizado",
-      description: `${field.charAt(0).toUpperCase() + field.slice(1)} actualizado correctamente.`,
+      description: "El conjunto ha sido actualizado correctamente.",
     });
   }, [setPhotoSets]);
 
