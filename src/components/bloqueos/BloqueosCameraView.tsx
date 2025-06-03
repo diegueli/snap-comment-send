@@ -42,7 +42,7 @@ const PhotoGrid: React.FC<{
         >
           <Trash2 className="h-4 w-4" />
         </Button>
-        <div className="absolute bottom-2 left-2 bg-red-600/90 text-white px-2 py-1 rounded shadow text-xs font-semibold tracking-wide"></div>
+        <div className="absolute bottom-2 left-2 bg-red-600/90 text-white px-2 py-1 rounded shadow text-xs font-semibold tracking-wide">
           {showIndex ? `Foto ${index + 1} de ${photos.length}` : `Foto ${index + 1}`}
         </div>
       </div>
@@ -216,6 +216,20 @@ const BloqueosCameraView: React.FC<BloqueosCameraViewProps> = ({
             </Button>
             {cameraPermission === 'denied' && (
               <p className="text-red-600 text-sm">
+                Acceso a la cámara denegado. Por favor permite el acceso en tu navegador.
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="relative bg-black rounded-lg overflow-hidden">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-64 md:h-80 object-cover"
+              />
               <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-sm font-medium">
                 Fotos: {currentPhotos.length}/3
               </div>
