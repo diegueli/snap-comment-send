@@ -7,6 +7,7 @@ import { toast } from '@/hooks/use-toast';
 interface UserProfile {
   id: string;
   name: string;
+  email: string;
   position: string;
   gerencia_id?: number;
 }
@@ -47,7 +48,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) throw error;
-      setProfile(data);
+      
+      // Get email from user object
+      const email = user?.email || '';
+      
+      setProfile({
+        ...data,
+        email
+      });
     } catch (error) {
       console.error('Error fetching profile:', error);
     }

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
@@ -18,15 +18,17 @@ import { generatePDF } from '@/utils/pdfGenerator';
 import { closeAuditoria } from '@/utils/auditoriaStorage';
 import { 
   UserData, 
-  AuditoriaFormData
+  AuditoriaFormData,
+  AuditoriaData
 } from '@/types/auditoria';
 
 interface CameraAppProps {
   onClose?: () => void;
   userData: UserData | null;
+  auditoriaData?: (AuditoriaFormData & { codigoAuditoria: string }) | null;
 }
 
-const CameraApp = ({ onClose, userData }: CameraAppProps) => {
+const CameraApp = ({ onClose, userData, auditoriaData: initialAuditoriaData }: CameraAppProps) => {
   const {
     auditoriaData,
     selectedPlanta,
@@ -190,6 +192,13 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       description: "Todos los datos han sido limpiados.",
     });
   }, [resetState, stopCamera]);
+
+  // Set initial auditoria data if provided
+  useEffect(() => {
+    if (initialAuditoriaData && !auditoriaData) {
+      handleAuditoriaSubmit(initialAuditoriaData);
+    }
+  }, [initialAuditoriaData, auditoriaData]);
 
   if (!auditoriaData) {
     return (
