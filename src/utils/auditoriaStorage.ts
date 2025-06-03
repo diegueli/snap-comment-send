@@ -50,6 +50,12 @@ export const closeAuditoria = async (
       throw new Error('Usuario no autenticado');
     }
 
+    console.log('Cerrando auditoría con datos:', {
+      auditoriaData,
+      photoSets: photoSets.length,
+      codigoAuditoria: auditoriaData.codigoAuditoria
+    });
+
     // Convertir fecha de DD/MM/YYYY a YYYY-MM-DD
     const [day, month, year] = auditoriaData.fecha.split('/');
     const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
@@ -69,13 +75,18 @@ export const closeAuditoria = async (
       .select()
       .single();
 
-    if (auditoriaError) throw auditoriaError;
+    if (auditoriaError) {
+      console.error('Error insertando auditoría:', auditoriaError);
+      throw auditoriaError;
+    }
 
     console.log('Auditoría insertada:', auditoria);
 
     // Procesar cada conjunto de fotos
     for (const set of photoSets) {
       const photoUrls: string[] = [];
+      
+      console.log('Procesando conjunto:', set.area, 'con', set.photos.length, 'fotos');
       
       // Subir fotos y recopilar URLs
       for (const photo of set.photos) {
@@ -85,11 +96,13 @@ export const closeAuditoria = async (
         }
       }
 
+      console.log('URLs de fotos generadas:', photoUrls);
+
       // Insertar conjunto usando auditoria_codigo
       const { error: setError } = await supabase
         .from('auditoria_sets')
         .insert({
-          auditoria_codigo: auditoriaData.codigoAuditoria, // Usar codigo en lugar de id
+          auditoria_codigo: auditoriaData.codigoAuditoria,
           area: set.area,
           levantamiento: set.levantamiento || null,
           responsable: set.responsable || null,
@@ -98,9 +111,11 @@ export const closeAuditoria = async (
         });
 
       if (setError) {
-        console.error('Error inserting set:', setError);
+        console.error('Error insertando conjunto:', setError);
         throw setError;
       }
+
+      console.log('Conjunto insertado correctamente:', set.area);
     }
 
     toast({

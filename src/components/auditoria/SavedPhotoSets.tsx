@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PhotoSet } from '@/types/auditoria';
+import ResponsableSelect from './ResponsableSelect';
 
 interface SavedPhotoSetsProps {
   photoSets: PhotoSet[];
@@ -48,11 +49,17 @@ const SavedPhotoSets = ({
 
   const handleSaveSetEdit = (setId: string) => {
     onUpdatePhotoSet(setId, { 
-      levantamiento: editingLevantamiento
+      levantamiento: editingLevantamiento,
+      responsable: editingResponsable
     });
     setEditingSetId(null);
     setEditingLevantamiento('');
     setEditingResponsable('');
+  };
+
+  const handleResponsableChange = (responsable: string, gerenciaId?: number) => {
+    setEditingResponsable(responsable);
+    // También podríamos manejar gerenciaId si es necesario
   };
 
   const startEditingArea = (set: PhotoSet) => {
@@ -161,6 +168,10 @@ const SavedPhotoSets = ({
                     className="resize-none border-gray-200 focus:border-red-500"
                     rows={2}
                     placeholder="Editar levantamiento..."
+                  />
+                  <ResponsableSelect
+                    value={editingResponsable}
+                    onValueChange={handleResponsableChange}
                   />
                   <div className="flex gap-2">
                     <Button

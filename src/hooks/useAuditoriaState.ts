@@ -20,6 +20,13 @@ export const useAuditoriaState = () => {
   const [showAreaInput, setShowAreaInput] = useState(false);
   const [codigoAuditoria, setCodigoAuditoria] = useState<string | null>(null);
   const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
+  const [areaCounter, setAreaCounter] = useState(1);
+
+  const getNumberedArea = useCallback((area: string) => {
+    const numberedArea = `${areaCounter}-${area}`;
+    setAreaCounter(prev => prev + 1);
+    return numberedArea;
+  }, [areaCounter]);
 
   const resetState = useCallback(() => {
     setAuditoriaData(null);
@@ -39,6 +46,7 @@ export const useAuditoriaState = () => {
     setShowAreaInput(false);
     setCodigoAuditoria(null);
     setIsSavingToDatabase(false);
+    setAreaCounter(1);
   }, []);
 
   return {
@@ -60,6 +68,7 @@ export const useAuditoriaState = () => {
     showAreaInput,
     codigoAuditoria,
     isSavingToDatabase,
+    areaCounter,
     // Setters
     setAuditoriaData,
     setSelectedPlanta,
@@ -78,7 +87,9 @@ export const useAuditoriaState = () => {
     setShowAreaInput,
     setCodigoAuditoria,
     setIsSavingToDatabase,
+    setAreaCounter,
     // Actions
-    resetState
+    resetState,
+    getNumberedArea
   };
 };

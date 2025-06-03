@@ -63,7 +63,8 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     setShowAreaInput,
     setCodigoAuditoria,
     setIsSavingToDatabase,
-    resetState
+    resetState,
+    getNumberedArea
   } = useAuditoriaState();
 
   const { 
@@ -94,7 +95,8 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     setCurrentLevantamiento,
     setCurrentResponsable,
     setCurrentResponsableId,
-    setShowAreaInput
+    setShowAreaInput,
+    getNumberedArea
   });
 
   const handleAuditoriaSubmit = useCallback(async (formData: AuditoriaFormData & { codigoAuditoria: string }) => {
@@ -142,16 +144,18 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
     const newPhoto = await capturePhoto(videoRef, currentPhotos);
     if (newPhoto) {
       setCurrentPhotos(prev => [...prev, newPhoto]);
-      
-      if (currentPhotos.length + 1 >= 3) {
-        stopCamera();
-        toast({
-          title: "Todas las fotos capturadas",
-          description: "Ahora puedes completar la información y guardar este conjunto.",
-        });
-      }
     }
-  }, [capturePhoto, videoRef, currentPhotos, setCurrentPhotos, stopCamera]);
+  }, [capturePhoto, videoRef, currentPhotos, setCurrentPhotos]);
+
+  const handleStopCamera = useCallback(() => {
+    stopCamera();
+    if (currentPhotos.length > 0) {
+      toast({
+        title: "Cámara detenida",
+        description: "Complete la información y guarde el conjunto antes de continuar.",
+      });
+    }
+  }, [stopCamera, currentPhotos.length]);
 
   const handleCloseAuditoria = useCallback(async () => {
     if (!auditoriaData || !userData) return;
@@ -173,7 +177,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
       auditoriaData,
       userData,
       selectedPlanta,
-      auditoriaId: null, // No longer using auditoriaId
+      auditoriaId: null,
       codigoAuditoria
     });
   }, [photoSets, auditoriaData, userData, selectedPlanta, codigoAuditoria]);
@@ -245,7 +249,7 @@ const CameraApp = ({ onClose, userData }: CameraAppProps) => {
             currentPhotos={currentPhotos}
             currentArea={currentArea}
             onCapturePhoto={handleCapturePhoto}
-            onStopCamera={stopCamera}
+            onStopCamera={handleStopCamera}
           />
         )}
 

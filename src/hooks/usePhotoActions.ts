@@ -16,6 +16,7 @@ interface UsePhotoActionsProps {
   setCurrentResponsable: (responsable: string) => void;
   setCurrentResponsableId: (id: number | null) => void;
   setShowAreaInput: (show: boolean) => void;
+  getNumberedArea: (area: string) => string;
 }
 
 export const usePhotoActions = ({
@@ -30,7 +31,8 @@ export const usePhotoActions = ({
   setCurrentLevantamiento,
   setCurrentResponsable,
   setCurrentResponsableId,
-  setShowAreaInput
+  setShowAreaInput,
+  getNumberedArea
 }: UsePhotoActionsProps) => {
   
   const deletePhoto = useCallback((photoId: string) => {
@@ -60,9 +62,11 @@ export const usePhotoActions = ({
       return;
     }
 
+    const numberedArea = getNumberedArea(currentArea.trim());
+
     const newSet: PhotoSet = {
       id: Date.now().toString(),
-      area: currentArea.trim(),
+      area: numberedArea,
       photos: [...currentPhotos],
       levantamiento: currentLevantamiento,
       responsable: currentResponsable,
@@ -82,7 +86,7 @@ export const usePhotoActions = ({
       title: "¡Conjunto de fotos guardado!",
       description: `Conjunto "${newSet.area}" con ${newSet.photos.length} foto(s) agregado.`,
     });
-  }, [currentPhotos, currentArea, currentLevantamiento, currentResponsable, currentResponsableId, setCurrentPhotos, setPhotoSets, setCurrentArea, setCurrentLevantamiento, setCurrentResponsable, setCurrentResponsableId, setShowAreaInput]);
+  }, [currentPhotos, currentArea, currentLevantamiento, currentResponsable, currentResponsableId, setCurrentPhotos, setPhotoSets, setCurrentArea, setCurrentLevantamiento, setCurrentResponsable, setCurrentResponsableId, setShowAreaInput, getNumberedArea]);
 
   const deletePhotoSet = useCallback((setId: string) => {
     setPhotoSets(prev => prev.filter(set => set.id !== setId));
