@@ -1,13 +1,12 @@
 
 import React from 'react';
-import { Save, FileText, RotateCcw } from 'lucide-react';
+import { Save, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ActionButtonsProps {
   photoSetsLength: number;
   onCloseAuditoria: () => void;
   onGeneratePDF: () => void;
-  onResetApp: () => void;
   isSavingToDatabase: boolean;
 }
 
@@ -15,7 +14,6 @@ const ActionButtons = ({
   photoSetsLength,
   onCloseAuditoria,
   onGeneratePDF,
-  onResetApp,
   isSavingToDatabase
 }: ActionButtonsProps) => {
   if (photoSetsLength === 0) return null;
@@ -36,14 +34,6 @@ const ActionButtons = ({
       >
         <FileText className="w-4 h-4 mr-2" />
         Descargar PDF
-      </Button>
-      <Button
-        onClick={onResetApp}
-        variant="outline"
-        className="w-full bg-white/80 backdrop-blur-sm border-white hover:bg-white"
-      >
-        <RotateCcw className="w-4 h-4 mr-2" />
-        Reiniciar
       </Button>
     </div>
   );

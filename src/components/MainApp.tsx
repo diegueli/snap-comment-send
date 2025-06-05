@@ -8,7 +8,7 @@ import BloqueosForm from './BloqueosForm';
 import GestionAuditoriaForm from './GestionAuditoriaForm';
 import ResumenAuditoriasForm from './resumen/ResumenAuditoriasForm';
 import CameraApp from './CameraApp';
-import { Camera, FileText, ClipboardCheck, BarChart3, Settings, LogOut, ArrowLeft, RotateCcw } from 'lucide-react';
+import { Camera, FileText, ClipboardCheck, BarChart3, Settings, LogOut, ArrowLeft } from 'lucide-react';
 import { AuditoriaFormData } from '@/types/auditoria';
 
 const MainApp: React.FC = () => {
@@ -47,12 +47,6 @@ const MainApp: React.FC = () => {
     setActiveModule('camera-capture');
   };
 
-  const handleReinicio = () => {
-    setActiveModule(null);
-    setShowAuditoriaMenu(false);
-    setAuditoriaData(null);
-  };
-
   if (activeModule === 'ingresar-auditoria') {
     return (
       <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-screen flex items-center justify-center p-4">
@@ -71,16 +65,6 @@ const MainApp: React.FC = () => {
             onSubmit={handleAuditoriaFormSubmit}
             userData={profile}
           />
-          <div className="flex justify-center mt-6">
-            <Button
-              onClick={handleReinicio}
-              variant="outline"
-              className="border-white/30 text-white hover:bg-white/10 backdrop-blur-sm"
-            >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Reiniciar
-            </Button>
-          </div>
         </div>
       </div>
     );
