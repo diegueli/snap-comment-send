@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import AuditoriaForm from '@/components/AuditoriaForm';
 import GestionAuditoriaForm from '@/components/GestionAuditoriaForm';
 import ResumenAuditoriasForm from './ResumenAuditoriasForm';
 import CameraApp from '@/components/CameraApp';
-import { AuditoriaFormData } from '@/types/auditoria';
+import { AuditoriaFormData } from '../types';
 
 interface AuditoriaMainViewProps {
   onClose: () => void;
@@ -14,49 +15,31 @@ interface AuditoriaMainViewProps {
 }
 
 const AuditoriaMainView: React.FC<AuditoriaMainViewProps> = ({ onClose, userProfile }) => {
-  const [activeModule, setActiveModule] = useState<string | null>(null);
-  const [showAuditoriaMenu, setShowAuditoriaMenu] = useState(false);
+  const [activeSubmodule, setActiveSubmodule] = useState<string | null>(null);
   const [auditoriaData, setAuditoriaData] = useState<(AuditoriaFormData & { codigoAuditoria: string }) | null>(null);
 
-  const handleModuleClick = (module: string) => {
-    if (module === 'auditorias') {
-      setShowAuditoriaMenu(true);
-      setActiveModule(null);
-    } else {
-      setActiveModule(module);
-      setShowAuditoriaMenu(false);
-    }
+  const handleSubmoduleClick = (submodule: string) => {
+    setActiveSubmodule(submodule);
   };
 
-  const handleAuditoriaSubmodule = (submodule: string) => {
-    setActiveModule(submodule);
-    setShowAuditoriaMenu(false);
-  };
-
-  const handleCloseModule = () => {
-    setActiveModule(null);
-    setShowAuditoriaMenu(false);
+  const handleCloseSubmodule = () => {
+    setActiveSubmodule(null);
     setAuditoriaData(null);
   };
 
   const handleAuditoriaFormSubmit = (data: AuditoriaFormData & { codigoAuditoria: string }) => {
     setAuditoriaData(data);
-    setActiveModule('camera-capture');
+    setActiveSubmodule('camera-capture');
   };
 
-  const handleReinicio = () => {
-    setActiveModule(null);
-    setShowAuditoriaMenu(false);
-    setAuditoriaData(null);
-  };
-
-  if (activeModule === 'ingresar-auditoria') {
+  // Renderizar submódulos
+  if (activeSubmodule === 'ingresar-auditoria') {
     return (
       <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-screen flex items-center justify-center p-4">
         <div className="max-w-md mx-auto">
           <div className="flex justify-end mb-6">
             <Button
-              onClick={handleCloseModule}
+              onClick={handleCloseSubmodule}
               variant="outline"
               className="border-white/30 text-black hover:bg-white/10 backdrop-blur-sm"
             >
@@ -68,39 +51,30 @@ const AuditoriaMainView: React.FC<AuditoriaMainViewProps> = ({ onClose, userProf
             onSubmit={handleAuditoriaFormSubmit}
             userData={userProfile}
           />
-          <div className="flex justify-center mt-6">
-            <Button
-              onClick={handleReinicio}
-              variant="outline"
-              className="border-white/30 text-white hover:bg-white/10 backdrop-blur-sm"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Reiniciar
-            </Button>
-          </div>
         </div>
       </div>
     );
   }
 
-  if (activeModule === 'camera-capture' && auditoriaData) {
+  if (activeSubmodule === 'camera-capture' && auditoriaData) {
     return (
       <CameraApp 
         auditoriaData={auditoriaData}
         userData={userProfile}
-        onClose={handleCloseModule}
+        onClose={handleCloseSubmodule}
       />
     );
   }
 
-  if (activeModule === 'gestion-auditoria') {
-    return <GestionAuditoriaForm onClose={handleCloseModule} />;
+  if (activeSubmodule === 'gestion-auditoria') {
+    return <GestionAuditoriaForm onClose={handleCloseSubmodule} />;
   }
 
-  if (activeModule === 'resumen-auditorias') {
-    return <ResumenAuditoriasForm onClose={handleCloseModule} />;
+  if (activeSubmodule === 'resumen-auditorias') {
+    return <ResumenAuditoriasForm onClose={handleCloseSubmodule} />;
   }
 
+  // Vista principal de submódulos de auditoría
   return (
     <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-screen flex items-center justify-center p-4">
       <div className="max-w-4xl mx-auto">
@@ -128,7 +102,7 @@ const AuditoriaMainView: React.FC<AuditoriaMainViewProps> = ({ onClose, userProf
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card 
                 className="cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-lg border-2 border-transparent hover:border-yellow-300 group"
-                onClick={() => handleAuditoriaSubmodule('ingresar-auditoria')}
+                onClick={() => handleSubmoduleClick('ingresar-auditoria')}
               >
                 <CardContent className="p-6 text-center">
                   <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-yellow-500 to-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
@@ -145,7 +119,7 @@ const AuditoriaMainView: React.FC<AuditoriaMainViewProps> = ({ onClose, userProf
 
               <Card 
                 className="cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-lg border-2 border-transparent hover:border-yellow-300 group"
-                onClick={() => handleAuditoriaSubmodule('gestion-auditoria')}
+                onClick={() => handleSubmoduleClick('gestion-auditoria')}
               >
                 <CardContent className="p-6 text-center">
                   <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-yellow-500 to-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
@@ -162,7 +136,7 @@ const AuditoriaMainView: React.FC<AuditoriaMainViewProps> = ({ onClose, userProf
 
               <Card 
                 className="cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-lg border-2 border-transparent hover:border-yellow-300 group"
-                onClick={() => handleAuditoriaSubmodule('resumen-auditorias')}
+                onClick={() => handleSubmoduleClick('resumen-auditorias')}
               >
                 <CardContent className="p-6 text-center">
                   <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-yellow-500 to-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
