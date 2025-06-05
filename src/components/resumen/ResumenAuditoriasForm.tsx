@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,8 +10,26 @@ import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { generateResumenPDF } from '../utils/resumenPdfGenerator';
-import { AuditoriaInfo, AuditoriaSet } from '../types';
+import { generateResumenPDF } from '@/utils/resumenPdfGenerator';
+
+interface AuditoriaInfo {
+  codigo_auditoria: string;
+  titulo_documento: string;
+  fecha: string;
+  auditor: string;
+  planta_nombre: string;
+  status: string;
+}
+
+interface AuditoriaSet {
+  id: string;
+  area: string;
+  levantamiento: string;
+  responsable: string;
+  foto_urls: string[];
+  evidencia_foto_url?: string;
+  fecha_compromiso?: string;
+}
 
 interface ResumenAuditoriasFormProps {
   onClose: () => void;
