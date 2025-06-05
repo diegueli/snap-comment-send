@@ -54,7 +54,7 @@ const addLogo = async (doc: jsPDF) => {
   try {
     const logoUrl = '/lovable-uploads/9ad6adb6-f76a-4982-92e9-09618c309f7c.png';
     const logoBase64 = await loadImageAsBase64(logoUrl);
-    doc.addImage(logoBase64, 'PNG', 15, 10, 30, 20);
+    doc.addImage(logoBase64, 'PNG', margin, yPosition, 40, 20);
   } catch (error) {
     console.warn('No se pudo cargar el logo:', error);
   }
