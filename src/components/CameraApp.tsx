@@ -312,7 +312,17 @@ const CameraApp = ({ onClose, userData, auditoriaData: initialAuditoriaData }: C
           onResetApp={resetApp}
           isSavingToDatabase={isSavingToDatabase}
         />
-
+        {/* Botón Reiniciar al final */}
+        <div className="flex justify-center pt-4">
+          <Button
+            onClick={resetApp}
+            variant="outline"
+            className="bg-white/80 backdrop-blur-sm border-gray-300 text-gray-700 hover:bg-gray-50"
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Reiniciar
+          </Button>
+        </div>
 
         <canvas ref={canvasRef} className="hidden" />
       </div>
