@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -89,7 +88,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
     },
   });
 
-  // Cargar plantas
   useEffect(() => {
     const loadPlantas = async () => {
       try {
@@ -114,7 +112,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
     loadPlantas();
   }, []);
 
-  // Cargar gerencias
   useEffect(() => {
     const loadGerencias = async () => {
       try {
@@ -139,7 +136,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
     loadGerencias();
   }, []);
 
-  // Generar código de bloqueo
   const generateCodigoBloqueo = (plantaId: string) => {
     const planta = plantas.find(p => p.id.toString() === plantaId);
     const iniciales = planta?.iniciales || 'XX';
@@ -148,7 +144,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
     return `BLQ-${iniciales}-${fecha}-${timestamp}`;
   };
 
-  // Manejar cambio de planta
   const handlePlantaChange = (plantaId: string) => {
     form.setValue('plantaId', plantaId);
     if (plantaId) {
@@ -159,7 +154,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
     }
   };
 
-  // Manejar selección de gerencias
   const toggleGerencia = (gerenciaId: string) => {
     const newSelection = selectedGerencias.includes(gerenciaId)
       ? selectedGerencias.filter(id => id !== gerenciaId)
@@ -169,12 +163,10 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
     form.setValue('notificarGerencias', newSelection);
   };
 
-  // Manejar cambios en las fotos
   const handlePhotosChange = (newPhotos: BloqueosPhoto[]) => {
     setPhotos(newPhotos);
   };
 
-  // Enviar formulario
   const handleSubmit = async (data: BloqueosFormValues) => {
     if (photos.length === 0) {
       toast({
@@ -189,11 +181,9 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
     try {
       console.log('Iniciando guardado de bloqueo...');
       
-      // Subir fotos
       const photoUrls = await uploadBloqueosPhotos(photos, codigoBloqueo);
       console.log('Fotos subidas:', photoUrls);
 
-      // Preparar datos para guardar
       const bloqueosData: BloqueosData = {
         codigo_bloqueo: codigoBloqueo,
         fecha: data.fecha,
@@ -214,7 +204,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
 
       console.log('Datos a guardar:', bloqueosData);
 
-      // Guardar en base de datos
       const { error: insertError } = await supabase
         .from('bloqueos')
         .insert([bloqueosData]);
@@ -224,7 +213,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         throw insertError;
       }
 
-      // Enviar notificaciones por email si hay gerencias seleccionadas
       if (data.notificarGerencias.length > 0) {
         try {
           const { error: emailError } = await supabase.functions.invoke('send-bloqueo-notification', {
@@ -237,13 +225,11 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
 
           if (emailError) {
             console.error('Error enviando notificaciones:', emailError);
-            // No lanzamos error aquí, solo registramos
           } else {
             console.log('Notificaciones enviadas exitosamente');
           }
         } catch (emailError) {
           console.error('Error en función de email:', emailError);
-          // No lanzamos error aquí
         }
       }
 
@@ -252,7 +238,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
         description: `Código: ${codigoBloqueo}`,
       });
 
-      // Limpiar formulario
       form.reset();
       setPhotos([]);
       setCodigoBloqueo('');
@@ -273,7 +258,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
   return (
     <div className="bg-gradient-to-br from-red-50 to-orange-50 pb-8">
       <div className="max-w-4xl mx-auto p-4">
-        {/* Header Card */}
         <Card className="bg-white shadow-xl border-red-200 mb-6 overflow-hidden">
           <div className="bg-gradient-to-r from-red-600 to-orange-600 p-1">
             <CardHeader className="bg-white m-1 rounded-sm text-center space-y-4">
@@ -320,7 +304,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
           </div>
         </Card>
 
-        {/* Form Card */}
         <Card className="bg-white shadow-xl border-red-200 mb-6 overflow-hidden">
           <div className="bg-gradient-to-r from-red-600 to-orange-600 p-1">
             <CardHeader className="bg-white m-1 rounded-sm">
@@ -332,7 +315,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
           <CardContent className="p-6">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-                {/* Primera fila */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -374,7 +356,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
                   />
                 </div>
 
-                {/* Segunda fila */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -405,7 +386,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
                   />
                 </div>
 
-                {/* Tercera fila */}
                 <FormField
                   control={form.control}
                   name="nombreProducto"
@@ -420,7 +400,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
                   )}
                 />
 
-                {/* Cuarta fila */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -462,7 +441,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
                   />
                 </div>
 
-                {/* Quinta fila */}
                 <FormField
                   control={form.control}
                   name="motivoBloqueo"
@@ -482,7 +460,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
                   )}
                 />
 
-                {/* Sexta fila */}
                 <FormField
                   control={form.control}
                   name="ubicacion"
@@ -497,7 +474,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
                   )}
                 />
 
-                {/* Observaciones */}
                 <FormField
                   control={form.control}
                   name="observaciones"
@@ -517,7 +493,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
                   )}
                 />
 
-                {/* Notificar Gerencias */}
                 <FormField
                   control={form.control}
                   name="notificarGerencias"
@@ -574,7 +549,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
                   )}
                 />
 
-                {/* Sección de Cámara */}
                 <div className="mt-8">
                   <BloqueosCameraView 
                     onPhotosChange={handlePhotosChange}
@@ -582,7 +556,6 @@ const BloqueosForm: React.FC<BloqueosFormProps> = ({ onClose }) => {
                   />
                 </div>
 
-                {/* Botones de acción */}
                 <div className="flex flex-col sm:flex-row gap-4 pt-6">
                   <Button
                     type="submit"
