@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,7 @@ interface PhotoGalleryProps {
   setCurrentResponsable: (value: string, gerenciaId?: number) => void;
   onDeletePhoto: (photoId: string) => void;
   onStartCamera: () => void;
+  onSelectFromGallery: () => void;
   onSaveCurrentSet: () => void;
 }
 
@@ -28,6 +29,7 @@ const PhotoGallery = ({
   setCurrentResponsable,
   onDeletePhoto,
   onStartCamera,
+  onSelectFromGallery,
   onSaveCurrentSet
 }: PhotoGalleryProps) => {
   return (
@@ -59,7 +61,7 @@ const PhotoGallery = ({
         </div>
 
         {currentPhotos.length < 3 && (
-          <div className="mb-4">
+          <div className="mb-4 space-y-2">
             <Button
               onClick={onStartCamera}
               variant="outline"
@@ -67,6 +69,15 @@ const PhotoGallery = ({
             >
               <Plus className="w-4 h-4 mr-2" />
               Agregar Foto ({currentPhotos.length}/3)
+            </Button>
+            
+            <Button
+              onClick={onSelectFromGallery}
+              variant="outline"
+              className="w-full border-2 border-dashed border-blue-300 text-blue-600 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50"
+            >
+              <Image className="w-4 h-4 mr-2" />
+              Agregar foto Biblioteca
             </Button>
           </div>
         )}

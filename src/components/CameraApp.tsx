@@ -12,6 +12,7 @@ import SavedPhotoSets from './auditoria/SavedPhotoSets';
 import ActionButtons from './auditoria/ActionButtons';
 import { useCamera } from '@/hooks/useCamera';
 import { usePhotoCapture } from '@/hooks/usePhotoCapture';
+import { useGallerySelection } from '@/hooks/useGallerySelection';
 import { useAuditoriaState } from '@/hooks/useAuditoriaState';
 import { usePhotoActions } from '@/hooks/usePhotoActions';
 import { generatePDF } from '@/utils/pdfGenerator';
@@ -77,6 +78,8 @@ const CameraApp = ({ onClose, userData, auditoriaData: initialAuditoriaData }: C
   } = useCamera();
 
   const { canvasRef, capturePhoto } = usePhotoCapture();
+
+  const { selectFromGallery } = useGallerySelection();
 
   const {
     deletePhoto,
@@ -158,6 +161,13 @@ const CameraApp = ({ onClose, userData, auditoriaData: initialAuditoriaData }: C
       });
     }
   }, [stopCamera, currentPhotos.length]);
+
+  const handleSelectFromGallery = useCallback(async () => {
+    const newPhoto = await selectFromGallery(currentPhotos);
+    if (newPhoto) {
+      setCurrentPhotos(prev => [...prev, newPhoto]);
+    }
+  }, [selectFromGallery, currentPhotos, setCurrentPhotos]);
 
   const handleCloseAuditoria = useCallback(async () => {
     if (!auditoriaData || !userData) return;
@@ -250,6 +260,7 @@ const CameraApp = ({ onClose, userData, auditoriaData: initialAuditoriaData }: C
             currentArea={currentArea}
             setCurrentArea={setCurrentArea}
             onStartCamera={handleStartCamera}
+            onSelectFromGallery={handleSelectFromGallery}
             cameraPermission={cameraPermission}
           />
         )}
@@ -274,6 +285,7 @@ const CameraApp = ({ onClose, userData, auditoriaData: initialAuditoriaData }: C
             setCurrentResponsable={handleResponsableChange}
             onDeletePhoto={deletePhoto}
             onStartCamera={handleStartCamera}
+            onSelectFromGallery={handleSelectFromGallery}
             onSaveCurrentSet={saveCurrentSet}
           />
         )}
