@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,11 +43,11 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
       if (!user?.id || !profile?.gerencia_id) return;
 
       try {
-        // Obtener auditorías que tengan sets asignados a la gerencia del usuario
+        // Obtener auditorías que tengan sets asignados a la gerencia del usuario O sets sin gerencia asignada
         const { data: setsData, error: setsError } = await supabase
           .from('auditoria_sets')
           .select('auditoria_codigo')
-          .eq('gerencia_resp_id', profile.gerencia_id)
+          .or(`gerencia_resp_id.eq.${profile.gerencia_id},gerencia_resp_id.is.null`)
           .is('fecha_compromiso', null)
           .is('evidencia_foto_url', null);
 
@@ -78,7 +77,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
         .from('auditoria_sets')
         .select('*')
         .eq('auditoria_codigo', codigoAuditoria)
-        .eq('gerencia_resp_id', profile.gerencia_id)
+        .or(`gerencia_resp_id.eq.${profile.gerencia_id},gerencia_resp_id.is.null`)
         .is('fecha_compromiso', null)
         .is('evidencia_foto_url', null);
 

@@ -85,6 +85,7 @@ const ResumenAuditoriasForm = ({ onClose }: ResumenAuditoriasFormProps) => {
       if (!isCalidadUser) return;
 
       try {
+        // Mostrar todas las auditorías, sin filtrar por status
         const { data, error } = await supabase
           .from('auditorias')
           .select(`
@@ -95,7 +96,7 @@ const ResumenAuditoriasForm = ({ onClose }: ResumenAuditoriasFormProps) => {
             status,
             plantas:planta_id (nombre)
           `)
-          .eq('status', 'Activo');
+          .order('fecha', { ascending: false });
 
         if (error) throw error;
 
@@ -128,7 +129,8 @@ const ResumenAuditoriasForm = ({ onClose }: ResumenAuditoriasFormProps) => {
       const { data, error } = await supabase
         .from('auditoria_sets')
         .select('*')
-        .eq('auditoria_codigo', codigoAuditoria);
+        .eq('auditoria_codigo', codigoAuditoria)
+        .order('area', { ascending: true });
 
       if (error) throw error;
 
@@ -322,7 +324,7 @@ const ResumenAuditoriasForm = ({ onClose }: ResumenAuditoriasFormProps) => {
                 <SelectContent>
                   {auditoriasDisponibles.map((auditoria) => (
                     <SelectItem key={auditoria.codigo_auditoria} value={auditoria.codigo_auditoria}>
-                      {auditoria.codigo_auditoria} - {auditoria.titulo_documento}
+                      {auditoria.codigo_auditoria} - {auditoria.titulo_documento} ({auditoria.status})
                     </SelectItem>
                   ))}
                 </SelectContent>
