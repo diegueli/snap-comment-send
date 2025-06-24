@@ -44,6 +44,7 @@ const ResumenAuditoriasForm = ({ onClose }: ResumenAuditoriasFormProps) => {
   const [gerenciaNombre, setGerenciaNombre] = useState<string>('');
   const [isResetting, setIsResetting] = useState<string | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   // Verificar si el usuario pertenece a la gerencia de Calidad
   const isCalidadUser = profile?.gerencia_id && gerenciaNombre === 'Calidad';
@@ -164,6 +165,39 @@ const ResumenAuditoriasForm = ({ onClose }: ResumenAuditoriasFormProps) => {
     
     await loadAuditoriaSets(codigoAuditoria);
   }, [auditoriasDisponibles, loadAuditoriaSets]);
+
+  // Actualizar status de la auditoría
+  const handleStatusChange = async (newStatus: string) => {
+    if (!auditoriaSeleccionada || !auditoriaInfo) return;
+
+    setIsUpdatingStatus(true);
+    try {
+      const { error } = await supabase
+        .from('auditorias')
+        .update({ status: newStatus })
+        .eq('codigo_auditoria', auditoriaSeleccionada);
+
+      if (error) throw error;
+
+      // Actualizar estado local
+      setAuditoriaInfo(prev => prev ? { ...prev, status: newStatus } : null);
+
+      toast({
+        title: "Status actualizado",
+        description: `El status de la auditoría ha sido cambiado a "${newStatus}".`,
+      });
+
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el status de la auditoría.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
 
   // Reset observación
   const handleResetObservacion = async (setId: string, evidenciaUrl?: string) => {
@@ -334,9 +368,27 @@ const ResumenAuditoriasForm = ({ onClose }: ResumenAuditoriasFormProps) => {
             {/* Información de la auditoría seleccionada */}
             {auditoriaInfo && (
               <div className="space-y-4">
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <Label className="text-sm font-medium text-gray-700">Planta</Label>
-                  <Input value={auditoriaInfo.planta_nombre} disabled className="bg-white" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Planta</Label>
+                    <Input value={auditoriaInfo.planta_nombre} disabled className="bg-gray-50" />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Status</Label>
+                    <Select 
+                      value={auditoriaInfo.status} 
+                      onValueChange={handleStatusChange}
+                      disabled={isUpdatingStatus}
+                    >
+                      <SelectTrigger className="bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Activo">Activo</SelectItem>
+                        <SelectItem value="Cerrado">Cerrado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 
                 {/* Botón generar PDF */}
