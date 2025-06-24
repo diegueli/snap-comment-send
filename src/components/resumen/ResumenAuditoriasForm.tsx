@@ -46,9 +46,6 @@ const ResumenAuditoriasForm = ({ onClose }: ResumenAuditoriasFormProps) => {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
-  // Verificar si el usuario pertenece a la gerencia de Calidad
-  const isCalidadUser = profile?.gerencia_id && gerenciaNombre === 'Calidad';
-
   // Cargar información de la gerencia del usuario
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -80,13 +77,12 @@ const ResumenAuditoriasForm = ({ onClose }: ResumenAuditoriasFormProps) => {
     loadUserProfile();
   }, [user?.id]);
 
-  // Cargar auditorías disponibles
+  // Cargar TODAS las auditorías disponibles sin restricciones
   useEffect(() => {
     const loadAuditorias = async () => {
-      if (!isCalidadUser) return;
-
       try {
-        // Mostrar todas las auditorías, sin filtrar por status
+        console.log('Cargando todas las auditorías...');
+        
         const { data, error } = await supabase
           .from('auditorias')
           .select(`
@@ -99,17 +95,23 @@ const ResumenAuditoriasForm = ({ onClose }: ResumenAuditoriasFormProps) => {
           `)
           .order('fecha', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error al cargar auditorías:', error);
+          throw error;
+        }
 
-        const auditoriasFormatted = data.map(item => ({
+        console.log('Auditorías obtenidas de la base de datos:', data?.length || 0);
+
+        const auditoriasFormatted = data?.map(item => ({
           codigo_auditoria: item.codigo_auditoria,
           titulo_documento: item.titulo_documento,
           fecha: item.fecha,
           auditor: item.auditor,
           planta_nombre: item.plantas?.nombre || 'Sin planta',
           status: item.status || 'Activo'
-        }));
+        })) || [];
 
+        console.log('Auditorías formateadas:', auditoriasFormatted);
         setAuditoriasDisponibles(auditoriasFormatted);
       } catch (error) {
         console.error('Error loading auditorías:', error);
@@ -122,7 +124,7 @@ const ResumenAuditoriasForm = ({ onClose }: ResumenAuditoriasFormProps) => {
     };
 
     loadAuditorias();
-  }, [isCalidadUser]);
+  }, []); // Removido isCalidadUser como dependencia
 
   // Cargar sets de la auditoría seleccionada
   const loadAuditoriaSets = useCallback(async (codigoAuditoria: string) => {
@@ -275,35 +277,6 @@ const ResumenAuditoriasForm = ({ onClose }: ResumenAuditoriasFormProps) => {
       setIsGeneratingPDF(false);
     }
   };
-
-  // Verificar acceso
-  if (!isCalidadUser) {
-    return (
-      <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-[80vh] p-4">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <div className="flex justify-end mb-4">
-            <Button
-              onClick={onClose}
-              variant="outline"
-              size="sm"
-              className="bg-white/80 backdrop-blur-sm border-white"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver
-            </Button>
-          </div>
-
-          <Card className="bg-white/95 backdrop-blur-sm shadow-xl">
-            <CardContent className="p-6 text-center">
-              <p className="text-gray-600">
-                Este módulo está disponible únicamente para usuarios de la Gerencia de Calidad.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-[80vh] p-4">
