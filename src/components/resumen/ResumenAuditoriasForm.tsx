@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,32 +34,38 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [canViewAllAuditorias, setCanViewAllAuditorias] = useState(false);
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(true);
+  const [isLoadingAuditorias, setIsLoadingAuditorias] = useState(false);
 
   // Verificar permisos del usuario
   useEffect(() => {
     const checkUserPermissions = async () => {
+      console.log('🔍 Iniciando verificación de permisos...');
+      
       if (!user?.id || !profile) {
+        console.log('❌ No hay usuario o perfil disponible');
         setIsLoadingPermissions(false);
         return;
       }
 
       try {
-        console.log('Verificando permisos del usuario...');
+        console.log('👤 Usuario ID:', user.id);
+        console.log('📋 Perfil:', profile);
         
         // Verificar si el usuario tiene permisos para ver todas las auditorías
         const { data: canViewAll, error } = await supabase
           .rpc('can_user_view_all_auditorias');
 
         if (error) {
-          console.error('Error checking permissions:', error);
+          console.error('❌ Error checking permissions:', error);
           setCanViewAllAuditorias(false);
         } else {
-          console.log('User can view all auditorias:', canViewAll);
+          console.log('✅ User can view all auditorias:', canViewAll);
           setCanViewAllAuditorias(canViewAll || false);
         }
 
         // Obtener el nombre de la gerencia para mostrar información
         if (profile.gerencia_id) {
+          console.log('🏢 Obteniendo nombre de gerencia ID:', profile.gerencia_id);
           const { data: gerenciaData, error: gerenciaError } = await supabase
             .from('gerencias')
             .select('nombre')
@@ -68,13 +73,17 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
             .single();
 
           if (!gerenciaError && gerenciaData) {
+            console.log('✅ Gerencia obtenida:', gerenciaData.nombre);
             setGerenciaNombre(gerenciaData.nombre);
+          } else {
+            console.log('⚠️ No se pudo obtener gerencia:', gerenciaError);
           }
         }
       } catch (error) {
-        console.error('Error in checkUserPermissions:', error);
+        console.error('💥 Error in checkUserPermissions:', error);
         setCanViewAllAuditorias(false);
       } finally {
+        console.log('✅ Verificación de permisos completada');
         setIsLoadingPermissions(false);
       }
     };
@@ -85,10 +94,18 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
   // Cargar auditorías disponibles
   useEffect(() => {
     const loadAuditorias = async () => {
-      if (!canViewAllAuditorias || isLoadingPermissions) return;
+      console.log('📋 Intentando cargar auditorías...');
+      console.log('🔐 canViewAllAuditorias:', canViewAllAuditorias);
+      console.log('⏳ isLoadingPermissions:', isLoadingPermissions);
+      
+      if (!canViewAllAuditorias || isLoadingPermissions) {
+        console.log('❌ No se pueden cargar auditorías: permisos insuficientes o aún cargando');
+        return;
+      }
 
+      setIsLoadingAuditorias(true);
       try {
-        console.log('Cargando auditorías disponibles...');
+        console.log('🔄 Ejecutando consulta a la base de datos...');
         
         const { data, error } = await supabase
           .from('auditorias')
@@ -105,12 +122,13 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
           .order('fecha', { ascending: false });
 
         if (error) {
-          console.error('Error al cargar auditorías:', error);
+          console.error('❌ Error al cargar auditorías:', error);
           toast.error('Error al cargar las auditorías disponibles');
           return;
         }
 
-        console.log('Auditorías obtenidas de la base de datos:', data?.length || 0);
+        console.log('📊 Datos obtenidos de la base de datos:', data);
+        console.log('📈 Cantidad de auditorías:', data?.length || 0);
 
         const auditoriasFormatted = data?.map(item => ({
           codigo_auditoria: item.codigo_auditoria,
@@ -121,11 +139,13 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
           status: item.status || 'Activo'
         })) || [];
 
-        console.log('Auditorías formateadas:', auditoriasFormatted);
+        console.log('✅ Auditorías formateadas:', auditoriasFormatted);
         setAuditoriasDisponibles(auditoriasFormatted);
       } catch (error) {
-        console.error('Error loading auditorías:', error);
+        console.error('💥 Error loading auditorías:', error);
         toast.error('Error al cargar las auditorías disponibles');
+      } finally {
+        setIsLoadingAuditorias(false);
       }
     };
 
@@ -133,47 +153,60 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
   }, [canViewAllAuditorias, isLoadingPermissions]);
 
   const loadAuditoriaSets = useCallback(async (codigoAuditoria: string) => {
-    if (!codigoAuditoria) return;
+    if (!codigoAuditoria) {
+      console.log('❌ No se proporcionó código de auditoría');
+      return;
+    }
     
+    console.log('🔄 Cargando sets para auditoría:', codigoAuditoria);
     setLoading(true);
+    
     try {
-      console.log('Cargando sets para auditoría:', codigoAuditoria);
-      
       const { data, error } = await supabase
         .from('auditoria_sets')
         .select('*')
         .eq('auditoria_codigo', codigoAuditoria);
 
       if (error) {
-        console.error('Error al cargar los sets de auditoría:', error);
+        console.error('❌ Error al cargar los sets de auditoría:', error);
         toast.error('Error al cargar los sets de auditoría');
         setSets([]);
         return;
       }
 
-      console.log('Sets cargados:', data?.length || 0);
+      console.log('📊 Sets obtenidos:', data);
+      console.log('📈 Cantidad de sets:', data?.length || 0);
       setSets(data || []);
+      
+      if (!data || data.length === 0) {
+        console.log('⚠️ No se encontraron sets para esta auditoría');
+        toast.info('No se encontraron conjuntos de fotos para esta auditoría');
+      }
     } catch (error) {
-      console.error('Error inesperado al cargar los sets de auditoría:', error);
+      console.error('💥 Error inesperado al cargar los sets de auditoría:', error);
       toast.error('Error inesperado al cargar los sets de auditoría');
       setSets([]);
     } finally {
+      console.log('✅ Carga de sets completada');
       setLoading(false);
     }
   }, []);
 
   const handleAuditoriaChange = useCallback(async (codigoAuditoria: string) => {
-    console.log('Seleccionando auditoría:', codigoAuditoria);
+    console.log('🎯 Seleccionando auditoría:', codigoAuditoria);
     
+    // Limpiar estado anterior inmediatamente
     setAuditoriaSeleccionada(codigoAuditoria);
-    setSets([]); // Limpiar sets anteriores inmediatamente
+    setSets([]);
+    setAuditoriaInfo(null);
 
     const selectedAuditoria = auditoriasDisponibles.find(a => a.codigo_auditoria === codigoAuditoria);
     if (selectedAuditoria) {
+      console.log('✅ Auditoría encontrada:', selectedAuditoria);
       setAuditoriaInfo(selectedAuditoria);
       await loadAuditoriaSets(codigoAuditoria);
     } else {
-      setAuditoriaInfo(null);
+      console.log('❌ Auditoría no encontrada');
     }
   }, [auditoriasDisponibles, loadAuditoriaSets]);
 
@@ -237,6 +270,7 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
 
   // Mostrar spinner de carga mientras se verifican permisos
   if (isLoadingPermissions) {
+    console.log('⏳ Mostrando spinner de permisos...');
     return (
       <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-[80vh] p-4">
         <div className="max-w-4xl mx-auto space-y-6">
@@ -265,6 +299,7 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
 
   // Verificar acceso antes de mostrar el contenido
   if (!canViewAllAuditorias) {
+    console.log('🚫 Acceso denegado - mostrando mensaje de restricción');
     return (
       <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-[80vh] p-4">
         <div className="max-w-4xl mx-auto space-y-6">
@@ -299,6 +334,7 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
     );
   }
 
+  console.log('🎨 Renderizando componente principal');
   return (
     <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-[80vh] p-4">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -323,39 +359,55 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
           </CardHeader>
 
           <CardContent className="grid gap-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Select onValueChange={handleAuditoriaChange} value={auditoriaSeleccionada}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecciona una auditoría" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {auditoriasDisponibles.map((auditoria) => (
-                      <SelectItem key={auditoria.codigo_auditoria} value={auditoria.codigo_auditoria}>
-                        {auditoria.titulo_documento} - {auditoria.codigo_auditoria}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Mostrar estado de carga de auditorías */}
+            {isLoadingAuditorias && (
+              <div className="text-center py-4">
+                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                <p className="text-gray-600">Cargando auditorías disponibles...</p>
               </div>
+            )}
 
-              <div>
-                <Button
-                  className="w-full"
-                  onClick={handleGenerarPDF}
-                  disabled={!auditoriaInfo || sets.length === 0 || isGeneratingPDF}
-                >
-                  {isGeneratingPDF ? (
-                    <>Generando PDF...</>
-                  ) : (
-                    <>
-                      <Download className="mr-2 h-4 w-4" />
-                      Generar Resumen PDF
-                    </>
-                  )}
-                </Button>
+            {!isLoadingAuditorias && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Select onValueChange={handleAuditoriaChange} value={auditoriaSeleccionada}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecciona una auditoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {auditoriasDisponibles.length > 0 ? (
+                        auditoriasDisponibles.map((auditoria) => (
+                          <SelectItem key={auditoria.codigo_auditoria} value={auditoria.codigo_auditoria}>
+                            {auditoria.titulo_documento} - {auditoria.codigo_auditoria}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-auditorias" disabled>
+                          No hay auditorías disponibles
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Button
+                    className="w-full"
+                    onClick={handleGenerarPDF}
+                    disabled={!auditoriaInfo || sets.length === 0 || isGeneratingPDF}
+                  >
+                    {isGeneratingPDF ? (
+                      <>Generando PDF...</>
+                    ) : (
+                      <>
+                        <Download className="mr-2 h-4 w-4" />
+                        Generar Resumen PDF
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
 
             {auditoriaInfo && (
               <div className="border rounded-md p-4">
@@ -398,7 +450,7 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
               </div>
             )}
 
-            {/* Mostrar estado de carga */}
+            {/* Mostrar estado de carga de sets */}
             {loading && (
               <div className="text-center py-4">
                 <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
@@ -408,7 +460,8 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
 
             {/* Mostrar mensaje cuando no hay sets pero no está cargando */}
             {!loading && auditoriaSeleccionada && sets.length === 0 && (
-              <div className="text-center py-4">
+              <div className="text-center py-4 bg-gray-50 rounded-lg">
+                <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                 <p className="text-gray-600">No se encontraron conjuntos de fotos para esta auditoría.</p>
               </div>
             )}
