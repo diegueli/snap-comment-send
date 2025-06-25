@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,16 +41,21 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
   // Cargar auditorías disponibles
   useEffect(() => {
     const loadAuditorias = async () => {
-      if (!user?.id || !profile?.gerencia_id) return;
+      if (!user?.id) return;
 
       try {
-        // Obtener auditorías que tengan sets asignados a la gerencia del usuario O sets sin gerencia asignada
-        const { data: setsData, error: setsError } = await supabase
+        let query = supabase
           .from('auditoria_sets')
           .select('auditoria_codigo')
-          .or(`gerencia_resp_id.eq.${profile.gerencia_id},gerencia_resp_id.is.null`)
           .is('fecha_compromiso', null)
           .is('evidencia_foto_url', null);
+
+        // Si el usuario no tiene permisos para ver todas las auditorías, filtrar por gerencia
+        if (!profile?.can_view_all_auditorias && profile?.gerencia_id) {
+          query = query.or(`gerencia_resp_id.eq.${profile.gerencia_id},gerencia_resp_id.is.null`);
+        }
+
+        const { data: setsData, error: setsError } = await query;
 
         if (setsError) throw setsError;
 
@@ -66,20 +72,26 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
     };
 
     loadAuditorias();
-  }, [user?.id, profile?.gerencia_id]);
+  }, [user?.id, profile?.gerencia_id, profile?.can_view_all_auditorias]);
 
   // Cargar sets de la auditoría seleccionada
   const loadAuditoriaSets = useCallback(async (codigoAuditoria: string) => {
-    if (!profile?.gerencia_id) return;
+    if (!user?.id) return;
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('auditoria_sets')
         .select('*')
         .eq('auditoria_codigo', codigoAuditoria)
-        .or(`gerencia_resp_id.eq.${profile.gerencia_id},gerencia_resp_id.is.null`)
         .is('fecha_compromiso', null)
         .is('evidencia_foto_url', null);
+
+      // Si el usuario no tiene permisos para ver todas las auditorías, filtrar por gerencia
+      if (!profile?.can_view_all_auditorias && profile?.gerencia_id) {
+        query = query.or(`gerencia_resp_id.eq.${profile.gerencia_id},gerencia_resp_id.is.null`);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -105,7 +117,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
         variant: "destructive",
       });
     }
-  }, [profile?.gerencia_id]);
+  }, [user?.id, profile?.gerencia_id, profile?.can_view_all_auditorias]);
 
   // Manejar selección de auditoría
   const handleAuditoriaSelection = useCallback(async (codigoAuditoria: string) => {
@@ -261,6 +273,15 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
               </div>
             </div>
 
+            {/* Mostrar información de permisos si el usuario puede ver todas las auditorías */}
+            {profile?.can_view_all_auditorias && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-700 font-medium">
+                  ℹ️ Tienes permisos para gestionar auditorías de todas las gerencias
+                </p>
+              </div>
+            )}
+
             {/* Selección de auditoría */}
             <div>
               <Label className="text-sm font-medium text-gray-700">Código de Auditoría</Label>
@@ -391,7 +412,10 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
           <Card className="bg-white/95 backdrop-blur-sm shadow-xl">
             <CardContent className="p-6 text-center">
               <p className="text-gray-600">
-                No hay sets de auditoría pendientes asignados a su gerencia para esta auditoría.
+                {profile?.can_view_all_auditorias 
+                  ? "No hay sets de auditoría pendientes para esta auditoría."
+                  : "No hay sets de auditoría pendientes asignados a su gerencia para esta auditoría."
+                }
               </p>
             </CardContent>
           </Card>
