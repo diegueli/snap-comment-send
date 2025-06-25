@@ -20,15 +20,15 @@ interface AuditoriaInfo {
   status: string;
 }
 
-interface AuditoriaSet {
+interface ResumenAuditoriaSet {
   id: string;
   area: string;
   levantamiento: string;
   responsable: string;
   foto_urls: string[];
-  evidencia_foto_url?: string;
-  fecha_compromiso?: string;
-  gerencia_resp_id?: number;
+  evidencia_foto_url?: string | null;
+  fecha_compromiso?: string | null;
+  gerencia_resp_id?: number | null;
 }
 
 interface ResumenAuditoriasFormProps {
@@ -39,7 +39,7 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
   const { user, profile } = useAuth();
   const [auditoriasDisponibles, setAuditoriasDisponibles] = useState<AuditoriaInfo[]>([]);
   const [auditoriaSeleccionada, setAuditoriaSeleccionada] = useState<string>('');
-  const [sets, setSets] = useState<AuditoriaSet[]>([]);
+  const [sets, setSets] = useState<ResumenAuditoriaSet[]>([]);
   const [auditoriaInfo, setAuditoriaInfo] = useState<AuditoriaInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [gerenciaNombre, setGerenciaNombre] = useState<string>('');

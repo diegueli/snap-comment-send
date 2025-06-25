@@ -18,7 +18,6 @@ export interface PhotoSet {
 
 export interface UserData {
   name: string;
-  email: string;
   position: string;
   gerencia_id?: number;
 }

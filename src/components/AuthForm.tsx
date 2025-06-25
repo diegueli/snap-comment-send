@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +14,8 @@ const AuthForm = () => {
     name: '',
     email: '',
     position: '',
-    password: ''
+    password: '',
+    gerencia_id: undefined as number | undefined
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -41,7 +41,11 @@ const AuthForm = () => {
     
     try {
       if (isSignUp) {
-        await signUp(formData.email, formData.password, formData.name, formData.position);
+        await signUp(formData.email, formData.password, {
+          name: formData.name,
+          position: formData.position,
+          gerencia_id: formData.gerencia_id
+        });
       } else {
         await signIn(formData.email, formData.password);
       }
@@ -59,9 +63,16 @@ const AuthForm = () => {
     }));
   };
 
+  const handleGerenciaChange = (gerenciaId: number) => {
+    setFormData(prev => ({
+      ...prev,
+      gerencia_id: gerenciaId
+    }));
+  };
+
   const toggleAuthMode = () => {
     setIsSignUp(!isSignUp);
-    setFormData({ name: '', email: '', position: '', password: '' });
+    setFormData({ name: '', email: '', position: '', password: '', gerencia_id: undefined });
   };
 
   if (loading) {

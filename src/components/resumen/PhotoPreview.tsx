@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Camera, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-interface AuditoriaSet {
+interface ResumenAuditoriaSet {
   id: string;
   area: string;
   levantamiento: string;
@@ -17,13 +17,13 @@ interface AuditoriaSet {
 }
 
 interface PhotoPreviewProps {
-  auditoriaSets: AuditoriaSet[];
+  auditoriaSets: ResumenAuditoriaSet[];
 }
 
 const PhotoPreview = ({ auditoriaSets }: PhotoPreviewProps) => {
   const [expandedSet, setExpandedSet] = useState<string | null>(null);
 
-  const getStatusInfo = (set: AuditoriaSet) => {
+  const getStatusInfo = (set: ResumenAuditoriaSet) => {
     if (set.evidencia_foto_url) {
       return {
         status: 'completed',
