@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,9 +25,9 @@ interface ResumenAuditoriaSet {
   levantamiento: string;
   responsable: string;
   foto_urls: string[];
-  evidencia_foto_url?: string | null;
-  fecha_compromiso?: string | null;
-  gerencia_resp_id?: number | null;
+  fecha_compromiso: string | null;
+  evidencia_foto_url: string | null;
+  gerencia_resp_id: number | null;
 }
 
 interface ResumenAuditoriasFormProps {

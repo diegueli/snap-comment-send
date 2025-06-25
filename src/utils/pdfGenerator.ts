@@ -1,3 +1,4 @@
+
 import jsPDF from 'jspdf';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -85,8 +86,6 @@ export const generatePDF = async ({
       pdf.text(`Auditor: ${auditoriaData.auditor}`, 20, yPosition);
       yPosition += 6;
       pdf.text(`Cargo: ${userData.position}`, 20, yPosition);
-      yPosition += 6;
-      pdf.text(`Email: ${userData.email}`, 20, yPosition);
       yPosition += 6;
       pdf.text(`Fecha: ${auditoriaData.fecha}`, 20, yPosition);
       yPosition += 6;
