@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { generateResumenPDF } from '@/utils/resumenPdfGenerator';
 import { toast } from 'sonner';
+import PhotoPreview from './PhotoPreview';
 
 interface AuditoriaInfo {
   codigo_auditoria: string;
@@ -26,6 +28,7 @@ interface AuditoriaSet {
   foto_urls: string[];
   evidencia_foto_url?: string;
   fecha_compromiso?: string;
+  gerencia_resp_id?: number;
 }
 
 interface ResumenAuditoriasFormProps {
@@ -41,7 +44,7 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
   const [loading, setLoading] = useState(false);
   const [gerenciaNombre, setGerenciaNombre] = useState<string>('');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(isGeneratingPDF);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [canViewAllAuditorias, setCanViewAllAuditorias] = useState(false);
 
   // Verificar permisos del usuario
@@ -263,7 +266,7 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
 
   return (
     <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-[80vh] p-4">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex justify-end mb-4">
           <Button
             onClick={onClose}
@@ -360,39 +363,14 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
               </div>
             )}
 
+            {loading && <p>Cargando datos...</p>}
+
+            {/* Preview de Fotografías */}
             {sets.length > 0 && (
               <div className="mt-6">
-                <h3 className="text-xl font-semibold mb-4">Sets de Auditoría</h3>
-                <div className="grid grid-cols-1 gap-4">
-                  {sets.map((set) => (
-                    <Card key={set.id} className="shadow-md">
-                      <CardContent className="p-4">
-                        <h4 className="text-lg font-semibold">{set.area}</h4>
-                        <p className="text-sm text-gray-500">
-                          <span className="font-bold">Levantamiento:</span> {set.levantamiento}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          <span className="font-bold">Responsable:</span> {set.responsable}
-                        </p>
-                        {set.evidencia_foto_url ? (
-                          <Badge variant="outline">
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            Evidencia Adjunta
-                          </Badge>
-                        ) : (
-                          <Badge variant="destructive">
-                            <AlertCircle className="mr-2 h-4 w-4" />
-                            Sin Evidencia
-                          </Badge>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                <PhotoPreview auditoriaSets={sets} />
               </div>
             )}
-
-            {loading && <p>Cargando datos...</p>}
           </CardContent>
         </Card>
       </div>
