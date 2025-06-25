@@ -9,6 +9,7 @@ interface UserProfile {
   email: string;
   position: string;
   gerencia_id?: number;
+  can_view_all_auditorias?: boolean;
 }
 
 interface AuthContextType {
@@ -42,7 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, position, gerencia_id')
+        .select('id, name, position, gerencia_id, can_view_all_auditorias')
         .eq('id', userId)
         .single();
 
