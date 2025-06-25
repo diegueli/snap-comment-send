@@ -1,14 +1,14 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, FileText, Calendar, User, Building, Download, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, FileText, Download, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { generateResumenPDF } from '@/utils/resumenPdfGenerator';
 import { toast } from 'sonner';
-import PhotoPreview from './PhotoPreview';
+import PhotoPreview, { ResumenAuditoriaSet } from './PhotoPreview';
 
 interface AuditoriaInfo {
   codigo_auditoria: string;
@@ -17,17 +17,6 @@ interface AuditoriaInfo {
   auditor: string;
   planta_nombre: string;
   status: string;
-}
-
-interface ResumenAuditoriaSet {
-  id: string;
-  area: string;
-  levantamiento: string;
-  responsable: string;
-  foto_urls: string[];
-  fecha_compromiso: string | null;
-  evidencia_foto_url: string | null;
-  gerencia_resp_id: number | null;
 }
 
 interface ResumenAuditoriasFormProps {

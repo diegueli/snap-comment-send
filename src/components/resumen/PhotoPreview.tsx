@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Camera, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-interface ResumenAuditoriaSet {
+export interface ResumenAuditoriaSet {
   id: string;
   area: string;
   levantamiento: string;
@@ -20,7 +20,7 @@ interface PhotoPreviewProps {
   auditoriaSets: ResumenAuditoriaSet[];
 }
 
-const PhotoPreview = ({ auditoriaSets }: PhotoPreviewProps) => {
+const PhotoPreview: React.FC<PhotoPreviewProps> = ({ auditoriaSets }) => {
   const [expandedSet, setExpandedSet] = useState<string | null>(null);
 
   const getStatusInfo = (set: ResumenAuditoriaSet) => {

@@ -15,7 +15,7 @@ interface GerenciaSelectProps {
   onValueChange: (value: string, gerenciaId?: number) => void;
 }
 
-const GerenciaSelect = ({ value, onValueChange }: GerenciaSelectProps) => {
+const GerenciaSelect: React.FC<GerenciaSelectProps> = ({ value, onValueChange }) => {
   const [gerencias, setGerencias] = useState<Gerencia[]>([]);
   const [loading, setLoading] = useState(true);
 
