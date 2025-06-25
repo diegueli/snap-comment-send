@@ -284,6 +284,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          can_view_all_auditorias: boolean | null
           created_at: string
           gerencia_id: number | null
           id: string
@@ -292,6 +293,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          can_view_all_auditorias?: boolean | null
           created_at?: string
           gerencia_id?: number | null
           id: string
@@ -300,6 +302,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          can_view_all_auditorias?: boolean | null
           created_at?: string
           gerencia_id?: number | null
           id?: string
@@ -337,6 +340,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_user_view_all_auditorias: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       generate_auditoria_code: {
         Args: { p_planta_id: number }
         Returns: string
