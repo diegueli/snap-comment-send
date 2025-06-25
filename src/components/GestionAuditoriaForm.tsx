@@ -44,18 +44,12 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
       if (!user?.id) return;
 
       try {
-        let query = supabase
+        // RLS policies now handle the filtering automatically
+        const { data: setsData, error: setsError } = await supabase
           .from('auditoria_sets')
           .select('auditoria_codigo')
           .is('fecha_compromiso', null)
           .is('evidencia_foto_url', null);
-
-        // Si el usuario no tiene permisos para ver todas las auditorías, filtrar por gerencia
-        if (!profile?.can_view_all_auditorias && profile?.gerencia_id) {
-          query = query.or(`gerencia_resp_id.eq.${profile.gerencia_id},gerencia_resp_id.is.null`);
-        }
-
-        const { data: setsData, error: setsError } = await query;
 
         if (setsError) throw setsError;
 
@@ -72,26 +66,20 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
     };
 
     loadAuditorias();
-  }, [user?.id, profile?.gerencia_id, profile?.can_view_all_auditorias]);
+  }, [user?.id]);
 
   // Cargar sets de la auditoría seleccionada
   const loadAuditoriaSets = useCallback(async (codigoAuditoria: string) => {
     if (!user?.id) return;
 
     try {
-      let query = supabase
+      // RLS policies now handle the filtering automatically
+      const { data, error } = await supabase
         .from('auditoria_sets')
         .select('*')
         .eq('auditoria_codigo', codigoAuditoria)
         .is('fecha_compromiso', null)
         .is('evidencia_foto_url', null);
-
-      // Si el usuario no tiene permisos para ver todas las auditorías, filtrar por gerencia
-      if (!profile?.can_view_all_auditorias && profile?.gerencia_id) {
-        query = query.or(`gerencia_resp_id.eq.${profile.gerencia_id},gerencia_resp_id.is.null`);
-      }
-
-      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -117,7 +105,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
         variant: "destructive",
       });
     }
-  }, [user?.id, profile?.gerencia_id, profile?.can_view_all_auditorias]);
+  }, [user?.id]);
 
   // Manejar selección de auditoría
   const handleAuditoriaSelection = useCallback(async (codigoAuditoria: string) => {
@@ -412,10 +400,7 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
           <Card className="bg-white/95 backdrop-blur-sm shadow-xl">
             <CardContent className="p-6 text-center">
               <p className="text-gray-600">
-                {profile?.can_view_all_auditorias 
-                  ? "No hay sets de auditoría pendientes para esta auditoría."
-                  : "No hay sets de auditoría pendientes asignados a su gerencia para esta auditoría."
-                }
+                No hay sets de auditoría pendientes para esta auditoría.
               </p>
             </CardContent>
           </Card>
