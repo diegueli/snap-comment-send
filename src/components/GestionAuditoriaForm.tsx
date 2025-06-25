@@ -5,14 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ArrowLeft, Calendar, Camera } from 'lucide-react';
+import { ArrowLeft, Calendar, Camera, Edit, Check, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import GestionCameraView from './gestion/GestionCameraView';
+import ResponsableSelect from './auditoria/ResponsableSelect';
 
 interface AuditoriaSet {
   id: string;
@@ -37,6 +39,12 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
   const [showCamera, setShowCamera] = useState(false);
   const [currentSetId, setCurrentSetId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
+  
+  // Estados para edición
+  const [editingSetId, setEditingSetId] = useState<string | null>(null);
+  const [editingLevantamiento, setEditingLevantamiento] = useState('');
+  const [editingResponsable, setEditingResponsable] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   // Cargar auditorías disponibles
   useEffect(() => {
@@ -119,6 +127,67 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
       ...prev,
       [setId]: { tipo, fechaCompromiso }
     }));
+  };
+
+  // Iniciar edición
+  const startEditing = (set: AuditoriaSet) => {
+    setEditingSetId(set.id);
+    setEditingLevantamiento(set.levantamiento);
+    setEditingResponsable(set.responsable);
+  };
+
+  // Cancelar edición
+  const cancelEditing = () => {
+    setEditingSetId(null);
+    setEditingLevantamiento('');
+    setEditingResponsable('');
+  };
+
+  // Guardar cambios de edición
+  const saveEditing = async (setId: string) => {
+    if (!setId) return;
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('auditoria_sets')
+        .update({
+          levantamiento: editingLevantamiento.trim(),
+          responsable: editingResponsable.trim()
+        })
+        .eq('id', setId);
+
+      if (error) throw error;
+
+      // Actualizar el estado local
+      setAuditoriaSets(prev => prev.map(set => 
+        set.id === setId 
+          ? { ...set, levantamiento: editingLevantamiento.trim(), responsable: editingResponsable.trim() }
+          : set
+      ));
+
+      cancelEditing();
+      
+      toast({
+        title: "Cambios guardados",
+        description: "Los campos han sido actualizados correctamente.",
+      });
+
+    } catch (error) {
+      console.error('Error saving changes:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron guardar los cambios.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Manejar cambio de responsable
+  const handleResponsableChange = (responsable: string, gerenciaId?: number) => {
+    setEditingResponsable(responsable);
   };
 
   // Manejar foto capturada
@@ -300,16 +369,80 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
+                  {/* Campos editables */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
-                      <Label className="text-sm font-medium text-gray-700">Levantamiento</Label>
-                      <Input value={set.levantamiento || 'Sin levantamiento'} disabled className="bg-gray-50" />
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                        Levantamiento
+                        {editingSetId !== set.id && (
+                          <Button
+                            onClick={() => startEditing(set)}
+                            size="sm"
+                            variant="ghost"
+                            className="ml-2 h-6 w-6 p-0"
+                          >
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </Label>
+                      {editingSetId === set.id ? (
+                        <Textarea
+                          value={editingLevantamiento}
+                          onChange={(e) => setEditingLevantamiento(e.target.value)}
+                          className="resize-none"
+                          rows={3}
+                          placeholder="Editar levantamiento..."
+                        />
+                      ) : (
+                        <div className="bg-gray-50 border border-gray-200 rounded-md p-3 min-h-[80px]">
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                            {set.levantamiento || 'Sin levantamiento'}
+                          </p>
+                        </div>
+                      )}
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-gray-700">Responsable</Label>
-                      <Input value={set.responsable || 'Sin responsable'} disabled className="bg-gray-50" />
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                        Responsable
+                      </Label>
+                      {editingSetId === set.id ? (
+                        <ResponsableSelect
+                          value={editingResponsable}
+                          onValueChange={handleResponsableChange}
+                        />
+                      ) : (
+                        <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
+                          <p className="text-sm text-gray-700">
+                            {set.responsable || 'Sin responsable'}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
+
+                  {/* Botones de edición */}
+                  {editingSetId === set.id && (
+                    <div className="flex gap-2 mb-4">
+                      <Button
+                        onClick={() => saveEditing(set.id)}
+                        disabled={isSaving}
+                        size="sm"
+                        className="bg-green-500 hover:bg-green-600 text-white"
+                      >
+                        <Check className="w-3 h-3 mr-1" />
+                        {isSaving ? 'Guardando...' : 'Guardar'}
+                      </Button>
+                      <Button
+                        onClick={cancelEditing}
+                        disabled={isSaving}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <X className="w-3 h-3 mr-1" />
+                        Cancelar
+                      </Button>
+                    </div>
+                  )}
 
                   {/* Fotografías del área */}
                   {set.foto_urls && set.foto_urls.length > 0 && (
@@ -330,66 +463,68 @@ const GestionAuditoriaForm = ({ onClose }: GestionAuditoriaFormProps) => {
                     </div>
                   )}
 
-                  {/* Sección de respuesta */}
-                  <div className="border-t pt-4">
-                    <Label className="text-lg font-medium text-gray-700 mb-3 block">
-                      Responder Set
-                    </Label>
+                  {/* Sección de respuesta - solo mostrar si no está en modo edición */}
+                  {editingSetId !== set.id && (
+                    <div className="border-t pt-4">
+                      <Label className="text-lg font-medium text-gray-700 mb-3 block">
+                        Responder Set
+                      </Label>
 
-                    <div className="space-y-4">
-                      <RadioGroup
-                        value={respuestasSet[set.id]?.tipo || ''}
-                        onValueChange={(value: 'evidencia' | 'fecha') => 
-                          handleRespuestaChange(set.id, value)
-                        }
-                        className="space-y-3"
-                      >
-                        <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-                          <RadioGroupItem value="evidencia" id={`evidencia-${set.id}`} className="text-blue-600" />
-                          <div className="flex items-center space-x-2 flex-1">
-                            <Camera className="w-5 h-5 text-blue-600" />
-                            <Label htmlFor={`evidencia-${set.id}`} className="text-sm font-medium cursor-pointer">
-                              Opción 1: Evidencia Fotográfica
-                            </Label>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-                          <RadioGroupItem value="fecha" id={`fecha-${set.id}`} className="text-green-600" />
-                          <div className="flex items-center space-x-2 flex-1">
-                            <Calendar className="w-5 h-5 text-green-600" />
-                            <Label htmlFor={`fecha-${set.id}`} className="text-sm font-medium cursor-pointer">
-                              Opción 2: Fecha de Compromiso
-                            </Label>
-                          </div>
-                        </div>
-                      </RadioGroup>
-
-                      {respuestasSet[set.id]?.tipo === 'fecha' && (
-                        <div className="ml-8 mt-3">
-                          <Label className="text-sm font-medium text-gray-700">Seleccione fecha de compromiso</Label>
-                          <Input
-                            type="date"
-                            value={respuestasSet[set.id]?.fechaCompromiso || ''}
-                            onChange={(e) => handleRespuestaChange(set.id, 'fecha', e.target.value)}
-                            className="max-w-xs mt-1"
-                          />
-                        </div>
-                      )}
-
-                      {respuestasSet[set.id] && (
-                        respuestasSet[set.id].tipo === 'evidencia' || 
-                        (respuestasSet[set.id].tipo === 'fecha' && respuestasSet[set.id].fechaCompromiso)
-                      ) && (
-                        <Button
-                          onClick={() => handleContestarLevantamiento(set.id)}
-                          disabled={isSubmitting === set.id}
-                          className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white mt-4"
+                      <div className="space-y-4">
+                        <RadioGroup
+                          value={respuestasSet[set.id]?.tipo || ''}
+                          onValueChange={(value: 'evidencia' | 'fecha') => 
+                            handleRespuestaChange(set.id, value)
+                          }
+                          className="space-y-3"
                         >
-                          {isSubmitting === set.id ? 'Guardando...' : 'Contestar Levantamiento'}
-                        </Button>
-                      )}
+                          <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                            <RadioGroupItem value="evidencia" id={`evidencia-${set.id}`} className="text-blue-600" />
+                            <div className="flex items-center space-x-2 flex-1">
+                              <Camera className="w-5 h-5 text-blue-600" />
+                              <Label htmlFor={`evidencia-${set.id}`} className="text-sm font-medium cursor-pointer">
+                                Opción 1: Evidencia Fotográfica
+                              </Label>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                            <RadioGroupItem value="fecha" id={`fecha-${set.id}`} className="text-green-600" />
+                            <div className="flex items-center space-x-2 flex-1">
+                              <Calendar className="w-5 h-5 text-green-600" />
+                              <Label htmlFor={`fecha-${set.id}`} className="text-sm font-medium cursor-pointer">
+                                Opción 2: Fecha de Compromiso
+                              </Label>
+                            </div>
+                          </div>
+                        </RadioGroup>
+
+                        {respuestasSet[set.id]?.tipo === 'fecha' && (
+                          <div className="ml-8 mt-3">
+                            <Label className="text-sm font-medium text-gray-700">Seleccione fecha de compromiso</Label>
+                            <Input
+                              type="date"
+                              value={respuestasSet[set.id]?.fechaCompromiso || ''}
+                              onChange={(e) => handleRespuestaChange(set.id, 'fecha', e.target.value)}
+                              className="max-w-xs mt-1"
+                            />
+                          </div>
+                        )}
+
+                        {respuestasSet[set.id] && (
+                          respuestasSet[set.id].tipo === 'evidencia' || 
+                          (respuestasSet[set.id].tipo === 'fecha' && respuestasSet[set.id].fechaCompromiso)
+                        ) && (
+                          <Button
+                            onClick={() => handleContestarLevantamiento(set.id)}
+                            disabled={isSubmitting === set.id}
+                            className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white mt-4"
+                          >
+                            {isSubmitting === set.id ? 'Guardando...' : 'Contestar Levantamiento'}
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
