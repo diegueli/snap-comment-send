@@ -352,6 +352,10 @@ export type Database = {
         Args: { p_planta_id: number }
         Returns: string
       }
+      is_user_calidad_gerencia: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

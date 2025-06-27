@@ -32,14 +32,14 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
   const [gerenciaNombre, setGerenciaNombre] = useState<string>('');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [canViewAllAuditorias, setCanViewAllAuditorias] = useState(false);
+  const [hasResumenAccess, setHasResumenAccess] = useState(false);
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(true);
   const [isLoadingAuditorias, setIsLoadingAuditorias] = useState(false);
 
-  // Verificar permisos del usuario
+  // Verificar permisos del usuario para acceder al módulo Resumen
   useEffect(() => {
-    const checkUserPermissions = async () => {
-      console.log('🔍 Iniciando verificación de permisos...');
+    const checkResumenAccess = async () => {
+      console.log('🔍 Verificando acceso al módulo Resumen...');
       
       if (!user?.id || !profile) {
         console.log('❌ No hay usuario o perfil disponible');
@@ -51,21 +51,15 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
         console.log('👤 Usuario ID:', user.id);
         console.log('📋 Perfil:', profile);
         
-        // Verificar si el usuario tiene permisos para ver todas las auditorías
-        const { data: canViewAll, error } = await supabase
-          .rpc('can_user_view_all_auditorias');
-
-        if (error) {
-          console.error('❌ Error checking permissions:', error);
-          setCanViewAllAuditorias(false);
-        } else {
-          console.log('✅ User can view all auditorias:', canViewAll);
-          setCanViewAllAuditorias(canViewAll || false);
-        }
-
-        // Obtener el nombre de la gerencia para mostrar información
-        if (profile.gerencia_id) {
-          console.log('🏢 Obteniendo nombre de gerencia ID:', profile.gerencia_id);
+        let hasAccess = false;
+        
+        // Verificar si tiene permisos globales
+        if (profile.can_view_all_auditorias) {
+          console.log('✅ Usuario tiene permisos globales');
+          hasAccess = true;
+        } else if (profile.gerencia_id) {
+          // Verificar si pertenece a gerencia de Calidad
+          console.log('🏢 Verificando gerencia ID:', profile.gerencia_id);
           const { data: gerenciaData, error: gerenciaError } = await supabase
             .from('gerencias')
             .select('nombre')
@@ -75,31 +69,40 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
           if (!gerenciaError && gerenciaData) {
             console.log('✅ Gerencia obtenida:', gerenciaData.nombre);
             setGerenciaNombre(gerenciaData.nombre);
+            
+            // Verificar si es gerencia de Calidad (case insensitive)
+            if (gerenciaData.nombre.toLowerCase().includes('calidad')) {
+              console.log('✅ Usuario pertenece a gerencia de Calidad');
+              hasAccess = true;
+            }
           } else {
             console.log('⚠️ No se pudo obtener gerencia:', gerenciaError);
           }
         }
+
+        console.log('🎯 Acceso al módulo Resumen:', hasAccess);
+        setHasResumenAccess(hasAccess);
       } catch (error) {
-        console.error('💥 Error in checkUserPermissions:', error);
-        setCanViewAllAuditorias(false);
+        console.error('💥 Error verificando acceso:', error);
+        setHasResumenAccess(false);
       } finally {
-        console.log('✅ Verificación de permisos completada');
+        console.log('✅ Verificación de acceso completada');
         setIsLoadingPermissions(false);
       }
     };
 
-    checkUserPermissions();
+    checkResumenAccess();
   }, [user?.id, profile]);
 
-  // Cargar auditorías disponibles
+  // Cargar auditorías disponibles (solo si tiene acceso)
   useEffect(() => {
     const loadAuditorias = async () => {
       console.log('📋 Intentando cargar auditorías...');
-      console.log('🔐 canViewAllAuditorias:', canViewAllAuditorias);
+      console.log('🔐 hasResumenAccess:', hasResumenAccess);
       console.log('⏳ isLoadingPermissions:', isLoadingPermissions);
       
-      if (!canViewAllAuditorias || isLoadingPermissions) {
-        console.log('❌ No se pueden cargar auditorías: permisos insuficientes o aún cargando');
+      if (!hasResumenAccess || isLoadingPermissions) {
+        console.log('❌ No se pueden cargar auditorías: acceso denegado o aún cargando');
         return;
       }
 
@@ -150,7 +153,7 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
     };
 
     loadAuditorias();
-  }, [canViewAllAuditorias, isLoadingPermissions]);
+  }, [hasResumenAccess, isLoadingPermissions]);
 
   const loadAuditoriaSets = useCallback(async (codigoAuditoria: string) => {
     if (!codigoAuditoria) {
@@ -298,7 +301,7 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
   }
 
   // Verificar acceso antes de mostrar el contenido
-  if (!canViewAllAuditorias) {
+  if (!hasResumenAccess) {
     console.log('🚫 Acceso denegado - mostrando mensaje de restricción');
     return (
       <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-[80vh] p-4">
@@ -322,7 +325,7 @@ const ResumenAuditoriasForm: React.FC<ResumenAuditoriasFormProps> = ({ onClose }
                 Acceso Restringido
               </h3>
               <p className="text-gray-600 mb-2">
-                Este módulo está disponible únicamente para usuarios con permisos especiales.
+                Este módulo está disponible únicamente para usuarios de la gerencia de "Calidad" o con permisos especiales.
               </p>
               <p className="text-sm text-gray-500">
                 {gerenciaNombre && `Gerencia actual: ${gerenciaNombre}`}
