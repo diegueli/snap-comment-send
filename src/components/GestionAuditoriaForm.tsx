@@ -534,25 +534,42 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
                         )}
                       </div>
 
-                      {/* Photo Gallery */}
+                      {/* Photo Gallery - Restaurar funcionalidad de preview */}
                       {expandedSets.has(set.id) && set.foto_urls && set.foto_urls.length > 0 && (
                         <div className="mt-4">
-                          <h4 className="font-medium mb-2">Fotografías ({set.foto_urls.length})</h4>
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                          <h4 className="font-medium mb-2 text-gray-700">
+                            Fotografías ({set.foto_urls.length})
+                          </h4>
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                             {set.foto_urls.map((url, index) => (
-                              <div key={index} className="aspect-square">
+                              <div key={index} className="aspect-square relative group">
                                 <img
                                   src={url}
                                   alt={`Foto ${index + 1} de ${set.area}`}
-                                  className="w-full h-full object-cover rounded-md border"
+                                  className="w-full h-full object-cover rounded-lg border-2 border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer hover:border-blue-300"
+                                  onClick={() => window.open(url, '_blank')}
                                   onError={(e) => {
                                     const target = e.target as HTMLImageElement;
-                                    target.src = '/placeholder.svg';
+                                    target.style.display = 'none';
                                   }}
                                 />
+                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                  <Eye className="text-white w-6 h-6" />
+                                </div>
+                                <div className="absolute top-1 right-1 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+                                  {index + 1}
+                                </div>
                               </div>
                             ))}
                           </div>
+                        </div>
+                      )}
+
+                      {/* Mostrar mensaje cuando no hay fotos para visualizar */}
+                      {expandedSets.has(set.id) && (!set.foto_urls || set.foto_urls.length === 0) && (
+                        <div className="mt-4 text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                          <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                          <p className="text-gray-600 text-sm">No hay fotografías disponibles para este conjunto</p>
                         </div>
                       )}
                     </CardContent>
