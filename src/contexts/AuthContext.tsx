@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -73,14 +72,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const loadProfile = async (userId: string) => {
-    const profileQuery = supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-
     const [result, error] = await handleAsyncError(
-      profileQuery,
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single(),
       'loadProfile'
     );
 
