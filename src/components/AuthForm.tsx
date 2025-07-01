@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { User, Mail, Briefcase, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import GerenciaSelect from '@/components/auth/GerenciaSelect';
+import { validatePassword, getPasswordStrengthColor, getPasswordStrengthText } from '@/utils/passwordValidator';
+import { createUserFriendlyError } from '@/utils/errorHandler';
 
 const AuthForm = () => {
   const { signUp, signIn, loading } = useAuth();
@@ -39,8 +41,11 @@ const AuthForm = () => {
     // Validar contraseña
     if (!formData.password.trim()) {
       newErrors.password = 'La contraseña es requerida';
-    } else if (isSignUp && formData.password.length < 6) {
-      newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
+    } else if (isSignUp) {
+      const passwordValidation = validatePassword(formData.password);
+      if (!passwordValidation.isValid) {
+        newErrors.password = passwordValidation.errors[0];
+      }
     }
 
     // Validaciones específicas para registro
@@ -81,19 +86,19 @@ const AuthForm = () => {
         await signIn(formData.email, formData.password);
       }
     } catch (error: any) {
-      console.error('Error en autenticación:', error);
+      const friendlyError = createUserFriendlyError(error);
       
-      // Manejar errores específicos
+      // Map specific errors to form fields
       if (error.message?.includes('Invalid login credentials')) {
-        setErrors({ general: 'Credenciales incorrectas. Verifica tu email y contraseña.' });
+        setErrors({ general: friendlyError.message });
       } else if (error.message?.includes('User already registered')) {
-        setErrors({ email: 'Este email ya está registrado. Intenta iniciar sesión.' });
-      } else if (error.message?.includes('Password should be at least 6 characters')) {
-        setErrors({ password: 'La contraseña debe tener al menos 6 caracteres' });
+        setErrors({ email: friendlyError.message });
+      } else if (error.message?.includes('Password should be at least')) {
+        setErrors({ password: friendlyError.message });
       } else if (error.message?.includes('Invalid email')) {
-        setErrors({ email: 'El formato del email no es válido' });
+        setErrors({ email: friendlyError.message });
       } else {
-        setErrors({ general: error.message || 'Error en la autenticación. Intenta nuevamente.' });
+        setErrors({ general: friendlyError.message });
       }
     } finally {
       setIsSubmitting(false);
@@ -137,6 +142,9 @@ const AuthForm = () => {
     });
     setErrors({});
   };
+
+  // Get password strength for display
+  const passwordValidation = isSignUp && formData.password ? validatePassword(formData.password) : null;
 
   if (loading) {
     return (
@@ -287,13 +295,13 @@ const AuthForm = () => {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder={isSignUp ? "Mínimo 6 caracteres" : "Ingrese su contraseña"}
+                    placeholder={isSignUp ? "Mínimo 8 caracteres" : "Ingrese su contraseña"}
                     value={formData.password}
                     onChange={handleInputChange('password')}
                     className={`pl-10 pr-10 border-gray-200 focus:border-red-500 ${
                       errors.password ? 'border-red-500' : ''
                     }`}
-                    minLength={isSignUp ? 6 : undefined}
+                    minLength={isSignUp ? 8 : undefined}
                     required
                   />
                   <button
@@ -306,6 +314,20 @@ const AuthForm = () => {
                 </div>
                 {errors.password && (
                   <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+                )}
+                {isSignUp && passwordValidation && formData.password && (
+                  <div className="mt-2">
+                    <p className={`text-xs ${getPasswordStrengthColor(passwordValidation.strength)}`}>
+                      Fortaleza: {getPasswordStrengthText(passwordValidation.strength)}
+                    </p>
+                    {!passwordValidation.isValid && (
+                      <ul className="text-xs text-gray-600 mt-1 ml-4">
+                        {passwordValidation.errors.map((error, index) => (
+                          <li key={index} className="list-disc">{error}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 )}
               </div>
 
