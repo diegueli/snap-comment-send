@@ -73,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const loadProfile = async (userId: string) => {
-    const [data, error] = await handleAsyncError(
+    const [result, error] = await handleAsyncError(
       supabase
         .from('profiles')
         .select('*')
@@ -88,8 +88,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "No se pudo cargar la información del perfil.",
         variant: "destructive",
       });
-    } else if (data?.data) {
-      setProfile(data.data);
+    } else if (result) {
+      setProfile(result);
       secureLogger.info('Profile loaded successfully');
     }
     
