@@ -187,7 +187,6 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
     }
   }, [auditoriasDisponibles, loadAuditoriaSets]);
 
-  // ... keep existing code (toggle, edit, save, cancel, delete functions)
   const toggleSetExpansion = (setId: string) => {
     setExpandedSets(prev => {
       const newSet = new Set(prev);
@@ -378,7 +377,6 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
               </div>
             )}
 
-            {/* ... keep existing code (auditoriaInfo display) */}
             {auditoriaInfo && (
               <div className="border rounded-md p-4">
                 <h3 className="text-xl font-semibold mb-2">Información de la Auditoría</h3>
@@ -534,7 +532,7 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
                         )}
                       </div>
 
-                      {/* Photo Gallery - Restaurar funcionalidad de preview */}
+                      {/* Photo Gallery - Preview de fotografías */}
                       {expandedSets.has(set.id) && set.foto_urls && set.foto_urls.length > 0 && (
                         <div className="mt-4">
                           <h4 className="font-medium mb-2 text-gray-700">
