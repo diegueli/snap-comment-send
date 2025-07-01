@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -77,7 +78,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single(),
+        .single()
+        .then(response => response),
       'loadProfile'
     );
 
@@ -87,9 +89,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "No se pudo cargar la información del perfil.",
         variant: "destructive",
       });
-    } else if (result?.data) {
-      setProfile(result.data as Profile);
-      secureLogger.info('Profile loaded successfully');
+    } else if (result && typeof result === 'object' && 'data' in result) {
+      const supabaseResult = result as { data: Profile | null };
+      if (supabaseResult.data) {
+        setProfile(supabaseResult.data);
+        secureLogger.info('Profile loaded successfully');
+      }
     }
     
     setLoading(false);
