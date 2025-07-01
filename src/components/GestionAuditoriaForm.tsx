@@ -4,10 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, FileText, Edit, Save, X, Trash2, Eye, EyeOff, Download, CheckCircle } from 'lucide-react';
+import { ArrowLeft, FileText, Edit, Save, X, Trash2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { generateResumenPDF } from '@/utils/resumenPdfGenerator';
 import { toast } from 'sonner';
 import ResponsableSelect from './auditoria/ResponsableSelect';
 
@@ -48,7 +47,6 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
   const [editingField, setEditingField] = useState<{ setId: string; field: 'levantamiento' | 'responsable' } | null>(null);
   const [editingValue, setEditingValue] = useState('');
   const [editingGerenciaId, setEditingGerenciaId] = useState<number | null>(null);
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [gerenciaNombre, setGerenciaNombre] = useState<string>('');
   const [isLoadingAuditorias, setIsLoadingAuditorias] = useState(false);
 
@@ -268,37 +266,6 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
     }
   };
 
-  const handleGenerarPDF = async () => {
-    if (!auditoriaInfo || sets.length === 0) {
-      toast.error('No hay datos suficientes para generar el PDF.');
-      return;
-    }
-
-    setIsGeneratingPDF(true);
-    try {
-      const setsForPDF = sets.map(set => ({
-        id: set.id,
-        area: set.area,
-        levantamiento: set.levantamiento || '',
-        responsable: set.responsable || '',
-        gerencia_resp_id: set.gerencia_resp_id,
-        fecha_compromiso: set.fecha_compromiso,
-        foto_urls: set.foto_urls || [],
-        created_at: set.created_at,
-        updated_at: set.updated_at,
-        auditoria_codigo: set.auditoria_codigo
-      }));
-
-      await generateResumenPDF(auditoriaInfo, setsForPDF);
-      toast.success('PDF generado con éxito!');
-    } catch (error) {
-      console.error('Error al generar el PDF:', error);
-      toast.error('Error al generar el PDF.');
-    } finally {
-      setIsGeneratingPDF(false);
-    }
-  };
-
   return (
     <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-[80vh] p-4">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -336,44 +303,25 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
             )}
 
             {!isLoadingAuditorias && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Select onValueChange={handleAuditoriaChange} value={auditoriaSeleccionada}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecciona una auditoría" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {auditoriasDisponibles.length > 0 ? (
-                        auditoriasDisponibles.map((auditoria) => (
-                          <SelectItem key={auditoria.codigo_auditoria} value={auditoria.codigo_auditoria}>
-                            {auditoria.titulo_documento} - {auditoria.codigo_auditoria}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="no-auditorias" disabled>
-                          No hay auditorías disponibles
+              <div className="w-full">
+                <Select onValueChange={handleAuditoriaChange} value={auditoriaSeleccionada}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecciona una auditoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {auditoriasDisponibles.length > 0 ? (
+                      auditoriasDisponibles.map((auditoria) => (
+                        <SelectItem key={auditoria.codigo_auditoria} value={auditoria.codigo_auditoria}>
+                          {auditoria.titulo_documento} - {auditoria.codigo_auditoria}
                         </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Button
-                    className="w-full"
-                    onClick={handleGenerarPDF}
-                    disabled={!auditoriaInfo || sets.length === 0 || isGeneratingPDF}
-                  >
-                    {isGeneratingPDF ? (
-                      <>Generando PDF...</>
+                      ))
                     ) : (
-                      <>
-                        <Download className="mr-2 h-4 w-4" />
-                        Generar PDF
-                      </>
+                      <SelectItem value="no-auditorias" disabled>
+                        No hay auditorías disponibles
+                      </SelectItem>
                     )}
-                  </Button>
-                </div>
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
