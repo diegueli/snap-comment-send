@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -5,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { User, Mail, Briefcase, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import GerenciaSelect from '@/components/auth/GerenciaSelect';
 
 const AuthForm = () => {
   const { signUp, signIn, loading } = useAuth();
@@ -15,29 +17,58 @@ const AuthForm = () => {
     email: '',
     position: '',
     password: '',
+    gerencia: '',
     gerencia_id: undefined as number | undefined
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    // Validar email
+    if (!formData.email.trim()) {
+      newErrors.email = 'El email es requerido';
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        newErrors.email = 'El formato del email no es válido';
+      }
+    }
+
+    // Validar contraseña
+    if (!formData.password.trim()) {
+      newErrors.password = 'La contraseña es requerida';
+    } else if (isSignUp && formData.password.length < 6) {
+      newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
+    }
+
+    // Validaciones específicas para registro
+    if (isSignUp) {
+      if (!formData.name.trim()) {
+        newErrors.name = 'El nombre es requerido';
+      }
+      if (!formData.position.trim()) {
+        newErrors.position = 'El cargo es requerido';
+      }
+      if (!formData.gerencia.trim()) {
+        newErrors.gerencia = 'La gerencia es requerida';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Basic validation
-    if (!formData.email.trim() || !formData.password.trim()) {
-      return;
-    }
-
-    if (isSignUp && (!formData.name.trim() || !formData.position.trim())) {
-      return;
-    }
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
+    if (!validateForm()) {
       return;
     }
 
     setIsSubmitting(true);
+    setErrors({});
     
     try {
       if (isSignUp) {
@@ -49,8 +80,21 @@ const AuthForm = () => {
       } else {
         await signIn(formData.email, formData.password);
       }
-    } catch (error) {
-      // Error handling is done in the auth context
+    } catch (error: any) {
+      console.error('Error en autenticación:', error);
+      
+      // Manejar errores específicos
+      if (error.message?.includes('Invalid login credentials')) {
+        setErrors({ general: 'Credenciales incorrectas. Verifica tu email y contraseña.' });
+      } else if (error.message?.includes('User already registered')) {
+        setErrors({ email: 'Este email ya está registrado. Intenta iniciar sesión.' });
+      } else if (error.message?.includes('Password should be at least 6 characters')) {
+        setErrors({ password: 'La contraseña debe tener al menos 6 caracteres' });
+      } else if (error.message?.includes('Invalid email')) {
+        setErrors({ email: 'El formato del email no es válido' });
+      } else {
+        setErrors({ general: error.message || 'Error en la autenticación. Intenta nuevamente.' });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -61,18 +105,37 @@ const AuthForm = () => {
       ...prev,
       [field]: e.target.value
     }));
+    
+    // Limpiar error del campo cuando el usuario empiece a escribir
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
   };
 
-  const handleGerenciaChange = (gerenciaId: number) => {
+  const handleGerenciaChange = (gerenciaNombre: string, gerenciaId?: number) => {
     setFormData(prev => ({
       ...prev,
+      gerencia: gerenciaNombre,
       gerencia_id: gerenciaId
     }));
+    
+    // Limpiar error de gerencia
+    if (errors.gerencia) {
+      setErrors(prev => ({ ...prev, gerencia: '' }));
+    }
   };
 
   const toggleAuthMode = () => {
     setIsSignUp(!isSignUp);
-    setFormData({ name: '', email: '', position: '', password: '', gerencia_id: undefined });
+    setFormData({ 
+      name: '', 
+      email: '', 
+      position: '', 
+      password: '', 
+      gerencia: '', 
+      gerencia_id: undefined 
+    });
+    setErrors({});
   };
 
   if (loading) {
@@ -123,6 +186,13 @@ const AuthForm = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Error general */}
+              {errors.general && (
+                <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                  <p className="text-red-600 text-sm">{errors.general}</p>
+                </div>
+              )}
+
               {isSignUp && (
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-gray-700">
@@ -136,10 +206,15 @@ const AuthForm = () => {
                       placeholder="Ingrese su nombre completo"
                       value={formData.name}
                       onChange={handleInputChange('name')}
-                      className="pl-10 border-gray-200 focus:border-red-500"
+                      className={`pl-10 border-gray-200 focus:border-red-500 ${
+                        errors.name ? 'border-red-500' : ''
+                      }`}
                       required={isSignUp}
                     />
                   </div>
+                  {errors.name && (
+                    <p className="text-red-500 text-xs mt-1">{errors.name}</p>
+                  )}
                 </div>
               )}
 
@@ -155,10 +230,15 @@ const AuthForm = () => {
                     placeholder="nombre@quintaalimentos.com"
                     value={formData.email}
                     onChange={handleInputChange('email')}
-                    className="pl-10 border-gray-200 focus:border-red-500"
+                    className={`pl-10 border-gray-200 focus:border-red-500 ${
+                      errors.email ? 'border-red-500' : ''
+                    }`}
                     required
                   />
                 </div>
+                {errors.email && (
+                  <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                )}
               </div>
 
               {isSignUp && (
@@ -174,10 +254,27 @@ const AuthForm = () => {
                       placeholder="Ej: Supervisor de Calidad"
                       value={formData.position}
                       onChange={handleInputChange('position')}
-                      className="pl-10 border-gray-200 focus:border-red-500"
+                      className={`pl-10 border-gray-200 focus:border-red-500 ${
+                        errors.position ? 'border-red-500' : ''
+                      }`}
                       required={isSignUp}
                     />
                   </div>
+                  {errors.position && (
+                    <p className="text-red-500 text-xs mt-1">{errors.position}</p>
+                  )}
+                </div>
+              )}
+
+              {isSignUp && (
+                <div className="space-y-2">
+                  <GerenciaSelect
+                    value={formData.gerencia}
+                    onValueChange={handleGerenciaChange}
+                  />
+                  {errors.gerencia && (
+                    <p className="text-red-500 text-xs mt-1">{errors.gerencia}</p>
+                  )}
                 </div>
               )}
 
@@ -193,7 +290,9 @@ const AuthForm = () => {
                     placeholder={isSignUp ? "Mínimo 6 caracteres" : "Ingrese su contraseña"}
                     value={formData.password}
                     onChange={handleInputChange('password')}
-                    className="pl-10 pr-10 border-gray-200 focus:border-red-500"
+                    className={`pl-10 pr-10 border-gray-200 focus:border-red-500 ${
+                      errors.password ? 'border-red-500' : ''
+                    }`}
                     minLength={isSignUp ? 6 : undefined}
                     required
                   />
@@ -205,6 +304,9 @@ const AuthForm = () => {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {errors.password && (
+                  <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+                )}
               </div>
 
               <Button
