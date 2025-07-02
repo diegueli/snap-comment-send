@@ -1,14 +1,12 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, FileText, Edit, Save, X, Trash2, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { ArrowLeft, FileText, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import ResponsableSelect from './auditoria/ResponsableSelect';
+import GestionPhotoPreview from './gestion/GestionPhotoPreview';
 
 interface AuditoriaSet {
   id: string;
@@ -468,174 +466,24 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
               </div>
             )}
 
-            {/* Sets Display */}
+            {/* Preview de Fotografías usando el nuevo componente */}
             {!loading && sets.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">
-                  Conjuntos de Fotos - {gerenciaNombre} ({sets.length})
-                </h3>
-                
-                {sets.map((set) => (
-                  <Card key={set.id} className="border-l-4 border-l-blue-500">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">{set.area}</CardTitle>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleSetExpansion(set.id)}
-                          >
-                            {expandedSets.has(set.id) ? (
-                              <EyeOff className="w-4 h-4" />
-                            ) : (
-                              <Eye className="w-4 h-4" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteSet(set.id)}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        {/* Levantamiento Field */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Levantamiento
-                          </label>
-                          {editingField?.setId === set.id && editingField?.field === 'levantamiento' ? (
-                            <div className="flex gap-2">
-                              <Textarea
-                                value={editingValue}
-                                onChange={(e) => setEditingValue(e.target.value)}
-                                className="flex-1"
-                                rows={3}
-                              />
-                              <div className="flex flex-col gap-1">
-                                <Button size="sm" onClick={saveEdit}>
-                                  <Save className="w-4 h-4" />
-                                </Button>
-                                <Button size="sm" variant="outline" onClick={cancelEdit}>
-                                  <X className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-start gap-2">
-                              <div className="flex-1 min-h-[2.5rem] p-2 border rounded-md bg-gray-50">
-                                {set.levantamiento || 'Sin levantamiento'}
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => startEditing(set.id, 'levantamiento', set.levantamiento)}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Responsable Field */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Responsable
-                          </label>
-                          {editingField?.setId === set.id && editingField?.field === 'responsable' ? (
-                            <div className="flex gap-2">
-                              <div className="flex-1">
-                                <ResponsableSelect
-                                  value={editingValue}
-                                  onValueChange={(value, gerenciaId) => {
-                                    setEditingValue(value);
-                                    setEditingGerenciaId(gerenciaId || null);
-                                  }}
-                                />
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                <Button size="sm" onClick={saveEdit}>
-                                  <Save className="w-4 h-4" />
-                                </Button>
-                                <Button size="sm" variant="outline" onClick={cancelEdit}>
-                                  <X className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <div className="flex-1 p-2 border rounded-md bg-gray-50">
-                                {set.responsable || 'Sin responsable asignado'}
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => startEditing(set.id, 'responsable', set.responsable, set.gerencia_resp_id)}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Información adicional */}
-                      <div className="text-sm text-gray-600 mb-2">
-                        <p>Fotos: {set.foto_urls?.length || 0}</p>
-                        <p>Creado: {new Date(set.created_at).toLocaleString()}</p>
-                        {set.updated_at !== set.created_at && (
-                          <p>Actualizado: {new Date(set.updated_at).toLocaleString()}</p>
-                        )}
-                      </div>
-
-                      {/* Photo Gallery - Preview de fotografías */}
-                      {expandedSets.has(set.id) && set.foto_urls && set.foto_urls.length > 0 && (
-                        <div className="mt-4">
-                          <h4 className="font-medium mb-2 text-gray-700">
-                            Fotografías ({set.foto_urls.length})
-                          </h4>
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                            {set.foto_urls.map((url, index) => (
-                              <div key={index} className="aspect-square relative group">
-                                <img
-                                  src={url}
-                                  alt={`Foto ${index + 1} de ${set.area}`}
-                                  className="w-full h-full object-cover rounded-lg border-2 border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer hover:border-blue-300"
-                                  onClick={() => window.open(url, '_blank')}
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                  }}
-                                />
-                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
-                                  <Eye className="text-white w-6 h-6" />
-                                </div>
-                                <div className="absolute top-1 right-1 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
-                                  {index + 1}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Mostrar mensaje cuando no hay fotos para visualizar */}
-                      {expandedSets.has(set.id) && (!set.foto_urls || set.foto_urls.length === 0) && (
-                        <div className="mt-4 text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                          <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                          <p className="text-gray-600 text-sm">No hay fotografías disponibles para este conjunto</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
+              <div className="mt-6">
+                <GestionPhotoPreview
+                  auditoriaSets={sets}
+                  expandedSets={expandedSets}
+                  editingField={editingField}
+                  editingValue={editingValue}
+                  editingGerenciaId={editingGerenciaId}
+                  onToggleExpansion={toggleSetExpansion}
+                  onStartEditing={startEditing}
+                  onSaveEdit={saveEdit}
+                  onCancelEdit={cancelEdit}
+                  onEditingValueChange={setEditingValue}
+                  onEditingGerenciaChange={setEditingGerenciaId}
+                  onDeleteSet={deleteSet}
+                  gerenciaNombre={gerenciaNombre}
+                />
               </div>
             )}
           </CardContent>
