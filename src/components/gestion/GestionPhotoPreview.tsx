@@ -1,10 +1,10 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, Camera, CheckCircle, Clock, AlertCircle, Edit, Save, X, Trash2 } from 'lucide-react';
+import { Camera, CheckCircle, AlertCircle, Edit, Save, X, Trash2 } from 'lucide-react';
 import ResponsableSelect from '../auditoria/ResponsableSelect';
 
 interface AuditoriaSet {
@@ -59,14 +59,13 @@ const GestionPhotoPreview: React.FC<GestionPhotoPreviewProps> = ({
         icon: CheckCircle,
         color: 'bg-green-100 text-green-800 border-green-200'
       };
-    } else {
-      return {
-        status: 'unassigned',
-        label: 'Sin asignar',
-        icon: AlertCircle,
-        color: 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      };
     }
+    return {
+      status: 'unassigned',
+      label: 'Sin asignar',
+      icon: AlertCircle,
+      color: 'bg-yellow-100 text-yellow-800 border-yellow-200'
+    };
   };
 
   const formatDate = (dateString: string) => {
@@ -75,6 +74,117 @@ const GestionPhotoPreview: React.FC<GestionPhotoPreviewProps> = ({
       month: '2-digit',
       year: 'numeric'
     });
+  };
+
+  const renderPhotoGallery = (set: AuditoriaSet, isExpanded: boolean) => {
+    if (!set.foto_urls || set.foto_urls.length === 0) {
+      return (
+        <div className="text-center py-4 text-gray-500 text-sm bg-gray-50 rounded-lg">
+          Sin fotografías de levantamiento
+        </div>
+      );
+    }
+
+    const photosToShow = isExpanded ? set.foto_urls : set.foto_urls.slice(0, 3);
+
+    return (
+      <>
+        <div className="grid grid-cols-3 gap-2">
+          {photosToShow.map((url, index) => (
+            <div key={index} className="relative group">
+              <img
+                src={url}
+                alt={`Levantamiento ${set.area} - ${index + 1}`}
+                className="w-full aspect-square object-cover rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => window.open(url, '_blank')}
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                }}
+              />
+              <div className="absolute top-1 right-1 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+                {index + 1}
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {set.foto_urls.length > 3 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onToggleExpansion(set.id)}
+            className="mt-2 text-blue-600 hover:text-blue-800"
+          >
+            {isExpanded ? 'Ver menos' : `Ver ${set.foto_urls.length - 3} más`}
+          </Button>
+        )}
+      </>
+    );
+  };
+
+  const renderEditableField = (
+    set: AuditoriaSet,
+    field: 'levantamiento' | 'responsable',
+    title: string,
+    value: string | null,
+    placeholder: string,
+    bgColor: string
+  ) => {
+    const isEditing = editingField?.setId === set.id && editingField?.field === field;
+
+    if (isEditing) {
+      return (
+        <div className="flex gap-2">
+          {field === 'levantamiento' ? (
+            <Textarea
+              value={editingValue}
+              onChange={(e) => onEditingValueChange(e.target.value)}
+              className="flex-1"
+              rows={3}
+            />
+          ) : (
+            <div className="flex-1">
+              <ResponsableSelect
+                value={editingValue}
+                onValueChange={(value, gerenciaId) => {
+                  onEditingValueChange(value);
+                  onEditingGerenciaChange(gerenciaId || null);
+                }}
+              />
+            </div>
+          )}
+          <div className="flex flex-col gap-1">
+            <Button size="sm" onClick={onSaveEdit}>
+              <Save className="w-4 h-4" />
+            </Button>
+            <Button size="sm" variant="outline" onClick={onCancelEdit}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className={`${bgColor} p-3 rounded-lg`}>
+        <div className="flex items-start gap-2">
+          <div className="flex-1">
+            <p className="text-sm text-gray-600">
+              {value || placeholder}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => onStartEditing(set.id, field, value, field === 'responsable' ? set.gerencia_resp_id : undefined)}
+            className="text-blue-600 hover:text-blue-800"
+          >
+            <Edit className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -129,126 +239,32 @@ const GestionPhotoPreview: React.FC<GestionPhotoPreviewProps> = ({
                 <h4 className="text-sm font-medium text-gray-700 mb-2">
                   Fotografías del levantamiento ({set.foto_urls?.length || 0})
                 </h4>
-                {set.foto_urls && set.foto_urls.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-2">
-                    {set.foto_urls.slice(0, isExpanded ? set.foto_urls.length : 3).map((url, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={url}
-                          alt={`Levantamiento ${set.area} - ${index + 1}`}
-                          className="w-full aspect-square object-cover rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                          onClick={() => window.open(url, '_blank')}
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                          }}
-                        />
-                        <div className="absolute top-1 right-1 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
-                          {index + 1}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-4 text-gray-500 text-sm bg-gray-50 rounded-lg">
-                    Sin fotografías de levantamiento
-                  </div>
-                )}
-                
-                {set.foto_urls && set.foto_urls.length > 3 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onToggleExpansion(set.id)}
-                    className="mt-2 text-blue-600 hover:text-blue-800"
-                  >
-                    {isExpanded ? 'Ver menos' : `Ver ${set.foto_urls.length - 3} más`}
-                  </Button>
-                )}
+                {renderPhotoGallery(set, isExpanded)}
               </div>
 
               {/* Levantamiento - Editable */}
               <div className="mb-4">
                 <h4 className="text-sm font-medium text-gray-700 mb-2">Levantamiento:</h4>
-                {editingField?.setId === set.id && editingField?.field === 'levantamiento' ? (
-                  <div className="flex gap-2">
-                    <Textarea
-                      value={editingValue}
-                      onChange={(e) => onEditingValueChange(e.target.value)}
-                      className="flex-1"
-                      rows={3}
-                    />
-                    <div className="flex flex-col gap-1">
-                      <Button size="sm" onClick={onSaveEdit}>
-                        <Save className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={onCancelEdit}>
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-blue-50 p-3 rounded-lg">
-                    <div className="flex items-start gap-2">
-                      <div className="flex-1">
-                        <p className="text-sm text-gray-600">
-                          {set.levantamiento || 'Sin levantamiento'}
-                        </p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => onStartEditing(set.id, 'levantamiento', set.levantamiento)}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
+                {renderEditableField(
+                  set,
+                  'levantamiento',
+                  'Levantamiento',
+                  set.levantamiento,
+                  'Sin levantamiento',
+                  'bg-blue-50'
                 )}
               </div>
 
               {/* Responsable - Editable */}
               <div className="mb-4">
                 <h4 className="text-sm font-medium text-gray-700 mb-2">Responsable:</h4>
-                {editingField?.setId === set.id && editingField?.field === 'responsable' ? (
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <ResponsableSelect
-                        value={editingValue}
-                        onValueChange={(value, gerenciaId) => {
-                          onEditingValueChange(value);
-                          onEditingGerenciaChange(gerenciaId || null);
-                        }}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <Button size="sm" onClick={onSaveEdit}>
-                        <Save className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={onCancelEdit}>
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1">
-                        <p className="text-sm text-gray-600">
-                          {set.responsable || 'Sin responsable asignado'}
-                        </p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => onStartEditing(set.id, 'responsable', set.responsable, set.gerencia_resp_id)}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
+                {renderEditableField(
+                  set,
+                  'responsable',
+                  'Responsable',
+                  set.responsable,
+                  'Sin responsable asignado',
+                  'bg-gray-50'
                 )}
               </div>
             </CardContent>

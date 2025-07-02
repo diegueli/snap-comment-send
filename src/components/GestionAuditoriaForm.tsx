@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,47 +37,42 @@ interface GestionAuditoriaFormProps {
 
 const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) => {
   const { user, profile } = useAuth();
+  
+  // Estados principales
   const [auditoriasDisponibles, setAuditoriasDisponibles] = useState<AuditoriaInfo[]>([]);
   const [auditoriaSeleccionada, setAuditoriaSeleccionada] = useState<string>('');
   const [sets, setSets] = useState<AuditoriaSet[]>([]);
   const [auditoriaInfo, setAuditoriaInfo] = useState<AuditoriaInfo | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [gerenciaNombre, setGerenciaNombre] = useState<string>('');
+  
+  // Estados de interfaz
   const [expandedSets, setExpandedSets] = useState<Set<string>>(new Set());
   const [editingField, setEditingField] = useState<{ setId: string; field: 'levantamiento' | 'responsable' } | null>(null);
   const [editingValue, setEditingValue] = useState('');
   const [editingGerenciaId, setEditingGerenciaId] = useState<number | null>(null);
-  const [gerenciaNombre, setGerenciaNombre] = useState<string>('');
+  
+  // Estados de carga y permisos
+  const [loading, setLoading] = useState(false);
   const [isLoadingAuditorias, setIsLoadingAuditorias] = useState(false);
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(true);
   const [hasGestionAccess, setHasGestionAccess] = useState(false);
 
-  // Verificar permisos del usuario para acceder al módulo Gestión
+  // Verificar permisos del usuario
   useEffect(() => {
     const checkGestionAccess = async () => {
-      console.log('🔍 Verificando acceso al módulo Gestión...');
-      
       if (!user?.id || !profile) {
-        console.log('❌ No hay usuario o perfil disponible');
         setIsLoadingPermissions(false);
         return;
       }
 
       try {
-        console.log('👤 Usuario ID:', user.id);
-        console.log('📋 Perfil:', profile);
-        
         let hasAccess = false;
         
-        // Verificar si tiene permisos globales
         if (profile.can_view_all_auditorias) {
-          console.log('✅ Usuario tiene permisos globales');
           hasAccess = true;
         } else if (profile.gerencia_id) {
-          // Si tiene una gerencia asignada, puede acceder
-          console.log('🏢 Usuario tiene gerencia asignada:', profile.gerencia_id);
           hasAccess = true;
           
-          // Obtener nombre de la gerencia
           const { data: gerenciaData, error: gerenciaError } = await supabase
             .from('gerencias')
             .select('nombre')
@@ -84,18 +80,15 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
             .single();
 
           if (!gerenciaError && gerenciaData) {
-            console.log('✅ Gerencia obtenida:', gerenciaData.nombre);
             setGerenciaNombre(gerenciaData.nombre);
           }
         }
 
-        console.log('🎯 Acceso al módulo Gestión:', hasAccess);
         setHasGestionAccess(hasAccess);
       } catch (error) {
-        console.error('💥 Error verificando acceso:', error);
+        console.error('Error verificando acceso:', error);
         setHasGestionAccess(false);
       } finally {
-        console.log('✅ Verificación de acceso completada');
         setIsLoadingPermissions(false);
       }
     };
@@ -103,22 +96,13 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
     checkGestionAccess();
   }, [user?.id, profile]);
 
-  // Cargar auditorías disponibles (solo si tiene acceso)
+  // Cargar auditorías disponibles
   useEffect(() => {
     const loadAuditorias = async () => {
-      console.log('📋 Intentando cargar auditorías...');
-      console.log('🔐 hasGestionAccess:', hasGestionAccess);
-      console.log('⏳ isLoadingPermissions:', isLoadingPermissions);
-      
-      if (!hasGestionAccess || isLoadingPermissions) {
-        console.log('❌ No se pueden cargar auditorías: acceso denegado o aún cargando');
-        return;
-      }
+      if (!hasGestionAccess || isLoadingPermissions) return;
 
       setIsLoadingAuditorias(true);
       try {
-        console.log('🔄 Ejecutando consulta a la base de datos...');
-        
         const { data, error } = await supabase
           .from('auditorias')
           .select(`
@@ -134,13 +118,10 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
           .order('fecha', { ascending: false });
 
         if (error) {
-          console.error('❌ Error al cargar auditorías:', error);
+          console.error('Error al cargar auditorías:', error);
           toast.error('Error al cargar las auditorías disponibles');
           return;
         }
-
-        console.log('📊 Datos obtenidos de la base de datos:', data);
-        console.log('📈 Cantidad de auditorías:', data?.length || 0);
 
         const auditoriasFormatted = data?.map(item => ({
           codigo_auditoria: item.codigo_auditoria,
@@ -151,10 +132,9 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
           status: item.status || 'Activo'
         })) || [];
 
-        console.log('✅ Auditorías formateadas:', auditoriasFormatted);
         setAuditoriasDisponibles(auditoriasFormatted);
       } catch (error) {
-        console.error('💥 Error loading auditorías:', error);
+        console.error('Error loading auditorías:', error);
         toast.error('Error al cargar las auditorías disponibles');
       } finally {
         setIsLoadingAuditorias(false);
@@ -164,20 +144,12 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
     loadAuditorias();
   }, [hasGestionAccess, isLoadingPermissions]);
 
-  // Cargar sets de auditoría (filtrados por gerencia del usuario)
+  // Cargar sets de auditoría
   const loadAuditoriaSets = useCallback(async (codigoAuditoria: string) => {
-    if (!codigoAuditoria) {
-      console.log('❌ No se proporcionó código de auditoría');
-      return;
-    }
+    if (!codigoAuditoria) return;
     
-    console.log('🔄 Cargando sets para auditoría:', codigoAuditoria);
-    console.log('🏢 Gerencia del usuario:', profile?.gerencia_id);
     setLoading(true);
-    
     try {
-      // Los sets se filtrarán automáticamente por las políticas RLS
-      // Solo verá sets de su gerencia o sin gerencia asignada
       const { data, error } = await supabase
         .from('auditoria_sets')
         .select('*')
@@ -185,34 +157,28 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
         .order('created_at', { ascending: true });
 
       if (error) {
-        console.error('❌ Error al cargar los sets de auditoría:', error);
+        console.error('Error al cargar los sets de auditoría:', error);
         toast.error('Error al cargar los sets de auditoría');
         setSets([]);
         return;
       }
 
-      console.log('📊 Sets obtenidos (filtrados por gerencia):', data?.length || 0);
-      console.log('📋 Detalle de sets:', data);
       setSets(data || []);
       
       if (!data || data.length === 0) {
-        console.log('⚠️ No se encontraron sets para esta auditoría en tu gerencia');
         toast.info('No se encontraron conjuntos de fotos asignados a tu gerencia para esta auditoría');
       }
     } catch (error) {
-      console.error('💥 Error inesperado al cargar los sets de auditoría:', error);
+      console.error('Error inesperado al cargar los sets de auditoría:', error);
       toast.error('Error inesperado al cargar los sets de auditoría');
       setSets([]);
     } finally {
-      console.log('✅ Carga de sets completada');
       setLoading(false);
     }
-  }, [profile?.gerencia_id]);
+  }, []);
 
+  // Manejar selección de auditoría
   const handleAuditoriaChange = useCallback(async (codigoAuditoria: string) => {
-    console.log('🎯 Seleccionando auditoría para gestión:', codigoAuditoria);
-    
-    // Limpiar estado anterior inmediatamente
     setAuditoriaSeleccionada(codigoAuditoria);
     setSets([]);
     setAuditoriaInfo(null);
@@ -220,14 +186,12 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
 
     const selectedAuditoria = auditoriasDisponibles.find(a => a.codigo_auditoria === codigoAuditoria);
     if (selectedAuditoria) {
-      console.log('✅ Auditoría encontrada:', selectedAuditoria);
       setAuditoriaInfo(selectedAuditoria);
       await loadAuditoriaSets(codigoAuditoria);
-    } else {
-      console.log('❌ Auditoría no encontrada');
     }
   }, [auditoriasDisponibles, loadAuditoriaSets]);
 
+  // Funciones de manejo de estado
   const toggleSetExpansion = (setId: string) => {
     setExpandedSets(prev => {
       const newSet = new Set(prev);
@@ -309,9 +273,16 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
     }
   };
 
-  // Mostrar spinner de carga mientras se verifican permisos
+  // Componente de carga
+  const LoadingSpinner = () => (
+    <div className="text-center py-4">
+      <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+      <p className="text-gray-600">Cargando...</p>
+    </div>
+  );
+
+  // Renderizado condicional para estados de carga y permisos
   if (isLoadingPermissions) {
-    console.log('⏳ Mostrando spinner de permisos...');
     return (
       <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-[80vh] p-4">
         <div className="max-w-4xl mx-auto space-y-6">
@@ -326,11 +297,10 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
               Volver
             </Button>
           </div>
-
           <Card className="bg-white/95 backdrop-blur-sm shadow-xl">
-            <CardContent className="p-6 text-center">
-              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-gray-600">Verificando permisos...</p>
+            <CardContent className="p-6">
+              <LoadingSpinner />
+              <p className="text-gray-600 text-center">Verificando permisos...</p>
             </CardContent>
           </Card>
         </div>
@@ -338,9 +308,7 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
     );
   }
 
-  // Verificar acceso antes de mostrar el contenido
   if (!hasGestionAccess) {
-    console.log('🚫 Acceso denegado - mostrando mensaje de restricción');
     return (
       <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-[80vh] p-4">
         <div className="max-w-4xl mx-auto space-y-6">
@@ -355,7 +323,6 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
               Volver
             </Button>
           </div>
-
           <Card className="bg-white/95 backdrop-blur-sm shadow-xl">
             <CardContent className="p-6 text-center">
               <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
@@ -365,9 +332,11 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
               <p className="text-gray-600 mb-2">
                 Este módulo requiere estar asignado a una gerencia para poder gestionar las auditorías correspondientes.
               </p>
-              <p className="text-sm text-gray-500">
-                {gerenciaNombre && `Gerencia actual: ${gerenciaNombre}`}
-              </p>
+              {gerenciaNombre && (
+                <p className="text-sm text-gray-500">
+                  Gerencia actual: {gerenciaNombre}
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -375,7 +344,6 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
     );
   }
 
-  console.log('🎨 Renderizando componente principal');
   return (
     <div className="bg-gradient-to-br from-yellow-400 via-red-500 to-orange-600 min-h-[80vh] p-4">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -405,15 +373,10 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
           </CardHeader>
 
           <CardContent className="grid gap-4">
-            {/* Mostrar estado de carga de auditorías */}
-            {isLoadingAuditorias && (
-              <div className="text-center py-4">
-                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                <p className="text-gray-600">Cargando auditorías disponibles...</p>
-              </div>
-            )}
-
-            {!isLoadingAuditorias && (
+            {/* Selector de auditorías */}
+            {isLoadingAuditorias ? (
+              <LoadingSpinner />
+            ) : (
               <div className="w-full">
                 <Select onValueChange={handleAuditoriaChange} value={auditoriaSeleccionada}>
                   <SelectTrigger className="w-full">
@@ -436,6 +399,7 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
               </div>
             )}
 
+            {/* Información de la auditoría */}
             {auditoriaInfo && (
               <div className="border rounded-md p-4">
                 <h3 className="text-xl font-semibold mb-2">Información de la Auditoría</h3>
@@ -450,15 +414,9 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
               </div>
             )}
 
-            {/* Mostrar estado de carga de sets */}
-            {loading && (
-              <div className="text-center py-4">
-                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                <p className="text-gray-600">Cargando datos de la auditoría...</p>
-              </div>
-            )}
+            {/* Estados de carga y mensajes */}
+            {loading && <LoadingSpinner />}
 
-            {/* Mostrar mensaje cuando no hay sets pero no está cargando */}
             {!loading && auditoriaSeleccionada && sets.length === 0 && (
               <div className="text-center py-4 bg-gray-50 rounded-lg">
                 <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
@@ -466,7 +424,7 @@ const GestionAuditoriaForm: React.FC<GestionAuditoriaFormProps> = ({ onClose }) 
               </div>
             )}
 
-            {/* Preview de Fotografías usando el nuevo componente */}
+            {/* Preview de fotografías */}
             {!loading && sets.length > 0 && (
               <div className="mt-6">
                 <GestionPhotoPreview
