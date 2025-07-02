@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, Camera, CheckCircle, Clock, AlertCircle, Edit, Save, X, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Calendar, Camera, CheckCircle, Clock, AlertCircle, Edit, Save, X, Trash2 } from 'lucide-react';
 import ResponsableSelect from '../auditoria/ResponsableSelect';
 
 interface AuditoriaSet {
@@ -106,17 +106,6 @@ const GestionPhotoPreview: React.FC<GestionPhotoPreviewProps> = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => onToggleExpansion(set.id)}
-                  >
-                    {isExpanded ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
                     onClick={() => onDeleteSet(set.id)}
                     className="text-red-600 hover:text-red-800"
                   >
@@ -154,9 +143,6 @@ const GestionPhotoPreview: React.FC<GestionPhotoPreviewProps> = ({
                             target.style.display = 'none';
                           }}
                         />
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
-                          <Eye className="text-white w-6 h-6" />
-                        </div>
                         <div className="absolute top-1 right-1 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
                           {index + 1}
                         </div>
